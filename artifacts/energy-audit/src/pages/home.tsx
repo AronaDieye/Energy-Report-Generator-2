@@ -63,7 +63,7 @@ export function Home() {
           <CardContent>
             {statsLoading ? <Skeleton className="h-8 w-20" /> : (
               <div className="text-3xl font-bold">
-                {stats?.averageSurface ? `${Math.round(stats.averageSurface)} m²` : "—"}
+                {stats?.averageSurface ? `${new Intl.NumberFormat("fr-FR").format(Math.round(stats.averageSurface))} m²` : "—"}
               </div>
             )}
           </CardContent>
@@ -76,7 +76,11 @@ export function Home() {
           <CardContent>
             {statsLoading ? <Skeleton className="h-8 w-20" /> : (
               <div className="text-3xl font-bold">
-                {stats?.averageConsumption ? `${Math.round(stats.averageConsumption)} kWh` : "—"}
+                {stats?.averageConsumption
+                  ? stats.averageConsumption >= 1000000
+                    ? `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(stats.averageConsumption / 1000)} MWh`
+                    : `${new Intl.NumberFormat("fr-FR").format(Math.round(stats.averageConsumption))} kWh`
+                  : "—"}
               </div>
             )}
           </CardContent>
