@@ -1,0 +1,308 @@
+import { Router, type IRouter } from "express";
+import multer from "multer";
+import { db, auditReportsTable } from "@workspace/db";
+import { eq, desc, sql } from "drizzle-orm";
+import { extractFromDocx, extractFromCsv } from "../lib/fileExtractor.js";
+import { logger } from "../lib/logger.js";
+
+const router: IRouter = Router();
+
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = [
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/msword",
+      "text/csv",
+      "application/csv",
+      "text/plain",
+    ];
+    const ext = file.originalname.toLowerCase();
+    if (
+      allowed.includes(file.mimetype) ||
+      ext.endsWith(".docx") ||
+      ext.endsWith(".doc") ||
+      ext.endsWith(".csv")
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error("Seuls les fichiers DOCX et CSV sont acceptés"));
+    }
+  },
+});
+
+router.post(
+  "/audit/upload",
+  upload.single("file"),
+  async (req, res): Promise<void> => {
+    if (!req.file) {
+      res.status(400).json({ error: "Aucun fichier fourni" });
+      return;
+    }
+
+    const file = req.file;
+    const isDocx =
+      file.mimetype.includes("word") ||
+      file.originalname.toLowerCase().endsWith(".docx") ||
+      file.originalname.toLowerCase().endsWith(".doc");
+    const isCsv =
+      file.mimetype.includes("csv") ||
+      file.mimetype.includes("text") ||
+      file.originalname.toLowerCase().endsWith(".csv");
+
+    if (!isDocx && !isCsv) {
+      res.status(400).json({ error: "Format de fichier non supporté. Utilisez DOCX ou CSV." });
+      return;
+    }
+
+    try {
+      const extracted = isDocx
+        ? await extractFromDocx(file.buffer)
+        : await extractFromCsv(file.buffer);
+
+      const fileType = isDocx ? "docx" : "csv";
+
+      const [inserted] = await db
+        .insert(auditReportsTable)
+        .values({
+          fileName: file.originalname,
+          fileType,
+          buildingName: extracted.buildingName,
+          buildingAddress: extracted.buildingAddress,
+          buildingType: extracted.buildingType,
+          constructionYear: extracted.constructionYear,
+          totalSurface: extracted.totalSurface,
+          heatedSurface: extracted.heatedSurface,
+          numberOfFloors: extracted.numberOfFloors,
+          numberOfOccupants: extracted.numberOfOccupants,
+          climateZone: extracted.climateZone,
+          totalConsumption: extracted.totalConsumption,
+          electricityConsumption: extracted.electricityConsumption,
+          gasConsumption: extracted.gasConsumption,
+          heatingConsumption: extracted.heatingConsumption,
+          coolingConsumption: extracted.coolingConsumption,
+          hotWaterConsumption: extracted.hotWaterConsumption,
+          consumptionUnit: extracted.consumptionUnit,
+          consumptionReferenceYear: extracted.consumptionReferenceYear,
+          totalCost: extracted.totalCost,
+          electricityCost: extracted.electricityCost,
+          gasCost: extracted.gasCost,
+          currency: extracted.currency,
+          costReferenceYear: extracted.costReferenceYear,
+          totalCo2Emissions: extracted.totalCo2Emissions,
+          electricityCo2Emissions: extracted.electricityCo2Emissions,
+          gasCo2Emissions: extracted.gasCo2Emissions,
+          co2Unit: extracted.co2Unit,
+          wallInsulation: extracted.wallInsulation,
+          roofInsulation: extracted.roofInsulation,
+          floorInsulation: extracted.floorInsulation,
+          windowType: extracted.windowType,
+          windowSurface: extracted.windowSurface,
+          airTightness: extracted.airTightness,
+          thermalBridges: extracted.thermalBridges,
+          heatingSystem: extracted.heatingSystem,
+          heatingEfficiency: extracted.heatingEfficiency,
+          coolingSystem: extracted.coolingSystem,
+          coolingEfficiency: extracted.coolingEfficiency,
+          ventilationType: extracted.ventilationType,
+          hotWaterSystem: extracted.hotWaterSystem,
+          currentLabel: extracted.currentLabel,
+          primaryEnergyConsumption: extracted.primaryEnergyConsumption,
+          referenceConsumption: extracted.referenceConsumption,
+          energyIndex: extracted.energyIndex,
+          recommendations: extracted.recommendations,
+          rawFields: extracted.rawFields,
+        })
+        .returning();
+
+      const report = mapToApiReport(inserted);
+      res.status(200).json(report);
+    } catch (err) {
+      req.log.error({ err }, "Error processing audit file");
+      res.status(500).json({ error: "Erreur lors du traitement du fichier" });
+    }
+  }
+);
+
+router.get("/audit/reports", async (_req, res): Promise<void> => {
+  const reports = await db
+    .select()
+    .from(auditReportsTable)
+    .orderBy(desc(auditReportsTable.uploadedAt));
+
+  const summaries = reports.map((r) => ({
+    id: r.id,
+    fileName: r.fileName,
+    fileType: r.fileType,
+    uploadedAt: r.uploadedAt.toISOString(),
+    buildingName: r.buildingName,
+    buildingType: r.buildingType,
+    totalSurface: r.totalSurface,
+    currentLabel: r.currentLabel,
+    totalConsumption: r.totalConsumption,
+  }));
+
+  res.json(summaries);
+});
+
+router.get("/audit/reports/:id", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "ID invalide" });
+    return;
+  }
+
+  const [report] = await db
+    .select()
+    .from(auditReportsTable)
+    .where(eq(auditReportsTable.id, id));
+
+  if (!report) {
+    res.status(404).json({ error: "Rapport non trouvé" });
+    return;
+  }
+
+  res.json(mapToApiReport(report));
+});
+
+router.delete("/audit/reports/:id", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) {
+    res.status(400).json({ error: "ID invalide" });
+    return;
+  }
+
+  const [deleted] = await db
+    .delete(auditReportsTable)
+    .where(eq(auditReportsTable.id, id))
+    .returning();
+
+  if (!deleted) {
+    res.status(404).json({ error: "Rapport non trouvé" });
+    return;
+  }
+
+  res.json({ success: true });
+});
+
+router.get("/audit/stats", async (_req, res): Promise<void> => {
+  const reports = await db.select().from(auditReportsTable);
+
+  const totalReports = reports.length;
+  const withConsumption = reports.filter((r) => r.totalConsumption != null);
+  const withSurface = reports.filter((r) => r.totalSurface != null);
+
+  const averageConsumption =
+    withConsumption.length > 0
+      ? withConsumption.reduce((sum, r) => sum + (r.totalConsumption ?? 0), 0) /
+        withConsumption.length
+      : null;
+
+  const averageSurface =
+    withSurface.length > 0
+      ? withSurface.reduce((sum, r) => sum + (r.totalSurface ?? 0), 0) /
+        withSurface.length
+      : null;
+
+  const labelDistribution: Record<string, number> = {};
+  const buildingTypeDistribution: Record<string, number> = {};
+
+  for (const report of reports) {
+    if (report.currentLabel) {
+      labelDistribution[report.currentLabel] =
+        (labelDistribution[report.currentLabel] ?? 0) + 1;
+    }
+    if (report.buildingType) {
+      const bt = report.buildingType;
+      buildingTypeDistribution[bt] = (buildingTypeDistribution[bt] ?? 0) + 1;
+    }
+  }
+
+  const totalCO2Saved = reports.reduce(
+    (sum, r) => sum + (r.totalCo2Emissions ?? 0),
+    0
+  );
+
+  res.json({
+    totalReports,
+    averageConsumption,
+    averageSurface,
+    labelDistribution,
+    buildingTypeDistribution,
+    totalCO2Saved: totalCO2Saved > 0 ? totalCO2Saved : null,
+  });
+});
+
+function mapToApiReport(r: typeof auditReportsTable.$inferSelect) {
+  return {
+    id: r.id,
+    fileName: r.fileName,
+    fileType: r.fileType,
+    uploadedAt: r.uploadedAt.toISOString(),
+    buildingInfo: {
+      name: r.buildingName,
+      address: r.buildingAddress,
+      buildingType: r.buildingType,
+      constructionYear: r.constructionYear,
+      totalSurface: r.totalSurface,
+      heatedSurface: r.heatedSurface,
+      numberOfFloors: r.numberOfFloors,
+      numberOfOccupants: r.numberOfOccupants,
+      climateZone: r.climateZone,
+    },
+    energyConsumption: {
+      totalConsumption: r.totalConsumption,
+      electricityConsumption: r.electricityConsumption,
+      gasConsumption: r.gasConsumption,
+      heatingConsumption: r.heatingConsumption,
+      coolingConsumption: r.coolingConsumption,
+      hotWaterConsumption: r.hotWaterConsumption,
+      unit: r.consumptionUnit,
+      referenceYear: r.consumptionReferenceYear,
+    },
+    energyCost: {
+      totalCost: r.totalCost,
+      electricityCost: r.electricityCost,
+      gasCost: r.gasCost,
+      currency: r.currency,
+      referenceYear: r.costReferenceYear,
+    },
+    co2Emissions: {
+      totalEmissions: r.totalCo2Emissions,
+      electricityEmissions: r.electricityCo2Emissions,
+      gasEmissions: r.gasCo2Emissions,
+      unit: r.co2Unit,
+    },
+    envelopeData: {
+      wallInsulation: r.wallInsulation,
+      roofInsulation: r.roofInsulation,
+      floorInsulation: r.floorInsulation,
+      windowType: r.windowType,
+      windowSurface: r.windowSurface,
+      airTightness: r.airTightness,
+      thermalBridges: r.thermalBridges,
+    },
+    hvacSystem: {
+      heatingSystem: r.heatingSystem,
+      heatingEfficiency: r.heatingEfficiency,
+      coolingSystem: r.coolingSystem,
+      coolingEfficiency: r.coolingEfficiency,
+      ventilationType: r.ventilationType,
+      hotWaterSystem: r.hotWaterSystem,
+    },
+    energyLabel: {
+      currentLabel: r.currentLabel,
+      primaryEnergyConsumption: r.primaryEnergyConsumption,
+      referenceConsumption: r.referenceConsumption,
+      energyIndex: r.energyIndex,
+    },
+    recommendations: r.recommendations ?? [],
+    rawFields: r.rawFields ?? [],
+  };
+}
+
+export default router;

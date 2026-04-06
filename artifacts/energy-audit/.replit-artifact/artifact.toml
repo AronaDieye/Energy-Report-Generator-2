@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Rapport d'Audit Énergétique"
+version = "1.0.0"
+id = "artifacts/energy-audit"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26038
+
+[services.development]
+run = "pnpm --filter @workspace/energy-audit run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/energy-audit", "run", "build" ]
+publicDir = "artifacts/energy-audit/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26038"
+BASE_PATH = "/"

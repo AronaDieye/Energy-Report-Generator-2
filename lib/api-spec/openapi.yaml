@@ -1,15 +1,16 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Energy audit report generation API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: audit
+    description: Energy audit operations
 paths:
   /healthz:
     get:
@@ -24,6 +25,124 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /audit/upload:
+    post:
+      operationId: uploadAuditFile
+      tags: [audit]
+      summary: Upload audit file
+      description: Upload a DOCX or CSV audit file and extract building data
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+                - file
+      responses:
+        "200":
+          description: File processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditReport"
+        "400":
+          description: Invalid file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Processing error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /audit/reports:
+    get:
+      operationId: listAuditReports
+      tags: [audit]
+      summary: List all audit reports
+      description: Returns a list of all previously uploaded audit reports
+      responses:
+        "200":
+          description: List of audit reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditReportSummary"
+
+  /audit/reports/{id}:
+    get:
+      operationId: getAuditReport
+      tags: [audit]
+      summary: Get a specific audit report
+      description: Returns the full details of an audit report by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Audit report details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditReport"
+        "404":
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteAuditReport
+      tags: [audit]
+      summary: Delete an audit report
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /audit/stats:
+    get:
+      operationId: getAuditStats
+      tags: [audit]
+      summary: Get aggregate statistics across all reports
+      description: Returns summary statistics across all uploaded audit reports
+      responses:
+        "200":
+          description: Aggregate statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +153,267 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+
+    BuildingInfo:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        buildingType:
+          type: ["string", "null"]
+        constructionYear:
+          type: ["integer", "null"]
+        totalSurface:
+          type: ["number", "null"]
+        heatedSurface:
+          type: ["number", "null"]
+        numberOfFloors:
+          type: ["integer", "null"]
+        numberOfOccupants:
+          type: ["integer", "null"]
+        climateZone:
+          type: ["string", "null"]
+
+    EnergyConsumption:
+      type: object
+      properties:
+        totalConsumption:
+          type: ["number", "null"]
+        electricityConsumption:
+          type: ["number", "null"]
+        gasConsumption:
+          type: ["number", "null"]
+        heatingConsumption:
+          type: ["number", "null"]
+        coolingConsumption:
+          type: ["number", "null"]
+        hotWaterConsumption:
+          type: ["number", "null"]
+        unit:
+          type: ["string", "null"]
+        referenceYear:
+          type: ["integer", "null"]
+
+    EnergyCost:
+      type: object
+      properties:
+        totalCost:
+          type: ["number", "null"]
+        electricityCost:
+          type: ["number", "null"]
+        gasCost:
+          type: ["number", "null"]
+        currency:
+          type: ["string", "null"]
+        referenceYear:
+          type: ["integer", "null"]
+
+    CO2Emissions:
+      type: object
+      properties:
+        totalEmissions:
+          type: ["number", "null"]
+        electricityEmissions:
+          type: ["number", "null"]
+        gasEmissions:
+          type: ["number", "null"]
+        unit:
+          type: ["string", "null"]
+
+    EnvelopeData:
+      type: object
+      properties:
+        wallInsulation:
+          type: ["string", "null"]
+        roofInsulation:
+          type: ["string", "null"]
+        floorInsulation:
+          type: ["string", "null"]
+        windowType:
+          type: ["string", "null"]
+        windowSurface:
+          type: ["number", "null"]
+        airTightness:
+          type: ["number", "null"]
+        thermalBridges:
+          type: ["string", "null"]
+
+    HVACSystem:
+      type: object
+      properties:
+        heatingSystem:
+          type: ["string", "null"]
+        heatingEfficiency:
+          type: ["number", "null"]
+        coolingSystem:
+          type: ["string", "null"]
+        coolingEfficiency:
+          type: ["number", "null"]
+        ventilationType:
+          type: ["string", "null"]
+        hotWaterSystem:
+          type: ["string", "null"]
+
+    EnergyLabel:
+      type: object
+      properties:
+        currentLabel:
+          type: ["string", "null"]
+        primaryEnergyConsumption:
+          type: ["number", "null"]
+        referenceConsumption:
+          type: ["number", "null"]
+        energyIndex:
+          type: ["number", "null"]
+
+    Recommendation:
+      type: object
+      properties:
+        category:
+          type: string
+        description:
+          type: string
+        estimatedSaving:
+          type: ["number", "null"]
+        estimatedCost:
+          type: ["number", "null"]
+        priority:
+          type: string
+          enum: [high, medium, low]
+        paybackPeriod:
+          type: ["number", "null"]
+      required:
+        - category
+        - description
+        - priority
+
+    RawExtractedField:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+        section:
+          type: ["string", "null"]
+      required:
+        - key
+        - value
+
+    AuditReport:
+      type: object
+      properties:
+        id:
+          type: integer
+        fileName:
+          type: string
+        fileType:
+          type: string
+        uploadedAt:
+          type: string
+          format: date-time
+        buildingInfo:
+          $ref: "#/components/schemas/BuildingInfo"
+        energyConsumption:
+          $ref: "#/components/schemas/EnergyConsumption"
+        energyCost:
+          $ref: "#/components/schemas/EnergyCost"
+        co2Emissions:
+          $ref: "#/components/schemas/CO2Emissions"
+        envelopeData:
+          $ref: "#/components/schemas/EnvelopeData"
+        hvacSystem:
+          $ref: "#/components/schemas/HVACSystem"
+        energyLabel:
+          $ref: "#/components/schemas/EnergyLabel"
+        recommendations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Recommendation"
+        rawFields:
+          type: array
+          items:
+            $ref: "#/components/schemas/RawExtractedField"
+      required:
+        - id
+        - fileName
+        - fileType
+        - uploadedAt
+        - buildingInfo
+        - energyConsumption
+        - energyCost
+        - co2Emissions
+        - envelopeData
+        - hvacSystem
+        - energyLabel
+        - recommendations
+        - rawFields
+
+    AuditReportSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        fileName:
+          type: string
+        fileType:
+          type: string
+        uploadedAt:
+          type: string
+          format: date-time
+        buildingName:
+          type: ["string", "null"]
+        buildingType:
+          type: ["string", "null"]
+        totalSurface:
+          type: ["number", "null"]
+        currentLabel:
+          type: ["string", "null"]
+        totalConsumption:
+          type: ["number", "null"]
+      required:
+        - id
+        - fileName
+        - fileType
+        - uploadedAt
+
+    AuditStats:
+      type: object
+      properties:
+        totalReports:
+          type: integer
+        averageConsumption:
+          type: ["number", "null"]
+        averageSurface:
+          type: ["number", "null"]
+        labelDistribution:
+          type: object
+          additionalProperties:
+            type: integer
+        buildingTypeDistribution:
+          type: object
+          additionalProperties:
+            type: integer
+        totalCO2Saved:
+          type: ["number", "null"]
+      required:
+        - totalReports
+        - labelDistribution
+        - buildingTypeDistribution
