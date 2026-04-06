@@ -126,6 +126,137 @@ function isSectionHeader(line: string): boolean {
   return false;
 }
 
+// ─── BAO Evolution SED: Ubat / Déperditions parser ──────────────────────────
+
+interface UbatData {
+  coefficient: number | null;
+  ht: number | null;
+  hd: number | null;
+  hu: number | null;
+  hs: number | null;
+  at: number | null;
+  ventilation: number | null;
+  infiltrations: number | null;
+  gv: number | null;
+  deperditionsTotalesKw: number | null;
+  // Grouped row-level totals
+  mursExt: number | null;
+  vitrages: number | null;
+  portes: number | null;
+  pontsThermiques: number | null;
+  autresParois: number | null;
+}
+
+const ORIENTATIONS = new Set(["Nord", "Sud", "Est", "Oue", "Int.", "Hori."]);
+
+function parseUbatSection(text: string): UbatData {
+  const empty: UbatData = {
+    coefficient: null, ht: null, hd: null, hu: null, hs: null, at: null,
+    ventilation: null, infiltrations: null, gv: null, deperditionsTotalesKw: null,
+    mursExt: null, vitrages: null, portes: null, pontsThermiques: null, autresParois: null,
+  };
+
+  const sectionStart = text.indexOf("ETAT INITIAL : CALCUL du COEFFICIENT UBAT");
+  if (sectionStart < 0) return empty;
+
+  const section = text.slice(sectionStart, sectionStart + 14000);
+
+  // ── Summary values ──
+  const coefM = section.match(/COEFFICIENT UBAT\s*=\s*([\d,]+)/);
+  const htM   = section.match(/HT\s*=\s*[\s\n]*([\d\s,]+)/);
+  const hdM   = section.match(/Déperditions Parois Extérieures\s*HD\s*:\s*([\d\s,]+)\s*W\/°C/);
+  const huM   = section.match(/Déperditions Parois Intérieures\s*HU\s*:\s*([\d\s,]+)\s*W\/°C/);
+  const hsM   = section.match(/Déperditions par le sol\s*HS\s*:\s*([\d\s,]+)\s*W\/°C/);
+  const atM   = section.match(/Surface Totale des parois déperditivesAT\s*:\s*([\d\s,]+)\s*m²/);
+  const ventM = section.match(/Ventilation spécifique\s*:\s*([\d\s,]+)\s*W\/°C/);
+  const infM  = section.match(/Infiltrations\s*:\s*([\d\s,]+)\s*W\/°C/);
+  const gvM   = section.match(/Total\s*\(GV\)\s*:\s*([\d\s,]+)\s*W\/°C/);
+  const depTM = section.match(/Déperditions totales\s*\(sans majoration\)\s*:\s*([\d\s,]+)\s*kW/);
+
+  const result: UbatData = {
+    coefficient: coefM ? parseNum(coefM[1]) : null,
+    ht:          htM   ? parseNum(htM[1])   : null,
+    hd:          hdM   ? parseNum(hdM[1])   : null,
+    hu:          huM   ? parseNum(huM[1])   : null,
+    hs:          hsM   ? parseNum(hsM[1])   : null,
+    at:          atM   ? parseNum(atM[1])   : null,
+    ventilation: ventM ? parseNum(ventM[1]) : null,
+    infiltrations: infM ? parseNum(infM[1]) : null,
+    gv:          gvM   ? parseNum(gvM[1])   : null,
+    deperditionsTotalesKw: depTM ? parseNum(depTM[1]) : null,
+    mursExt: null, vitrages: null, portes: null, pontsThermiques: null, autresParois: null,
+  };
+
+  // ── Row-level totals by element type ──
+  const lines = section.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+
+  // Find where table data starts (after header row "Désignation")
+  const headerIdx = lines.findIndex(l => l === "Désignation");
+  if (headerIdx < 0) return result;
+
+  let mursExt = 0, vitrages = 0, portes = 0, pontsTh = 0, autresParois = 0;
+  let gotMurs = false, gotVitrages = false, gotPortes = false, gotPT = false, gotAutres = false;
+
+  let i = headerIdx + 1;
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Stop at summary section
+    if (line === "HT =" || /^COEFFICIENT UBAT/.test(line) || /^RECAPITULATIF/.test(line)) break;
+
+    const isMurExt    = /^mur\s+ext/i.test(line);
+    const isVitrage   = /^vitrage\s*\d+/i.test(line);
+    const isPorte     = /^porte\s*\d*/i.test(line);
+    const isPT        = /^p\s+th\./i.test(line);
+    const isAutre     = /^(mur\s+int|plafond|plancher|dalle|paroi)/i.test(line);
+
+    if (isMurExt || isVitrage || isPorte || isPT || isAutre) {
+      // Collect block until next element or stop
+      i++;
+      const block: string[] = [];
+      while (i < lines.length && block.length < 14) {
+        const next = lines[i];
+        if (next === "HT =" || /^COEFFICIENT UBAT/.test(next) || /^RECAPITULATIF/.test(next)) break;
+        if (/^(mur\s+(ext|int)|vitrage\s*\d+|porte\s*\d*|p\s+th\.|plafond|plancher|dalle|paroi)/i.test(next)) break;
+        block.push(next);
+        i++;
+      }
+
+      let deperd: number | null = null;
+      if (isPT) {
+        // PT row: code, ψ, b, longueur, [gap?], déperd — take last decimal number
+        const nums = block.filter(v => /^[\d\s]+[,.]?\d*$/.test(v) && v.replace(/\s/g, "").length > 0);
+        if (nums.length >= 2) deperd = parseNum(nums[nums.length - 1]);
+      } else {
+        // Standard row: find orientation keyword, next value is déperd
+        const orieIdx = block.findIndex(v => ORIENTATIONS.has(v));
+        if (orieIdx >= 0 && orieIdx + 1 < block.length) {
+          deperd = parseNum(block[orieIdx + 1]);
+        }
+      }
+
+      if (deperd !== null) {
+        if (isMurExt)  { mursExt    += deperd; gotMurs     = true; }
+        if (isVitrage) { vitrages   += deperd; gotVitrages = true; }
+        if (isPorte)   { portes     += deperd; gotPortes   = true; }
+        if (isPT)      { pontsTh    += deperd; gotPT       = true; }
+        if (isAutre)   { autresParois += deperd; gotAutres = true; }
+      }
+    } else {
+      i++;
+    }
+  }
+
+  const rnd = (v: number) => Math.round(v * 100) / 100;
+  if (gotMurs)     result.mursExt         = rnd(mursExt);
+  if (gotVitrages) result.vitrages        = rnd(vitrages);
+  if (gotPortes)   result.portes          = rnd(portes);
+  if (gotPT)       result.pontsThermiques = rnd(pontsTh);
+  if (gotAutres)   result.autresParois    = rnd(autresParois);
+
+  return result;
+}
+
 // ─── BAO Evolution SED: Consumption table parser ────────────────────────────
 
 interface ConsumptionPost {
@@ -452,6 +583,9 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
   // ── 11. Scenarios
   const scenarios = parseScenarios(text);
 
+  // ── 11b. Ubat / Déperditions
+  const ubat = parseUbatSection(text);
+
   // ── 12. Build rawFields for display
   const addField = (key: string, value: string | null | undefined, section: string) => {
     if (value && value.trim()) rawFields.push({ key, value: value.trim(), section });
@@ -503,6 +637,25 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
   addField("Isolation toiture", plafondDescMatch ? plafondDescMatch[1] + (roofUMatch ? ` (U=${roofUMatch[1]} W/m².°C)` : "") : null, "ENVELOPPE");
   addField("Isolation plancher", plancherDescMatch ? plancherDescMatch[1] : null, "ENVELOPPE");
   addField("Type de menuiserie", vitrageMatch ? vitrageMatch[0] : null, "ENVELOPPE");
+
+  // UBAT & déperditions rawFields
+  if (ubat.coefficient !== null) addField("UBAT - Coefficient", ubat.coefficient.toLocaleString("fr-FR") + " W/m².°C", "UBAT");
+  if (ubat.ht !== null) addField("UBAT - HT enveloppe", ubat.ht.toLocaleString("fr-FR") + " W/°C", "UBAT");
+  if (ubat.at !== null) addField("UBAT - AT surface déperditive", ubat.at.toLocaleString("fr-FR") + " m²", "UBAT");
+  if (ubat.gv !== null) addField("UBAT - GV total", ubat.gv.toLocaleString("fr-FR") + " W/°C", "UBAT");
+  if (ubat.deperditionsTotalesKw !== null) addField("UBAT - Déperditions totales", ubat.deperditionsTotalesKw.toLocaleString("fr-FR") + " kW", "UBAT");
+  // Répartition déperditions
+  if (ubat.hd !== null) addField("Déperditions - HD parois ext.", ubat.hd.toLocaleString("fr-FR") + " W/°C", "RÉPARTITION DÉPERDITIONS");
+  if (ubat.hu !== null) addField("Déperditions - HU parois int.", ubat.hu.toLocaleString("fr-FR") + " W/°C", "RÉPARTITION DÉPERDITIONS");
+  if (ubat.hs !== null) addField("Déperditions - HS sol", ubat.hs.toLocaleString("fr-FR") + " W/°C", "RÉPARTITION DÉPERDITIONS");
+  if (ubat.ventilation !== null) addField("Déperditions - Ventilation", ubat.ventilation.toLocaleString("fr-FR") + " W/°C", "RÉPARTITION DÉPERDITIONS");
+  if (ubat.infiltrations !== null) addField("Déperditions - Infiltrations", ubat.infiltrations.toLocaleString("fr-FR") + " W/°C", "RÉPARTITION DÉPERDITIONS");
+  // Détail par type d'élément (tableau Ubat)
+  if (ubat.mursExt !== null) addField("Ubat - Murs extérieurs (total)", ubat.mursExt.toLocaleString("fr-FR") + " W/°C", "RÉPARTITION DÉPERDITIONS");
+  if (ubat.vitrages !== null) addField("Ubat - Vitrages (total)", ubat.vitrages.toLocaleString("fr-FR") + " W/°C", "RÉPARTITION DÉPERDITIONS");
+  if (ubat.pontsThermiques !== null) addField("Ubat - Ponts thermiques (total)", ubat.pontsThermiques.toLocaleString("fr-FR") + " W/°C", "RÉPARTITION DÉPERDITIONS");
+  if (ubat.portes !== null) addField("Ubat - Portes (total)", ubat.portes.toLocaleString("fr-FR") + " W/°C", "RÉPARTITION DÉPERDITIONS");
+  if (ubat.autresParois !== null) addField("Ubat - Autres parois (total)", ubat.autresParois.toLocaleString("fr-FR") + " W/°C", "RÉPARTITION DÉPERDITIONS");
 
   addField("Système de chauffage", heatingSystemMatch ? heatingSystemMatch[1] : generateurTypeMatch ? generateurTypeMatch[1] : null, "SYSTÈMES CVC");
   addField("Type de ventilation", ventilationTypeMatch ? ventilationTypeMatch[1] : null, "SYSTÈMES CVC");

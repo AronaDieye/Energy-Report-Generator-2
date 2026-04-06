@@ -18,6 +18,8 @@ import {
   Cloud,
   ChevronDown,
   ChevronUp,
+  Layers,
+  PieChart,
 } from "lucide-react";
 import { EnergyLabel } from "../components/energy-label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -348,6 +350,145 @@ function ConsumptionBreakdown({ rawFields }: { rawFields: RawField[] }) {
   );
 }
 
+function UbatBilan({ rawFields }: { rawFields: RawField[] }) {
+  const get = (key: string) => rawFields.find((f) => f.key === key)?.value ?? null;
+  const coef = get("UBAT - Coefficient");
+  if (!coef) return null;
+
+  const rows = [
+    { label: "Coefficient UBAT", value: coef, highlight: true },
+    { label: "HT — Déperditions enveloppe", value: get("UBAT - HT enveloppe") },
+    { label: "AT — Surface déperditive", value: get("UBAT - AT surface déperditive") },
+    { label: "GV — Total général", value: get("UBAT - GV total") },
+    { label: "Déperditions totales (sans maj.)", value: get("UBAT - Déperditions totales") },
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center text-lg">
+          <Layers className="h-5 w-5 mr-2 text-indigo-500" />
+          Bilan thermique UBAT — État initial
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-0">
+          {rows.map(({ label, value, highlight }) =>
+            value ? (
+              <div key={label} className="flex justify-between py-2 border-b last:border-0 border-border/50 gap-4">
+                <span className="text-muted-foreground text-sm shrink-0">{label}</span>
+                <span className={`font-mono text-sm font-semibold ${highlight ? "text-indigo-600 text-base" : ""}`}>
+                  {value}
+                </span>
+              </div>
+            ) : null
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DeperditionsRepartition({ rawFields }: { rawFields: RawField[] }) {
+  const get = (key: string) => rawFields.find((f) => f.key === key)?.value ?? null;
+  const parseVal = (v: string | null) => {
+    if (!v) return null;
+    const n = parseFloat(v.replace(/\s/g, "").replace(",", ".").replace(/[^\d.-]/g, ""));
+    return isNaN(n) ? null : n;
+  };
+
+  const gv = parseVal(get("UBAT - GV total"));
+
+  const categories = [
+    {
+      key: "Déperditions - HD parois ext.",
+      label: "Parois extérieures (HD)",
+      color: "bg-orange-500",
+      textColor: "text-orange-600",
+      subItems: [
+        { key: "Ubat - Murs extérieurs (total)", label: "Murs extérieurs", color: "bg-orange-300" },
+        { key: "Ubat - Vitrages (total)", label: "Vitrages / baies", color: "bg-amber-300" },
+        { key: "Ubat - Ponts thermiques (total)", label: "Ponts thermiques", color: "bg-yellow-400" },
+        { key: "Ubat - Portes (total)", label: "Portes", color: "bg-orange-200" },
+        { key: "Ubat - Autres parois (total)", label: "Autres parois", color: "bg-orange-100" },
+      ],
+    },
+    { key: "Déperditions - HU parois int.", label: "Parois intérieures (HU)", color: "bg-blue-400", textColor: "text-blue-600", subItems: [] },
+    { key: "Déperditions - HS sol", label: "Sol (HS)", color: "bg-stone-400", textColor: "text-stone-600", subItems: [] },
+    { key: "Déperditions - Ventilation", label: "Ventilation", color: "bg-sky-500", textColor: "text-sky-600", subItems: [] },
+    { key: "Déperditions - Infiltrations", label: "Infiltrations", color: "bg-teal-400", textColor: "text-teal-600", subItems: [] },
+  ];
+
+  const hasData = categories.some((c) => get(c.key) !== null);
+  if (!hasData || !gv) return null;
+
+  const fmtFR = (n: number, dec = 0) =>
+    new Intl.NumberFormat("fr-FR", { maximumFractionDigits: dec }).format(n);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center text-lg">
+          <PieChart className="h-5 w-5 mr-2 text-primary" />
+          Répartition des déperditions — État initial (W/°C)
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {categories.map(({ key, label, color, textColor, subItems }) => {
+          const val = parseVal(get(key));
+          if (val === null) return null;
+          const pct = gv > 0 ? (val / gv) * 100 : 0;
+
+          return (
+            <div key={key}>
+              <div className="flex items-center gap-3 mb-1">
+                <div className={`h-3 w-3 rounded-sm shrink-0 ${color}`} />
+                <span className={`text-sm font-medium flex-1 ${textColor}`}>{label}</span>
+                <span className="font-mono text-sm font-semibold w-36 text-right">
+                  {fmtFR(val, 0)} W/°C
+                </span>
+                <span className="text-xs text-muted-foreground w-12 text-right">
+                  {fmtFR(pct, 1)} %
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div className="ml-6 h-2 bg-muted rounded-full overflow-hidden mb-1">
+                <div
+                  className={`h-full rounded-full transition-all ${color}`}
+                  style={{ width: `${Math.min(pct, 100)}%` }}
+                />
+              </div>
+              {/* Sub-items (detail by element type) */}
+              {subItems.map(({ key: subKey, label: subLabel, color: subColor }) => {
+                const subVal = parseVal(get(subKey));
+                if (subVal === null || subVal === 0) return null;
+                const subPct = gv > 0 ? (subVal / gv) * 100 : 0;
+                return (
+                  <div key={subKey} className="ml-8 flex items-center gap-3 mb-0.5">
+                    <div className={`h-2 w-2 rounded-sm shrink-0 ${subColor}`} />
+                    <span className="text-xs text-muted-foreground flex-1">{subLabel}</span>
+                    <span className="font-mono text-xs w-36 text-right text-muted-foreground">
+                      {fmtFR(subVal, 0)} W/°C
+                    </span>
+                    <span className="text-xs text-muted-foreground/60 w-12 text-right">
+                      {fmtFR(subPct, 1)} %
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+
+        <div className="pt-2 border-t flex justify-between items-center">
+          <span className="text-sm font-semibold">Total GV</span>
+          <span className="font-mono font-bold">{fmtFR(gv, 0)} W/°C</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function ClimateContext({ rawFields }: { rawFields: RawField[] }) {
   const fields = [
     "Zone climatique",
@@ -554,6 +695,12 @@ export function ReportDetail() {
 
       {/* Consumption breakdown */}
       <ConsumptionBreakdown rawFields={rawFields} />
+
+      {/* UBAT & Répartition déperditions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <UbatBilan rawFields={rawFields} />
+        <DeperditionsRepartition rawFields={rawFields} />
+      </div>
 
       {/* Scenario comparison */}
       <ScenarioComparison
