@@ -24,6 +24,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { EnergyLabel } from "../components/energy-label";
+import { BatimentTab } from "../components/batiment-tab";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
@@ -893,45 +894,8 @@ export function ReportDetail() {
         </TabsContent>
 
         {/* ── Onglet Bâtiment ──────────────────────────────────────────── */}
-        <TabsContent value="batiment" className="space-y-6 mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <ClimateContext rawFields={rawFields} />
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center text-lg">
-                  <Building className="h-5 w-5 mr-2 text-primary" />
-                  Enveloppe thermique
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-0">
-                  <DataRow label="Isolation murs" value={report.envelopeData.wallInsulation} />
-                  <DataRow label="Isolation toiture" value={report.envelopeData.roofInsulation} />
-                  <DataRow label="Isolation plancher" value={report.envelopeData.floorInsulation} />
-                  <DataRow label="Menuiseries" value={report.envelopeData.windowType} />
-                  <DataRow label="Surface vitrée" value={fmt(report.envelopeData.windowSurface, "m²")} />
-                  <DataRow label="Ponts thermiques" value={report.envelopeData.thermalBridges} />
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center text-lg">
-                  <Thermometer className="h-5 w-5 mr-2 text-primary" />
-                  Systèmes CVC
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-0">
-                  <DataRow label="Chauffage" value={report.hvacSystem.heatingSystem} />
-                  <DataRow label="Refroidissement" value={report.hvacSystem.coolingSystem} />
-                  <DataRow label="Ventilation" value={report.hvacSystem.ventilationType} />
-                  <DataRow label="ECS" value={report.hvacSystem.hotWaterSystem} />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          <RawFieldsSection rawFields={rawFields} />
+        <TabsContent value="batiment" className="mt-0">
+          <BatimentTab report={report} rawFields={rawFields} />
         </TabsContent>
       </Tabs>
     </div>

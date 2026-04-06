@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import multer from "multer";
-import { db, auditReportsTable } from "@workspace/db";
+import { db, auditReportsTable, reportPhotosTable } from "@workspace/db";
 import { eq, desc, sql } from "drizzle-orm";
 import { extractFromDocx, extractFromCsv } from "../lib/fileExtractor.js";
 import { logger } from "../lib/logger.js";
@@ -304,5 +304,82 @@ function mapToApiReport(r: typeof auditReportsTable.$inferSelect) {
     rawFields: r.rawFields ?? [],
   };
 }
+
+// ── Photos endpoints ──────────────────────────────────────────────────────────
+
+const photoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Seuls les fichiers image sont acceptés"));
+  },
+});
+
+router.post(
+  "/audit/reports/:id/photos",
+  photoUpload.single("photo"),
+  async (req, res): Promise<void> => {
+    const reportId = parseInt(req.params.id, 10);
+    if (isNaN(reportId)) { res.status(400).json({ error: "ID invalide" }); return; }
+
+    const [report] = await db.select({ id: auditReportsTable.id })
+      .from(auditReportsTable).where(eq(auditReportsTable.id, reportId));
+    if (!report) { res.status(404).json({ error: "Rapport introuvable" }); return; }
+
+    if (!req.file) { res.status(400).json({ error: "Aucun fichier fourni" }); return; }
+
+    const dataBase64 = req.file.buffer.toString("base64");
+    const caption = typeof req.body.caption === "string" ? req.body.caption : null;
+
+    const [inserted] = await db.insert(reportPhotosTable).values({
+      reportId,
+      fileName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      dataBase64,
+      caption,
+    }).returning();
+
+    res.json({ id: inserted.id, fileName: inserted.fileName, caption: inserted.caption });
+  }
+);
+
+router.get("/audit/reports/:id/photos", async (req, res): Promise<void> => {
+  const reportId = parseInt(req.params.id, 10);
+  if (isNaN(reportId)) { res.status(400).json({ error: "ID invalide" }); return; }
+
+  const photos = await db.select({
+    id: reportPhotosTable.id,
+    fileName: reportPhotosTable.fileName,
+    mimeType: reportPhotosTable.mimeType,
+    caption: reportPhotosTable.caption,
+    uploadedAt: reportPhotosTable.uploadedAt,
+  }).from(reportPhotosTable)
+    .where(eq(reportPhotosTable.reportId, reportId))
+    .orderBy(reportPhotosTable.uploadedAt);
+
+  res.json(photos.map((p) => ({ ...p, url: `/api/audit/reports/${reportId}/photos/${p.id}/data` })));
+});
+
+router.get("/audit/reports/:id/photos/:photoId/data", async (req, res): Promise<void> => {
+  const photoId = parseInt(req.params.photoId, 10);
+  if (isNaN(photoId)) { res.status(400).json({ error: "ID invalide" }); return; }
+
+  const [photo] = await db.select().from(reportPhotosTable).where(eq(reportPhotosTable.id, photoId));
+  if (!photo) { res.status(404).json({ error: "Photo introuvable" }); return; }
+
+  const buffer = Buffer.from(photo.dataBase64, "base64");
+  res.set("Content-Type", photo.mimeType);
+  res.set("Cache-Control", "public, max-age=86400");
+  res.send(buffer);
+});
+
+router.delete("/audit/reports/:id/photos/:photoId", async (req, res): Promise<void> => {
+  const photoId = parseInt(req.params.photoId, 10);
+  if (isNaN(photoId)) { res.status(400).json({ error: "ID invalide" }); return; }
+
+  await db.delete(reportPhotosTable).where(eq(reportPhotosTable.id, photoId));
+  res.json({ success: true });
+});
 
 export default router;

@@ -22,7 +22,14 @@ Application web pour générer automatiquement des rapports d'audit énergétiqu
 
 - Upload de fichiers DOCX ou CSV (glisser-déposer ou clic)
 - Extraction automatique depuis BAO Evolution SED : nom bâtiment, type, surfaces, DPE 3CL-2021, consommations par poste, coûts, CO2, enveloppe, CVC, 3 scénarios de travaux
-- Affichage structuré : carte héro (infos bâtiment + DPE), consommations par poste, comparaison des scénarios (tableau), préconisations, enveloppe, CVC, contexte climatique, données brutes (collapsible)
+- **CEF** (énergie finale) extrait depuis le bloc TOTAL avant chaque Bilan Énergétique — initial + par scénario, en kWhef/m²/an
+- **3 onglets** dans la page rapport : Synthèse / Consommations / Bâtiment
+  - **Synthèse** : tableau comparatif (DPE, CEP, CEF, GES, coût) + cartes scénarios
+  - **Consommations** : répartition par poste (Recharts) + UBAT + déperditions
+  - **Bâtiment** : fiche identité complète, carte OpenStreetMap (station météo), graphiques météo annuels (open-meteo API), galerie photos
+- **Photos** : upload, stockage base64 en DB, affichage galerie, suppression, légende éditable
+- **Météo** : données open-meteo archive (températures mensuelles min/max/moy + DJU calculés) pour la station extraite du DOCX
+- **Localisation** : carte OpenStreetMap intégrée basée sur la station météo (lookup table 30+ stations françaises)
 - Liste des rapports récents avec statistiques agrégées (DPE label, surface, kWh)
 - Suppression de rapports
 - Impression/export du rapport (bouton "Imprimer")
@@ -46,14 +53,20 @@ Les sections clés extraites par `fileExtractor.ts` :
 - `POST /api/audit/upload` — upload + extraction + sauvegarde en DB
 - `DELETE /api/audit/reports/:id` — suppression
 - `GET /api/audit/stats` — statistiques agrégées
+- `POST /api/audit/reports/:id/photos` — upload photo (multipart/form-data, field "photo")
+- `GET /api/audit/reports/:id/photos` — liste photos du rapport
+- `GET /api/audit/reports/:id/photos/:photoId/data` — binaire de la photo
+- `DELETE /api/audit/reports/:id/photos/:photoId` — suppression photo
 
 ## Key Files
 
 - `lib/db/src/schema/auditReports.ts` — schéma DB (tous champs bâtiment/énergie/CVC/enveloppe)
-- `artifacts/api-server/src/routes/audit.ts` — routes API
+- `lib/db/src/schema/reportPhotos.ts` — schéma DB photos (base64, caption, FK→audit_reports)
+- `artifacts/api-server/src/routes/audit.ts` — routes API (incl. photos: POST/GET/DELETE)
 - `artifacts/api-server/src/lib/fileExtractor.ts` — logique extraction DOCX/CSV (mammoth + regex BAO)
 - `lib/api-spec/openapi.yaml` — contrat OpenAPI
-- `artifacts/energy-audit/src/pages/report-detail.tsx` — page rapport détaillé
+- `artifacts/energy-audit/src/pages/report-detail.tsx` — page rapport détaillé (3 onglets)
+- `artifacts/energy-audit/src/components/batiment-tab.tsx` — onglet Bâtiment (identité, carte OSM, météo open-meteo, galerie photos)
 - `artifacts/energy-audit/src/pages/home.tsx` — tableau de bord
 - `artifacts/energy-audit/src/components/energy-label.tsx` — composant étiquette DPE
 
