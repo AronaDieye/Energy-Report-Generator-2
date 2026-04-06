@@ -3,6 +3,7 @@ import { useParams, Link } from "wouter";
 import { useGetAuditReport } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft,
   Printer,
@@ -20,6 +21,7 @@ import {
   ChevronUp,
   Layers,
   PieChart,
+  BarChart3,
 } from "lucide-react";
 import { EnergyLabel } from "../components/energy-label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -858,69 +860,80 @@ export function ReportDetail() {
         </div>
       </div>
 
-      {/* Synthèse globale (PDF-style comparison table) */}
-      <SyntheseGlobale rawFields={rawFields} initialCost={initialCost ?? null} />
+      {/* Tabbed content */}
+      <Tabs defaultValue="synthese" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsTrigger value="synthese" className="flex items-center gap-2">
+            <TrendingDown className="h-4 w-4" />
+            Synthèse
+          </TabsTrigger>
+          <TabsTrigger value="consommations" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Consommations
+          </TabsTrigger>
+          <TabsTrigger value="batiment" className="flex items-center gap-2">
+            <Building className="h-4 w-4" />
+            Bâtiment
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Scenario detail cards */}
-      <ScenarioCards rawFields={rawFields} initialCost={initialCost ?? null} />
+        {/* ── Onglet Synthèse ───────────────────────────────────────────── */}
+        <TabsContent value="synthese" className="space-y-6 mt-0">
+          <SyntheseGlobale rawFields={rawFields} initialCost={initialCost ?? null} />
+          <ScenarioCards rawFields={rawFields} initialCost={initialCost ?? null} />
+        </TabsContent>
 
-      {/* Consumption breakdown */}
-      <ConsumptionBreakdown rawFields={rawFields} />
+        {/* ── Onglet Consommations ─────────────────────────────────────── */}
+        <TabsContent value="consommations" className="space-y-6 mt-0">
+          <ConsumptionBreakdown rawFields={rawFields} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <UbatBilan rawFields={rawFields} />
+            <DeperditionsRepartition rawFields={rawFields} />
+          </div>
+        </TabsContent>
 
-      {/* UBAT & Répartition déperditions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <UbatBilan rawFields={rawFields} />
-        <DeperditionsRepartition rawFields={rawFields} />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Climate context */}
-        <ClimateContext rawFields={rawFields} />
-
-        {/* Envelope */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center text-lg">
-              <Building className="h-5 w-5 mr-2 text-primary" />
-              Enveloppe thermique
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-0">
-              <DataRow label="Isolation murs" value={report.envelopeData.wallInsulation} />
-              <DataRow label="Isolation toiture" value={report.envelopeData.roofInsulation} />
-              <DataRow label="Isolation plancher" value={report.envelopeData.floorInsulation} />
-              <DataRow label="Menuiseries" value={report.envelopeData.windowType} />
-              <DataRow
-                label="Surface vitrée"
-                value={fmt(report.envelopeData.windowSurface, "m²")}
-              />
-              <DataRow label="Ponts thermiques" value={report.envelopeData.thermalBridges} />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* CVC */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center text-lg">
-              <Thermometer className="h-5 w-5 mr-2 text-primary" />
-              Systèmes CVC
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-0">
-              <DataRow label="Chauffage" value={report.hvacSystem.heatingSystem} />
-              <DataRow label="Refroidissement" value={report.hvacSystem.coolingSystem} />
-              <DataRow label="Ventilation" value={report.hvacSystem.ventilationType} />
-              <DataRow label="ECS" value={report.hvacSystem.hotWaterSystem} />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Raw data collapsible */}
-      <RawFieldsSection rawFields={rawFields} />
+        {/* ── Onglet Bâtiment ──────────────────────────────────────────── */}
+        <TabsContent value="batiment" className="space-y-6 mt-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <ClimateContext rawFields={rawFields} />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <Building className="h-5 w-5 mr-2 text-primary" />
+                  Enveloppe thermique
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-0">
+                  <DataRow label="Isolation murs" value={report.envelopeData.wallInsulation} />
+                  <DataRow label="Isolation toiture" value={report.envelopeData.roofInsulation} />
+                  <DataRow label="Isolation plancher" value={report.envelopeData.floorInsulation} />
+                  <DataRow label="Menuiseries" value={report.envelopeData.windowType} />
+                  <DataRow label="Surface vitrée" value={fmt(report.envelopeData.windowSurface, "m²")} />
+                  <DataRow label="Ponts thermiques" value={report.envelopeData.thermalBridges} />
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <Thermometer className="h-5 w-5 mr-2 text-primary" />
+                  Systèmes CVC
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-0">
+                  <DataRow label="Chauffage" value={report.hvacSystem.heatingSystem} />
+                  <DataRow label="Refroidissement" value={report.hvacSystem.coolingSystem} />
+                  <DataRow label="Ventilation" value={report.hvacSystem.ventilationType} />
+                  <DataRow label="ECS" value={report.hvacSystem.hotWaterSystem} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <RawFieldsSection rawFields={rawFields} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
