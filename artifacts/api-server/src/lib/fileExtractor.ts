@@ -378,6 +378,7 @@ interface ScenarioResult {
   co2TonnesAn: number | null;
   thceCepM2: number | null;
   thceGesKgM2: number | null;
+  cefKwhAn: number | null;
 }
 
 function parseScenarios(text: string): ScenarioResult[] {
@@ -458,6 +459,7 @@ function parseScenarios(text: string): ScenarioResult[] {
         co2TonnesAn,
         thceCepM2: null,
         thceGesKgM2: null,
+        cefKwhAn: null,
       });
     }
   }
@@ -483,8 +485,14 @@ function parseScenarios(text: string): ScenarioResult[] {
       if (cepM) scenarios[i].thceCepM2 = parseNum(cepM[1]);
       if (gesM) scenarios[i].thceGesKgM2 = parseNum(gesM[1]);
 
-      // Text before Bilan Energétique: TOTAL DEPENSE ANNUEL
-      const beforeBlock = text.slice(Math.max(0, bilanIdx - 800), bilanIdx);
+      // Text before Bilan Energétique: TOTAL DEPENSE ANNUEL + CEF total kWh/an
+      const beforeBlock = text.slice(Math.max(0, bilanIdx - 1500), bilanIdx);
+      // CEF: the last standalone TOTAL row before Bilan holds [kWh/an finale, kWhEP/m²/an, €]
+      const cefMatches = [...beforeBlock.matchAll(/\nTOTAL\s*\n\s*([\d\s,\.]+)\s*\n/g)];
+      if (cefMatches.length > 0) {
+        const lastCefVal = cefMatches[cefMatches.length - 1][1];
+        scenarios[i].cefKwhAn = parseNum(lastCefVal);
+      }
       const depM = beforeBlock.match(/TOTAL DEPENSE ANNUEL[\s\n]+([0-9\s,]+)/);
       if (depM && scenarios[i].totalDepenseAnnuelle === null) {
         scenarios[i].totalDepenseAnnuelle = parseNum(depM[1]);
@@ -660,6 +668,15 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
 
   if (totalEPMatch) addField("Total énergie primaire (Th-C-E)", totalEPMatch[1].trim() + " kWhEP/m².an", "CONSOMMATIONS");
   if (totalMWhMatch) addField("Total MWhEP/an", totalMWhMatch[1].trim(), "CONSOMMATIONS");
+  // CEF initial: total finale kWh/an ÷ surface habitable
+  {
+    const surfHabInline = surfaceHabitableMatch ? parseNum(surfaceHabitableMatch[1]) : null;
+    const cefTotalKwhAn = consumptionTable?.TOTAL.finalKwhAn ?? null;
+    if (cefTotalKwhAn !== null && surfHabInline !== null && surfHabInline > 0) {
+      const cefM2 = cefTotalKwhAn / surfHabInline;
+      addField("CEF initial (Th-C-E)", cefM2.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " kWhef/m².an", "CONSOMMATIONS");
+    }
+  }
   if (totalDepenseMatch) addField("Total dépense annuelle", totalDepenseMatch[1].trim() + " €", "COÛTS");
   if (totalCo2TonnesMatch) addField("CO2 total (tonnes CO2éq/an)", totalCo2TonnesMatch[1].trim(), "BILAN CO2");
   if (totalCo2KgM2Match) addField("CO2 par m² (kg CO2éq/m²/an)", totalCo2KgM2Match[1].trim(), "BILAN CO2");
@@ -708,6 +725,14 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
     if (sc.totalDepenseAnnuelle !== null) addField(`${scSection} - Dépense annuelle après`, sc.totalDepenseAnnuelle.toLocaleString("fr-FR") + " €/an", scSection);
     if (sc.thceCepM2 !== null) addField(`${scSection} - CEP Th-C-E après`, sc.thceCepM2.toLocaleString("fr-FR") + " kWhEP/m².an", scSection);
     if (sc.thceGesKgM2 !== null) addField(`${scSection} - GES Th-C-E après`, sc.thceGesKgM2.toLocaleString("fr-FR") + " kgCO2/m².an", scSection);
+    // CEF par scénario: total finale kWh/an ÷ surface habitable
+    if (sc.cefKwhAn !== null) {
+      const surfHabSc = surfaceHabitableMatch ? parseNum(surfaceHabitableMatch[1]) : null;
+      if (surfHabSc !== null && surfHabSc > 0) {
+        const cefM2Sc = sc.cefKwhAn / surfHabSc;
+        addField(`${scSection} - CEF Th-C-E après`, cefM2Sc.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " kWhef/m².an", scSection);
+      }
+    }
   }
 
   // ── 13. Compute final values

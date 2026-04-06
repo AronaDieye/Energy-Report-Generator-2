@@ -131,6 +131,7 @@ function SyntheseGlobale({
   if (scenarioCodes.length === 0) return null;
 
   const thceInitial = parseVal(rawFields.find((f) => f.key === "Total énergie primaire (Th-C-E)")?.value);
+  const cefInitial = parseVal(rawFields.find((f) => f.key === "CEF initial (Th-C-E)")?.value);
   const gesInitial = parseVal(rawFields.find((f) => f.key === "CO2 par m² (kg CO2éq/m²/an)")?.value);
 
   const scColors = ["bg-green-50 border-green-200", "bg-blue-50 border-blue-200", "bg-purple-50 border-purple-200"];
@@ -139,6 +140,7 @@ function SyntheseGlobale({
 
   const rows = scenarioCodes.map((code, i) => {
     const thce = parseVal(getScVal(rawFields, code, "CEP Th-C-E après"));
+    const cef = parseVal(getScVal(rawFields, code, "CEF Th-C-E après"));
     const ges = parseVal(getScVal(rawFields, code, "GES Th-C-E après"));
     const cost = parseVal(getScVal(rawFields, code, "Dépense annuelle après"));
     const invest = parseVal(getScVal(rawFields, code, "Investissement"));
@@ -146,7 +148,7 @@ function SyntheseGlobale({
     const gainEco = cost !== null && initialCost !== null ? initialCost - cost : null;
     const gainPct = thce !== null && thceInitial !== null && thceInitial > 0
       ? ((thceInitial - thce) / thceInitial) * 100 : null;
-    return { code, thce, ges, cost, invest, tempsRetour, gainEco, gainPct, i };
+    return { code, thce, cef, ges, cost, invest, tempsRetour, gainEco, gainPct, i };
   });
 
   return (
@@ -204,6 +206,22 @@ function SyntheseGlobale({
                 </td>
               ))}
             </tr>
+            {(cefInitial !== null || rows.some((r) => r.cef !== null)) && (
+              <tr className="border-b">
+                <td className="py-3 px-4 text-muted-foreground">
+                  <div className="font-medium">CEF (kWhef/m².an)</div>
+                  <div className="text-xs text-muted-foreground/70">5 usages — Th-C-E</div>
+                </td>
+                <td className="py-3 px-4 text-center font-mono bg-slate-50">
+                  {cefInitial !== null ? cefInitial.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : "—"}
+                </td>
+                {rows.map(({ code, cef, i }) => (
+                  <td key={code} className={`py-3 px-4 text-center font-mono ${scColors[i] || ""} ${scTextColors[i] || ""}`}>
+                    {cef !== null ? cef.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : "—"}
+                  </td>
+                ))}
+              </tr>
+            )}
             <tr className="border-b">
               <td className="py-3 px-4 text-muted-foreground">
                 <div className="font-medium">GES (kgCO₂/m².an)</div>
