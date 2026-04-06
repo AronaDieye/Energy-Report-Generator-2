@@ -474,13 +474,20 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
   if (surfaceVitreedMatch) addField("Surface vitrée totale", surfaceVitreedMatch[1].trim() + " m²", "BÂTIMENT");
 
   if (consumptionTable) {
-    addField("Chauffage - Énergie finale", consumptionTable.CHAUFFAGE.finalKwhAn !== null ? consumptionTable.CHAUFFAGE.finalKwhAn.toLocaleString("fr-FR") + " kWh/an" : null, "CONSOMMATIONS");
-    addField("Chauffage - Énergie primaire", consumptionTable.CHAUFFAGE.primaryKwhEpM2 !== null ? consumptionTable.CHAUFFAGE.primaryKwhEpM2 + " kWhEP/m²/an" : null, "CONSOMMATIONS");
-    addField("Chauffage - Coût", consumptionTable.CHAUFFAGE.costEuros !== null ? consumptionTable.CHAUFFAGE.costEuros.toLocaleString("fr-FR") + " €/an" : null, "CONSOMMATIONS");
-    addField("Refroidissement - Énergie finale", consumptionTable.REFROIDISSEMENT.finalKwhAn !== null ? consumptionTable.REFROIDISSEMENT.finalKwhAn.toLocaleString("fr-FR") + " kWh/an" : null, "CONSOMMATIONS");
-    addField("ECS - Énergie finale", consumptionTable.ECS.finalKwhAn !== null ? consumptionTable.ECS.finalKwhAn.toLocaleString("fr-FR") + " kWh/an" : null, "CONSOMMATIONS");
-    addField("Éclairage - Énergie finale", consumptionTable.ECLAIRAGE.finalKwhAn !== null ? consumptionTable.ECLAIRAGE.finalKwhAn.toLocaleString("fr-FR") + " kWh/an" : null, "CONSOMMATIONS");
-    addField("Auxiliaires - Énergie finale", consumptionTable.AUXILIAIRES.finalKwhAn !== null ? consumptionTable.AUXILIAIRES.finalKwhAn.toLocaleString("fr-FR") + " kWh/an" : null, "CONSOMMATIONS");
+    const consoPostes: Array<{ tableKey: keyof ConsumptionTable; label: string }> = [
+      { tableKey: "CHAUFFAGE", label: "Chauffage" },
+      { tableKey: "REFROIDISSEMENT", label: "Refroidissement" },
+      { tableKey: "ECS", label: "ECS" },
+      { tableKey: "ECLAIRAGE", label: "Éclairage" },
+      { tableKey: "AUXILIAIRES", label: "Auxiliaires" },
+    ];
+    for (const { tableKey, label } of consoPostes) {
+      const post = consumptionTable[tableKey];
+      if (post.energySource) addField(`${label} - Source d'énergie`, post.energySource, "CONSOMMATIONS");
+      if (post.finalKwhAn !== null) addField(`${label} - Énergie finale`, post.finalKwhAn.toLocaleString("fr-FR") + " kWh/an", "CONSOMMATIONS");
+      if (post.primaryKwhEpM2 !== null) addField(`${label} - Énergie primaire`, post.primaryKwhEpM2.toLocaleString("fr-FR") + " kWhEP/m²/an", "CONSOMMATIONS");
+      if (post.costEuros !== null) addField(`${label} - Coût`, post.costEuros.toLocaleString("fr-FR") + " €/an", "CONSOMMATIONS");
+    }
   }
 
   if (totalEPMatch) addField("Total énergie primaire (Th-C-E)", totalEPMatch[1].trim() + " kWhEP/m².an", "CONSOMMATIONS");

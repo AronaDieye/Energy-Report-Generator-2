@@ -281,43 +281,67 @@ function dpeFromEP(ep: number): string {
 
 function ConsumptionBreakdown({ rawFields }: { rawFields: RawField[] }) {
   const posts = [
-    { key: "Chauffage - Énergie finale", label: "Chauffage", color: "text-orange-600" },
-    { key: "Refroidissement - Énergie finale", label: "Refroidissement", color: "text-blue-500" },
-    { key: "ECS - Énergie finale", label: "Eau Chaude Sanitaire", color: "text-cyan-600" },
-    { key: "Éclairage - Énergie finale", label: "Éclairage", color: "text-yellow-600" },
-    { key: "Auxiliaires - Énergie finale", label: "Auxiliaires", color: "text-purple-500" },
+    { prefix: "Chauffage", label: "Chauffage", color: "text-orange-600", dot: "bg-orange-500" },
+    { prefix: "Refroidissement", label: "Refroidissement", color: "text-blue-500", dot: "bg-blue-500" },
+    { prefix: "ECS", label: "Eau Chaude Sanitaire", color: "text-cyan-600", dot: "bg-cyan-500" },
+    { prefix: "Éclairage", label: "Éclairage", color: "text-yellow-600", dot: "bg-yellow-500" },
+    { prefix: "Auxiliaires", label: "Auxiliaires", color: "text-purple-500", dot: "bg-purple-500" },
   ];
 
   const getFieldValue = (key: string): string | null =>
     rawFields.find((f) => f.key === key)?.value ?? null;
 
-  const hasData = posts.some((p) => getFieldValue(p.key) !== null);
+  const hasData = posts.some((p) => getFieldValue(`${p.prefix} - Énergie finale`) !== null);
   if (!hasData) return null;
+
+  const activeRows = posts.filter((p) => getFieldValue(`${p.prefix} - Énergie finale`) !== null);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center text-lg">
           <Zap className="h-5 w-5 mr-2 text-primary" />
-          Consommations par poste — État initial (kWh énergie finale / an)
+          Consommations par poste — État initial
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-1">
-          {posts.map(({ key, label, color }) => {
-            const value = getFieldValue(key);
-            return (
-              <div
-                key={key}
-                className="flex justify-between py-2 border-b last:border-0 border-border/50"
-              >
-                <span className={`text-sm font-medium ${color}`}>{label}</span>
-                <span className="font-mono text-sm font-semibold">
-                  {value ?? "—"}
-                </span>
-              </div>
-            );
-          })}
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/40">
+                <th className="text-left py-2 px-4 font-medium text-muted-foreground">Poste</th>
+                <th className="text-left py-2 px-4 font-medium text-muted-foreground">Source d'énergie</th>
+                <th className="text-right py-2 px-4 font-medium text-muted-foreground">Énergie finale (kWh/an)</th>
+                <th className="text-right py-2 px-4 font-medium text-muted-foreground">Énergie primaire (kWhEP/m².an)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeRows.map(({ prefix, label, color, dot }) => {
+                const finale = getFieldValue(`${prefix} - Énergie finale`);
+                const primaire = getFieldValue(`${prefix} - Énergie primaire`);
+                const source = getFieldValue(`${prefix} - Source d'énergie`);
+                return (
+                  <tr key={prefix} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${dot}`} />
+                        <span className={`font-medium ${color}`}>{label}</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-muted-foreground">
+                      {source ?? <span className="text-muted-foreground/50">—</span>}
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono font-semibold">
+                      {finale ?? "—"}
+                    </td>
+                    <td className="py-3 px-4 text-right font-mono text-muted-foreground">
+                      {primaire ?? <span className="text-muted-foreground/40">—</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </CardContent>
     </Card>
