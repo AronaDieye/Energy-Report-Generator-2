@@ -302,6 +302,7 @@ function mapToApiReport(r: typeof auditReportsTable.$inferSelect) {
     },
     recommendations: r.recommendations ?? [],
     rawFields: r.rawFields ?? [],
+    sectionCharacteristics: r.sectionCharacteristics ?? {},
   };
 }
 
@@ -331,6 +332,7 @@ router.post(
 
     const dataBase64 = req.file.buffer.toString("base64");
     const caption = typeof req.body.caption === "string" ? req.body.caption : null;
+    const category = typeof req.body.category === "string" ? req.body.category : "general";
 
     const [inserted] = await db.insert(reportPhotosTable).values({
       reportId,
@@ -338,9 +340,10 @@ router.post(
       mimeType: req.file.mimetype,
       dataBase64,
       caption,
+      category,
     }).returning();
 
-    res.json({ id: inserted.id, fileName: inserted.fileName, caption: inserted.caption });
+    res.json({ id: inserted.id, fileName: inserted.fileName, caption: inserted.caption, category: inserted.category });
   }
 );
 
@@ -353,12 +356,32 @@ router.get("/audit/reports/:id/photos", async (req, res): Promise<void> => {
     fileName: reportPhotosTable.fileName,
     mimeType: reportPhotosTable.mimeType,
     caption: reportPhotosTable.caption,
+    category: reportPhotosTable.category,
     uploadedAt: reportPhotosTable.uploadedAt,
   }).from(reportPhotosTable)
     .where(eq(reportPhotosTable.reportId, reportId))
     .orderBy(reportPhotosTable.uploadedAt);
 
   res.json(photos.map((p) => ({ ...p, url: `/api/audit/reports/${reportId}/photos/${p.id}/data` })));
+});
+
+router.patch("/audit/reports/:id/characteristics", async (req, res): Promise<void> => {
+  const reportId = parseInt(req.params.id, 10);
+  if (isNaN(reportId)) { res.status(400).json({ error: "ID invalide" }); return; }
+
+  const [report] = await db.select({ id: auditReportsTable.id, chars: auditReportsTable.sectionCharacteristics })
+    .from(auditReportsTable).where(eq(auditReportsTable.id, reportId));
+  if (!report) { res.status(404).json({ error: "Rapport introuvable" }); return; }
+
+  const existing = report.chars || {};
+  const merged = { ...existing, ...req.body };
+
+  const [updated] = await db.update(auditReportsTable)
+    .set({ sectionCharacteristics: merged })
+    .where(eq(auditReportsTable.id, reportId))
+    .returning({ sectionCharacteristics: auditReportsTable.sectionCharacteristics });
+
+  res.json(updated.sectionCharacteristics);
 });
 
 router.get("/audit/reports/:id/photos/:photoId/data", async (req, res): Promise<void> => {

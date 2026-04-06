@@ -895,7 +895,13 @@ export function ReportDetail() {
 
         {/* ── Onglet Bâtiment ──────────────────────────────────────────── */}
         <TabsContent value="batiment" className="mt-0">
-          <BatimentTab report={report} rawFields={rawFields} />
+          <BatimentTab
+            report={{
+              ...report,
+              sectionCharacteristics: (report as unknown as { sectionCharacteristics?: Record<string, string> }).sectionCharacteristics ?? {},
+            }}
+            rawFields={rawFields}
+          />
         </TabsContent>
       </Tabs>
     </div>

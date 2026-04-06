@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
   MapPin,
   Building2,
@@ -16,10 +17,15 @@ import {
   Upload,
   ImagePlus,
   Loader2,
-  X,
   Edit2,
   Check,
   Info,
+  Home,
+  FlameKindling,
+  Blinds,
+  Fence,
+  Droplets,
+  Save,
 } from "lucide-react";
 import {
   AreaChart,
@@ -83,7 +89,7 @@ function resolveStationCoords(stationRaw: string | null): { lat: number; lon: nu
   return null;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface RawField { key: string; value: string; section: string | null; }
 
@@ -93,18 +99,277 @@ function getRaw(rawFields: RawField[], key: string): string | null {
 
 const MONTHS_SHORT = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
 
-// ── Photo Gallery ─────────────────────────────────────────────────────────────
+// ── Section definitions ───────────────────────────────────────────────────────
 
-interface Photo { id: number; fileName: string; mimeType: string; caption: string | null; url: string; uploadedAt: string; }
+type CategoryKey = "facades" | "planchers" | "toitures" | "menuiseries" | "chauffage_ecs";
 
-function PhotoGallery({ reportId }: { reportId: number }) {
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [loading, setLoading] = useState(true);
+interface SectionDef {
+  key: CategoryKey;
+  label: string;
+  icon: React.ElementType;
+  color: string;
+  charLabel: string;
+  charPlaceholder: string;
+  charHints: string[];
+}
+
+const SECTIONS: SectionDef[] = [
+  {
+    key: "facades",
+    label: "Façades extérieures",
+    icon: Home,
+    color: "text-orange-600",
+    charLabel: "Caractéristiques des murs extérieurs",
+    charPlaceholder: "Décrivez les murs extérieurs...",
+    charHints: ["Composition : béton, brique, pierre...", "Isolation : type, épaisseur (cm), λ (W/m.K)", "Coefficient U (W/m².K)", "État général, pathologies constatées"],
+  },
+  {
+    key: "planchers",
+    label: "Planchers bas",
+    icon: Layers,
+    color: "text-stone-600",
+    charLabel: "Caractéristiques des planchers bas",
+    charPlaceholder: "Décrivez les planchers bas...",
+    charHints: ["Type : dalle béton, vide sanitaire, terre-plein...", "Isolation : présence, type, épaisseur (cm)", "Coefficient U (W/m².K)", "État et humidité"],
+  },
+  {
+    key: "toitures",
+    label: "Toitures",
+    icon: Fence,
+    color: "text-blue-600",
+    charLabel: "Caractéristiques des toitures",
+    charPlaceholder: "Décrivez les toitures...",
+    charHints: ["Type : terrasse, combles, pente...", "Isolation : type, épaisseur (cm), λ (W/m.K)", "Coefficient U (W/m².K)", "Étanchéité, état de la couverture"],
+  },
+  {
+    key: "menuiseries",
+    label: "Menuiseries",
+    icon: Blinds,
+    color: "text-cyan-600",
+    charLabel: "Caractéristiques des menuiseries",
+    charPlaceholder: "Décrivez les menuiseries...",
+    charHints: ["Matériau : PVC, aluminium, bois...", "Vitrage : simple, double, triple (Ug W/m².K)", "Coefficient Uw (W/m².K)", "Présence de coffre de volet roulant"],
+  },
+  {
+    key: "chauffage_ecs",
+    label: "Chauffage & ECS",
+    icon: FlameKindling,
+    color: "text-red-600",
+    charLabel: "Caractéristiques des systèmes de chauffage et ECS",
+    charPlaceholder: "Décrivez les équipements de chauffage et eau chaude sanitaire...",
+    charHints: ["Chauffage : type, énergie, puissance (kW), rendement", "Régulation : thermostat, programmable, vannes TA", "ECS : type, volume ballon (L), énergie", "Âge des équipements, état général"],
+  },
+];
+
+// ── Photo category section ────────────────────────────────────────────────────
+
+interface Photo {
+  id: number;
+  fileName: string;
+  mimeType: string;
+  caption: string | null;
+  category: string;
+  url: string;
+  uploadedAt: string;
+}
+
+interface PhotoSectionProps {
+  section: SectionDef;
+  reportId: number;
+  photos: Photo[];
+  characteristics: Record<string, string>;
+  onPhotosChange: (photos: Photo[]) => void;
+  onCharChange: (key: string, value: string) => void;
+  onSaveChar: (key: string) => void;
+  savingChar: string | null;
+  apiBase: string;
+}
+
+function PhotoSection({
+  section,
+  reportId,
+  photos,
+  characteristics,
+  onPhotosChange,
+  onCharChange,
+  onSaveChar,
+  savingChar,
+  apiBase,
+}: PhotoSectionProps) {
   const [uploading, setUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [editingCaption, setEditingCaption] = useState<number | null>(null);
   const [captionText, setCaptionText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const sectionPhotos = photos.filter((p) => p.category === section.key);
+  const charValue = characteristics[section.key] ?? "";
+  const Icon = section.icon;
+
+  const uploadPhoto = async (file: File) => {
+    setUploading(true);
+    const form = new FormData();
+    form.append("photo", file);
+    form.append("category", section.key);
+    try {
+      const res = await fetch(`${apiBase}/api/audit/reports/${reportId}/photos`, { method: "POST", body: form });
+      if (res.ok) {
+        const newPhoto = await res.json();
+        onPhotosChange([...photos, { ...newPhoto, url: `/api/audit/reports/${reportId}/photos/${newPhoto.id}/data` }]);
+      }
+    } finally { setUploading(false); }
+  };
+
+  const deletePhoto = async (id: number) => {
+    await fetch(`${apiBase}/api/audit/reports/${reportId}/photos/${id}`, { method: "DELETE" });
+    onPhotosChange(photos.filter((p) => p.id !== id));
+  };
+
+  return (
+    <div className="border rounded-xl overflow-hidden">
+      {/* Section header */}
+      <div className="flex items-center gap-3 px-5 py-4 bg-muted/40 border-b">
+        <Icon className={`h-5 w-5 ${section.color}`} />
+        <h3 className="font-semibold text-sm">{section.label}</h3>
+        {sectionPhotos.length > 0 && (
+          <Badge variant="secondary" className="ml-auto">{sectionPhotos.length} photo{sectionPhotos.length > 1 ? "s" : ""}</Badge>
+        )}
+      </div>
+
+      <div className="p-5 space-y-5">
+        {/* Characteristics textarea */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            {section.charLabel}
+          </label>
+          <div className="bg-muted/20 rounded-lg p-3 mb-2 space-y-1">
+            {section.charHints.map((hint) => (
+              <p key={hint} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                <span className="text-primary/60 mt-0.5">•</span> {hint}
+              </p>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Textarea
+              className="flex-1 text-sm min-h-[100px] resize-none"
+              placeholder={section.charPlaceholder}
+              value={charValue}
+              onChange={(e) => onCharChange(section.key, e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => onSaveChar(section.key)}
+              disabled={savingChar === section.key}
+            >
+              {savingChar === section.key ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
+              Enregistrer
+            </Button>
+          </div>
+        </div>
+
+        {/* Upload + gallery */}
+        <div className="space-y-3">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Photos
+          </label>
+
+          {/* Drop zone */}
+          <div
+            className={`border-2 border-dashed rounded-lg p-4 text-center transition-all cursor-pointer
+              ${isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/40 hover:bg-muted/20"}
+              ${uploading ? "opacity-50 pointer-events-none" : ""}`}
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f?.type.startsWith("image/")) uploadPhoto(f); }}
+            onClick={() => inputRef.current?.click()}
+          >
+            {uploading ? (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Chargement...
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Upload className="h-4 w-4" />
+                Glisser-déposer ou cliquer pour ajouter une photo
+              </div>
+            )}
+            <input ref={inputRef} type="file" accept="image/*" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = ""; }} />
+          </div>
+
+          {/* Photo grid */}
+          {sectionPhotos.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {sectionPhotos.map((photo) => (
+                <div key={photo.id} className="group relative rounded-lg overflow-hidden border bg-muted aspect-[4/3]">
+                  <img
+                    src={`${apiBase}${photo.url}`}
+                    alt={photo.caption || photo.fileName}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all" />
+                  <Button
+                    size="icon" variant="destructive"
+                    className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => deletePhoto(photo.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                  {editingCaption === photo.id ? (
+                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/70 flex gap-1">
+                      <input
+                        className="flex-1 text-xs text-white bg-transparent border-b border-white/50 outline-none"
+                        value={captionText}
+                        onChange={(e) => setCaptionText(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") setEditingCaption(null); }}
+                        autoFocus
+                      />
+                      <button onClick={() => setEditingCaption(null)} className="text-white/70 hover:text-white">
+                        <Check className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        className="text-xs text-white/90 hover:text-white flex items-center gap-1 truncate w-full"
+                        onClick={() => { setEditingCaption(photo.id); setCaptionText(photo.caption || ""); }}
+                      >
+                        <Edit2 className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{photo.caption || "Ajouter une légende"}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {sectionPhotos.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center py-1">Aucune photo dans cette section</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Photo Gallery (all sections) ──────────────────────────────────────────────
+
+function PhotoGallery({ reportId, report }: { reportId: number; report: { sectionCharacteristics?: Record<string, string> | null } }) {
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [characteristics, setCharacteristics] = useState<Record<string, string>>(
+    (report.sectionCharacteristics as Record<string, string>) || {}
+  );
+  const [savingChar, setSavingChar] = useState<string | null>(null);
 
   const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -117,116 +382,57 @@ function PhotoGallery({ reportId }: { reportId: number }) {
 
   useEffect(() => { fetchPhotos(); }, [fetchPhotos]);
 
-  const uploadPhoto = async (file: File) => {
-    setUploading(true);
-    const form = new FormData();
-    form.append("photo", file);
+  const handleCharChange = (key: string, value: string) => {
+    setCharacteristics((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSaveChar = async (key: string) => {
+    setSavingChar(key);
     try {
-      const res = await fetch(`${apiBase}/api/audit/reports/${reportId}/photos`, { method: "POST", body: form });
-      if (res.ok) await fetchPhotos();
-    } finally { setUploading(false); }
+      await fetch(`${apiBase}/api/audit/reports/${reportId}/characteristics`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: characteristics[key] ?? "" }),
+      });
+    } finally { setSavingChar(null); }
   };
 
-  const deletePhoto = async (id: number) => {
-    await fetch(`${apiBase}/api/audit/reports/${reportId}/photos/${id}`, { method: "DELETE" });
-    setPhotos((prev) => prev.filter((p) => p.id !== id));
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault(); setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) uploadPhoto(file);
-  };
+  const totalPhotos = photos.length;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <ImagePlus className="h-5 w-5 text-primary" />
-          Photos du bâtiment
-          {photos.length > 0 && <Badge variant="secondary">{photos.length}</Badge>}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Upload zone */}
-        <div
-          className={`border-2 border-dashed rounded-lg p-6 text-center transition-all cursor-pointer
-            ${isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/30"}
-            ${uploading ? "opacity-50 pointer-events-none" : ""}`}
-          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={handleDrop}
-          onClick={() => inputRef.current?.click()}
-        >
-          {uploading ? (
-            <div className="flex flex-col items-center gap-2">
-              <Loader2 className="h-8 w-8 text-primary animate-spin" />
-              <p className="text-sm text-muted-foreground">Chargement en cours...</p>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-2">
-              <Upload className="h-8 w-8 text-muted-foreground" />
-              <p className="text-sm font-medium">Glissez une photo ou cliquez pour parcourir</p>
-              <p className="text-xs text-muted-foreground">JPG, PNG, WEBP — max 10 Mo</p>
-            </div>
-          )}
-          <input ref={inputRef} type="file" accept="image/*" className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.target.value = ""; }} />
-        </div>
-
-        {/* Photo grid */}
-        {loading ? (
-          <div className="flex items-center justify-center h-24 text-muted-foreground text-sm">
-            <Loader2 className="h-4 w-4 animate-spin mr-2" /> Chargement des photos...
-          </div>
-        ) : photos.length === 0 ? (
-          <p className="text-center text-muted-foreground text-sm py-4">Aucune photo ajoutée pour l'instant</p>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {photos.map((photo) => (
-              <div key={photo.id} className="group relative rounded-lg overflow-hidden border bg-muted aspect-[4/3]">
-                <img
-                  src={`${apiBase}${photo.url}`}
-                  alt={photo.caption || photo.fileName}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all" />
-                <Button
-                  size="icon" variant="destructive"
-                  className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => deletePhoto(photo.id)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-                {editingCaption === photo.id ? (
-                  <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/70 flex gap-1">
-                    <input
-                      className="flex-1 text-xs text-white bg-transparent border-b border-white/50 outline-none"
-                      value={captionText}
-                      onChange={(e) => setCaptionText(e.target.value)}
-                      autoFocus
-                    />
-                    <button onClick={() => setEditingCaption(null)} className="text-white/70 hover:text-white">
-                      <Check className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      className="text-xs text-white/90 hover:text-white flex items-center gap-1"
-                      onClick={() => { setEditingCaption(photo.id); setCaptionText(photo.caption || ""); }}
-                    >
-                      <Edit2 className="h-3 w-3" />
-                      {photo.caption || "Ajouter une légende"}
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <ImagePlus className="h-5 w-5 text-primary" />
+        <h2 className="text-lg font-semibold">Photos & caractéristiques du bâtiment</h2>
+        {totalPhotos > 0 && (
+          <Badge variant="secondary">{totalPhotos} photo{totalPhotos > 1 ? "s" : ""} au total</Badge>
         )}
-      </CardContent>
-    </Card>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center h-24 text-muted-foreground text-sm">
+          <Loader2 className="h-4 w-4 animate-spin mr-2" /> Chargement...
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {SECTIONS.map((section) => (
+            <PhotoSection
+              key={section.key}
+              section={section}
+              reportId={reportId}
+              photos={photos}
+              characteristics={characteristics}
+              onPhotosChange={setPhotos}
+              onCharChange={handleCharChange}
+              onSaveChar={handleSaveChar}
+              savingChar={savingChar}
+              apiBase={apiBase}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -302,7 +508,6 @@ function WeatherAnalysis({ rawFields }: { rawFields: RawField[] }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Station info grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { icon: MapPin, label: "Station", value: stationRaw },
@@ -321,7 +526,6 @@ function WeatherAnalysis({ rawFields }: { rawFields: RawField[] }) {
           ))}
         </div>
 
-        {/* Weather charts */}
         {loading && (
           <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -337,7 +541,9 @@ function WeatherAnalysis({ rawFields }: { rawFields: RawField[] }) {
         {!loading && weather && (
           <div className="space-y-6">
             <div>
-              <p className="text-sm font-medium mb-3 text-muted-foreground">Températures mensuelles — {stationRaw} ({new Date().getFullYear() - 1})</p>
+              <p className="text-sm font-medium mb-3 text-muted-foreground">
+                Températures mensuelles — {stationRaw} ({new Date().getFullYear() - 1})
+              </p>
               <ResponsiveContainer width="100%" height={220}>
                 <AreaChart data={weather} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
                   <defs>
@@ -504,56 +710,6 @@ function IdentiteBatiment({
             </div>
           ))}
         </div>
-
-        {/* Envelope fields from rawFields */}
-        {[
-          getRaw(rawFields, "Isolation murs"),
-          getRaw(rawFields, "Isolation toiture"),
-          getRaw(rawFields, "Isolation plancher"),
-          getRaw(rawFields, "Type de menuiserie"),
-        ].some(Boolean) && (
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Enveloppe thermique</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {[
-                { label: "Isolation murs extérieurs", key: "Isolation murs" },
-                { label: "Isolation toiture / plafond", key: "Isolation toiture" },
-                { label: "Isolation plancher bas", key: "Isolation plancher" },
-                { label: "Type de menuiserie", key: "Type de menuiserie" },
-              ].filter((r) => getRaw(rawFields, r.key)).map(({ label, key }) => (
-                <div key={key} className="flex flex-col gap-0.5">
-                  <span className="text-xs text-muted-foreground">{label}</span>
-                  <span className="text-sm font-medium">{getRaw(rawFields, key)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* CVC */}
-        {[
-          getRaw(rawFields, "Système de chauffage"),
-          getRaw(rawFields, "Type de ventilation"),
-          getRaw(rawFields, "Type d'ECS"),
-        ].some(Boolean) && (
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Systèmes techniques</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {[
-                { label: "Chauffage", key: "Système de chauffage" },
-                { label: "Ventilation", key: "Type de ventilation" },
-                { label: "Eau Chaude Sanitaire", key: "Type d'ECS" },
-                { label: "COP nominal", key: "COP nominal" },
-                { label: "EER nominal (PAC)", key: "EER nominal (PAC)" },
-              ].filter((r) => getRaw(rawFields, r.key)).map(({ label, key }) => (
-                <div key={key} className="flex flex-col gap-0.5">
-                  <span className="text-xs text-muted-foreground">{label}</span>
-                  <span className="text-sm font-medium">{getRaw(rawFields, key)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
@@ -567,6 +723,7 @@ export function BatimentTab({
 }: {
   report: {
     id: number;
+    sectionCharacteristics?: Record<string, string> | null;
     buildingInfo: {
       name?: string | null;
       address?: string | null;
@@ -586,7 +743,7 @@ export function BatimentTab({
       <IdentiteBatiment report={report} rawFields={rawFields} />
       <LocalisationMap rawFields={rawFields} />
       <WeatherAnalysis rawFields={rawFields} />
-      <PhotoGallery reportId={report.id} />
+      <PhotoGallery reportId={report.id} report={report} />
     </div>
   );
 }

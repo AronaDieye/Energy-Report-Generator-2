@@ -86,6 +86,14 @@ export const auditReportsTable = pgTable("audit_reports", {
       section: string | null;
     }>
   >(),
+
+  sectionCharacteristics: jsonb("section_characteristics").$type<{
+    facades?: string;
+    planchers?: string;
+    toitures?: string;
+    menuiseries?: string;
+    chauffage_ecs?: string;
+  }>(),
 });
 
 export const insertAuditReportSchema = createInsertSchema(
