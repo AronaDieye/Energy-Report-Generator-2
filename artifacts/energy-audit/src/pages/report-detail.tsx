@@ -93,181 +93,328 @@ function RawFieldsSection({ rawFields }: { rawFields: RawField[] }) {
   );
 }
 
-function ScenarioComparison({
+const parseVal = (s: string | null | undefined): number | null => {
+  if (!s) return null;
+  const n = parseFloat(s.replace(/\s/g, "").replace(",", ".").replace(/[^\d.-]/g, ""));
+  return isNaN(n) ? null : n;
+};
+
+function useScenarioCodes(rawFields: RawField[]) {
+  return useMemo(() => {
+    const codes: string[] = [];
+    const seen = new Set<string>();
+    for (const f of rawFields) {
+      const match = f.section?.match(/^SCÉNARIO (\w+)$/);
+      if (match && !seen.has(match[1])) {
+        seen.add(match[1]);
+        codes.push(match[1]);
+      }
+    }
+    return codes;
+  }, [rawFields]);
+}
+
+function getScVal(rawFields: RawField[], code: string, suffix: string): string | null {
+  return rawFields.find((f) => f.key === `SCÉNARIO ${code} - ${suffix}`)?.value ?? null;
+}
+
+// ─── SyntheseGlobale ────────────────────────────────────────────────────────
+
+function SyntheseGlobale({
   rawFields,
   initialCost,
-  initialEP,
-  initialGes,
 }: {
   rawFields: RawField[];
   initialCost: number | null;
-  initialEP: number | null;
-  initialGes: number | null;
 }) {
-  // Extract scenario data from rawFields
-  const scenarioCodes = useMemo(() => {
-    const codes = new Set<string>();
-    for (const f of rawFields) {
-      const match = f.section?.match(/^SCÉNARIO (\w+)$/);
-      if (match) codes.add(match[1]);
-    }
-    return Array.from(codes);
-  }, [rawFields]);
-
+  const scenarioCodes = useScenarioCodes(rawFields);
   if (scenarioCodes.length === 0) return null;
 
-  const getScenarioValue = (code: string, suffix: string): string | null => {
-    const key = `SCÉNARIO ${code} - ${suffix}`;
-    return rawFields.find((f) => f.key === key)?.value ?? null;
-  };
+  const thceInitial = parseVal(rawFields.find((f) => f.key === "Total énergie primaire (Th-C-E)")?.value);
+  const gesInitial = parseVal(rawFields.find((f) => f.key === "CO2 par m² (kg CO2éq/m²/an)")?.value);
 
-  const parseVal = (s: string | null): number | null => {
-    if (!s) return null;
-    const n = parseFloat(s.replace(/\s/g, "").replace(",", ".").replace(/[^\d.-]/g, ""));
-    return isNaN(n) ? null : n;
-  };
+  const scColors = ["bg-green-50 border-green-200", "bg-blue-50 border-blue-200", "bg-purple-50 border-purple-200"];
+  const scHeaderColors = ["bg-green-600", "bg-blue-600", "bg-purple-600"];
+  const scTextColors = ["text-green-700", "text-blue-700", "text-purple-700"];
+
+  const rows = scenarioCodes.map((code, i) => {
+    const thce = parseVal(getScVal(rawFields, code, "CEP Th-C-E après"));
+    const ges = parseVal(getScVal(rawFields, code, "GES Th-C-E après"));
+    const cost = parseVal(getScVal(rawFields, code, "Dépense annuelle après"));
+    const invest = parseVal(getScVal(rawFields, code, "Investissement"));
+    const tempsRetour = getScVal(rawFields, code, "Temps de retour");
+    const gainEco = cost !== null && initialCost !== null ? initialCost - cost : null;
+    const gainPct = thce !== null && thceInitial !== null && thceInitial > 0
+      ? ((thceInitial - thce) / thceInitial) * 100 : null;
+    return { code, thce, ges, cost, invest, tempsRetour, gainEco, gainPct, i };
+  });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center text-lg">
-          <TrendingDown className="h-5 w-5 mr-2 text-green-600" />
-          Comparaison des scénarios d'amélioration
+    <Card className="overflow-hidden">
+      <CardHeader className="bg-slate-900 text-white py-4">
+        <CardTitle className="flex items-center text-lg text-white">
+          <TrendingDown className="h-5 w-5 mr-2 text-green-400" />
+          Synthèse audit énergétique globale
         </CardTitle>
       </CardHeader>
-      <CardContent className="overflow-x-auto">
+      <CardContent className="p-0 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b">
-              <th className="text-left py-2 pr-4 font-medium text-muted-foreground">Indicateur</th>
-              <th className="text-right py-2 px-3 font-medium bg-muted/30 rounded-tl">
+            <tr>
+              <th className="text-left py-3 px-4 font-medium text-muted-foreground bg-muted/20 border-b min-w-[160px]">
+                Indicateur
+              </th>
+              <th className="py-3 px-4 text-center font-semibold bg-slate-700 text-white border-b min-w-[130px]">
                 État initial
               </th>
-              {scenarioCodes.map((code) => (
-                <th key={code} className="text-right py-2 px-3 font-medium">
+              {rows.map(({ code, i }) => (
+                <th key={code} className={`py-3 px-4 text-center font-semibold text-white border-b min-w-[130px] ${scHeaderColors[i] || "bg-slate-600"}`}>
                   {code}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border/50">
-            <tr>
-              <td className="py-2 pr-4 text-muted-foreground">Consommation (kWhEP/m².an)</td>
-              <td className="py-2 px-3 text-right font-mono bg-muted/30 font-semibold">
-                {initialEP !== null ? initialEP.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : "—"}
+          <tbody>
+            <tr className="border-b">
+              <td className="py-3 px-4 text-muted-foreground font-medium">Étiquette DPE</td>
+              <td className="py-3 px-4 text-center bg-slate-50">
+                {thceInitial !== null ? (
+                  <EnergyLabel label={dpeFromEP(thceInitial)} className="h-9 w-9 text-base mx-auto" />
+                ) : "—"}
               </td>
-              {scenarioCodes.map((code) => {
-                const val = parseVal(getScenarioValue(code, "kWhEP/m².an après"));
-                const delta = val !== null && initialEP !== null ? val - initialEP : null;
-                return (
-                  <td key={code} className="py-2 px-3 text-right font-mono">
-                    <div className="font-semibold">
-                      {val !== null ? val.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : "—"}
-                    </div>
-                    {delta !== null && (
-                      <div className={`text-xs ${delta < 0 ? "text-green-600" : "text-red-500"}`}>
-                        {delta > 0 ? "+" : ""}{delta.toLocaleString("fr-FR", { maximumFractionDigits: 1 })}
-                      </div>
-                    )}
-                  </td>
-                );
-              })}
+              {rows.map(({ code, thce, i }) => (
+                <td key={code} className={`py-3 px-4 text-center ${scColors[i] || ""}`}>
+                  {thce !== null ? (
+                    <EnergyLabel label={dpeFromEP(thce)} className="h-9 w-9 text-base mx-auto" />
+                  ) : "—"}
+                </td>
+              ))}
             </tr>
-            <tr>
-              <td className="py-2 pr-4 text-muted-foreground">Étiquette DPE</td>
-              <td className="py-2 px-3 text-right bg-muted/30">
-                <EnergyLabel
-                  label={initialEP !== null ? dpeFromEP(initialEP) : null}
-                  className="h-7 w-7 text-sm inline-flex"
-                />
+            <tr className="border-b">
+              <td className="py-3 px-4 text-muted-foreground">
+                <div className="font-medium">CEP (kWhEP/m².an)</div>
+                <div className="text-xs text-muted-foreground/70">5 usages — Th-C-E</div>
               </td>
-              {scenarioCodes.map((code) => {
-                const val = parseVal(getScenarioValue(code, "kWhEP/m².an après"));
-                return (
-                  <td key={code} className="py-2 px-3 text-right">
-                    <EnergyLabel
-                      label={val !== null ? dpeFromEP(val) : null}
-                      className="h-7 w-7 text-sm inline-flex"
-                    />
-                  </td>
-                );
-              })}
-            </tr>
-            <tr>
-              <td className="py-2 pr-4 text-muted-foreground">Émissions GES (kgCO2/m².an)</td>
-              <td className="py-2 px-3 text-right font-mono bg-muted/30 font-semibold">
-                {initialGes !== null ? initialGes.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : "—"}
+              <td className="py-3 px-4 text-center font-mono font-bold bg-slate-50">
+                {thceInitial !== null ? thceInitial.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : "—"}
               </td>
-              {scenarioCodes.map((code) => {
-                const val = parseVal(getScenarioValue(code, "kgCO2/m² après"));
-                const delta = val !== null && initialGes !== null ? val - initialGes : null;
-                return (
-                  <td key={code} className="py-2 px-3 text-right font-mono">
-                    <div className="font-semibold">
-                      {val !== null ? val.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : "—"}
-                    </div>
-                    {delta !== null && (
-                      <div className={`text-xs ${delta < 0 ? "text-green-600" : "text-red-500"}`}>
-                        {delta > 0 ? "+" : ""}{delta.toLocaleString("fr-FR", { maximumFractionDigits: 1 })}
-                      </div>
-                    )}
-                  </td>
-                );
-              })}
+              {rows.map(({ code, thce, i }) => (
+                <td key={code} className={`py-3 px-4 text-center font-mono font-bold ${scColors[i] || ""} ${scTextColors[i] || ""}`}>
+                  {thce !== null ? thce.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : "—"}
+                </td>
+              ))}
             </tr>
-            <tr>
-              <td className="py-2 pr-4 text-muted-foreground">Dépense annuelle (€/an)</td>
-              <td className="py-2 px-3 text-right font-mono bg-muted/30 font-semibold">
-                {initialCost !== null
-                  ? initialCost.toLocaleString("fr-FR", { maximumFractionDigits: 0 })
-                  : "—"}
+            <tr className="border-b">
+              <td className="py-3 px-4 text-muted-foreground">
+                <div className="font-medium">GES (kgCO₂/m².an)</div>
               </td>
-              {scenarioCodes.map((code) => {
-                const val = parseVal(getScenarioValue(code, "Dépense annuelle après"));
-                const saving = val !== null && initialCost !== null ? initialCost - val : null;
-                return (
-                  <td key={code} className="py-2 px-3 text-right font-mono">
-                    <div className="font-semibold">
-                      {val !== null ? val.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) : "—"}
-                    </div>
-                    {saving !== null && saving !== 0 && (
-                      <div className={`text-xs ${saving > 0 ? "text-green-600" : "text-red-500"}`}>
-                        {saving > 0 ? "−" : "+"}
-                        {Math.abs(saving).toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €/an
-                      </div>
-                    )}
-                  </td>
-                );
-              })}
+              <td className="py-3 px-4 text-center font-mono bg-slate-50">
+                {gesInitial !== null ? gesInitial.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : "—"}
+              </td>
+              {rows.map(({ code, ges, i }) => (
+                <td key={code} className={`py-3 px-4 text-center font-mono ${scColors[i] || ""} ${scTextColors[i] || ""}`}>
+                  {ges !== null ? ges.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : "—"}
+                </td>
+              ))}
+            </tr>
+            <tr className="border-b">
+              <td className="py-3 px-4 text-muted-foreground">
+                <div className="font-medium">Gain économique</div>
+                <div className="text-xs text-muted-foreground/70">€/an</div>
+              </td>
+              <td className="py-3 px-4 text-center text-muted-foreground bg-slate-50">—</td>
+              {rows.map(({ code, gainEco, i }) => (
+                <td key={code} className={`py-3 px-4 text-center font-semibold ${scColors[i] || ""} ${scTextColors[i] || ""}`}>
+                  {gainEco !== null
+                    ? `${gainEco > 0 ? "" : "−"}${Math.abs(gainEco).toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €/an`
+                    : "—"}
+                </td>
+              ))}
+            </tr>
+            <tr className="border-b">
+              <td className="py-3 px-4 text-muted-foreground">
+                <div className="font-medium">Gain énergétique</div>
+                <div className="text-xs text-muted-foreground/70">% CEP Th-C-E</div>
+              </td>
+              <td className="py-3 px-4 text-center text-muted-foreground bg-slate-50">—</td>
+              {rows.map(({ code, gainPct, i }) => (
+                <td key={code} className={`py-3 px-4 text-center ${scColors[i] || ""}`}>
+                  {gainPct !== null ? (
+                    <span className={`font-bold text-base ${scTextColors[i] || ""}`}>
+                      {gainPct.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %
+                    </span>
+                  ) : "—"}
+                </td>
+              ))}
+            </tr>
+            <tr className="border-b">
+              <td className="py-3 px-4 text-muted-foreground font-medium">Investissement</td>
+              <td className="py-3 px-4 text-center text-muted-foreground bg-slate-50">—</td>
+              {rows.map(({ code, invest, i }) => (
+                <td key={code} className={`py-3 px-4 text-center font-mono ${scColors[i] || ""}`}>
+                  {invest !== null ? invest.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €" : "—"}
+                </td>
+              ))}
             </tr>
             <tr>
-              <td className="py-2 pr-4 text-muted-foreground">Investissement (€)</td>
-              <td className="py-2 px-3 text-right bg-muted/30 text-muted-foreground">—</td>
-              {scenarioCodes.map((code) => {
-                const val = parseVal(getScenarioValue(code, "Investissement"));
-                return (
-                  <td key={code} className="py-2 px-3 text-right font-mono font-semibold">
-                    {val !== null ? val.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €" : "—"}
-                  </td>
-                );
-              })}
-            </tr>
-            <tr>
-              <td className="py-2 pr-4 text-muted-foreground">Temps de retour (ans)</td>
-              <td className="py-2 px-3 text-right bg-muted/30 text-muted-foreground">—</td>
-              {scenarioCodes.map((code) => {
-                const val = getScenarioValue(code, "Temps de retour");
-                return (
-                  <td key={code} className="py-2 px-3 text-right font-mono font-semibold">
-                    {val || "—"}
-                  </td>
-                );
-              })}
+              <td className="py-3 px-4 text-muted-foreground font-medium">Temps de retour</td>
+              <td className="py-3 px-4 text-center text-muted-foreground bg-slate-50">—</td>
+              {rows.map(({ code, tempsRetour, i }) => (
+                <td key={code} className={`py-3 px-4 text-center font-mono ${scColors[i] || ""}`}>
+                  {tempsRetour || "—"}
+                </td>
+              ))}
             </tr>
           </tbody>
         </table>
       </CardContent>
     </Card>
+  );
+}
+
+// ─── ScenarioCards ────────────────────────────────────────────────────────────
+
+function ScenarioCards({
+  rawFields,
+  initialCost,
+}: {
+  rawFields: RawField[];
+  initialCost: number | null;
+}) {
+  const scenarioCodes = useScenarioCodes(rawFields);
+  if (scenarioCodes.length === 0) return null;
+
+  const thceInitial = parseVal(rawFields.find((f) => f.key === "Total énergie primaire (Th-C-E)")?.value);
+  const gesInitial = parseVal(rawFields.find((f) => f.key === "CO2 par m² (kg CO2éq/m²/an)")?.value);
+
+  const scBorderColors = ["border-green-400", "border-blue-400", "border-purple-400"];
+  const scBadgeColors = ["bg-green-600", "bg-blue-600", "bg-purple-600"];
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold flex items-center">
+        <Wrench className="h-5 w-5 mr-2 text-primary" />
+        Scénarios d'amélioration — Détails
+      </h3>
+      {scenarioCodes.map((code, i) => {
+        const thce = parseVal(getScVal(rawFields, code, "CEP Th-C-E après"));
+        const dpe3cl = parseVal(getScVal(rawFields, code, "kWhEP/m².an après"));
+        const ges = parseVal(getScVal(rawFields, code, "GES Th-C-E après"));
+        const cost = parseVal(getScVal(rawFields, code, "Dépense annuelle après"));
+        const invest = parseVal(getScVal(rawFields, code, "Investissement"));
+        const tempsRetour = getScVal(rawFields, code, "Temps de retour");
+        const conseils = getScVal(rawFields, code, "Conseils") || "";
+        const gainPct = thce !== null && thceInitial !== null && thceInitial > 0
+          ? ((thceInitial - thce) / thceInitial) * 100 : null;
+        const gainEco = cost !== null && initialCost !== null ? initialCost - cost : null;
+
+        const travaux = conseils.split(/\s*\/\s*/).map(t => t.trim()).filter(t => t.length > 2);
+
+        return (
+          <Card key={code} className={`border-l-4 ${scBorderColors[i] || "border-slate-400"}`}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-white text-sm font-bold ${scBadgeColors[i] || "bg-slate-600"}`}>
+                    {code}
+                  </span>
+                  Détails du projet
+                </CardTitle>
+                {gainPct !== null && (
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-green-600">−{gainPct.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %</div>
+                    <div className="text-xs text-muted-foreground">gain énergétique</div>
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* DPE comparison */}
+              <div className="grid grid-cols-3 gap-4 p-4 bg-muted/20 rounded-lg">
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground mb-2 font-medium">ÉTAT INITIAL</p>
+                  {thceInitial !== null ? (
+                    <EnergyLabel label={dpeFromEP(thceInitial)} className="h-12 w-12 text-xl mx-auto mb-1" />
+                  ) : <div className="h-12 w-12 mx-auto" />}
+                  <p className="text-xs font-mono font-semibold">
+                    {thceInitial !== null ? thceInitial.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : "—"} kWhEP/m².an
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {gesInitial !== null ? gesInitial.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : "—"} kgCO₂/m².an
+                  </p>
+                  {initialCost !== null && (
+                    <p className="text-xs font-semibold mt-1">{initialCost.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €/an</p>
+                  )}
+                </div>
+                <div className="flex flex-col items-center justify-center">
+                  <div className="text-3xl text-green-500">→</div>
+                  {gainPct !== null && (
+                    <div className="text-sm font-bold text-green-600 text-center">
+                      {gainPct.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %
+                    </div>
+                  )}
+                  <div className="text-xs text-muted-foreground text-center">Th-C-E</div>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground mb-2 font-medium">{code}</p>
+                  {thce !== null ? (
+                    <EnergyLabel label={dpeFromEP(thce)} className="h-12 w-12 text-xl mx-auto mb-1" />
+                  ) : dpe3cl !== null ? (
+                    <EnergyLabel label={dpeFromEP(dpe3cl)} className="h-12 w-12 text-xl mx-auto mb-1" />
+                  ) : <div className="h-12 w-12 mx-auto" />}
+                  <p className="text-xs font-mono font-semibold">
+                    {thce !== null ? thce.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : "—"} kWhEP/m².an
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {ges !== null ? ges.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : "—"} kgCO₂/m².an
+                  </p>
+                  {cost !== null && (
+                    <p className="text-xs font-semibold mt-1">{cost.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €/an</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Financials */}
+              <div className="grid grid-cols-3 gap-3 text-sm">
+                <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg text-center border border-green-100">
+                  <p className="text-xs text-muted-foreground">Gain économique</p>
+                  <p className="font-bold text-green-700">
+                    {gainEco !== null
+                      ? `${gainEco > 0 ? "+" : ""}${gainEco.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} €/an`
+                      : "—"}
+                  </p>
+                </div>
+                <div className="p-3 bg-muted/20 rounded-lg text-center border border-border">
+                  <p className="text-xs text-muted-foreground">Investissement</p>
+                  <p className="font-bold">
+                    {invest !== null ? invest.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €" : "—"}
+                  </p>
+                </div>
+                <div className="p-3 bg-muted/20 rounded-lg text-center border border-border">
+                  <p className="text-xs text-muted-foreground">Temps de retour</p>
+                  <p className="font-bold">{tempsRetour || "—"}</p>
+                </div>
+              </div>
+
+              {/* Travaux */}
+              {travaux.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Travaux préconisés</p>
+                  <ul className="space-y-1">
+                    {travaux.map((t, j) => (
+                      <li key={j} className="flex items-start gap-2 text-sm">
+                        <span className="text-primary mt-0.5 shrink-0">▪</span>
+                        <span>{t}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
   );
 }
 
@@ -693,6 +840,12 @@ export function ReportDetail() {
         </div>
       </div>
 
+      {/* Synthèse globale (PDF-style comparison table) */}
+      <SyntheseGlobale rawFields={rawFields} initialCost={initialCost ?? null} />
+
+      {/* Scenario detail cards */}
+      <ScenarioCards rawFields={rawFields} initialCost={initialCost ?? null} />
+
       {/* Consumption breakdown */}
       <ConsumptionBreakdown rawFields={rawFields} />
 
@@ -701,77 +854,6 @@ export function ReportDetail() {
         <UbatBilan rawFields={rawFields} />
         <DeperditionsRepartition rawFields={rawFields} />
       </div>
-
-      {/* Scenario comparison */}
-      <ScenarioComparison
-        rawFields={rawFields}
-        initialCost={initialCost ?? null}
-        initialEP={initialEP ?? null}
-        initialGes={initialGes ?? null}
-      />
-
-      {/* Recommendations */}
-      {report.recommendations && report.recommendations.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center text-lg">
-              <Wrench className="h-5 w-5 mr-2 text-primary" />
-              Préconisations de travaux
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {report.recommendations.map((rec, i) => (
-                <div
-                  key={i}
-                  className="p-4 border rounded-lg bg-muted/30 space-y-2"
-                >
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant={
-                        rec.priority === "high"
-                          ? "destructive"
-                          : rec.priority === "medium"
-                          ? "default"
-                          : "secondary"
-                      }
-                    >
-                      {rec.category}
-                    </Badge>
-                  </div>
-                  <p className="text-sm">{rec.description}</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm pt-1">
-                    <div>
-                      <span className="block text-xs text-muted-foreground">Investissement</span>
-                      <span className="font-bold">
-                        {rec.estimatedCost !== null && rec.estimatedCost !== undefined
-                          ? rec.estimatedCost.toLocaleString("fr-FR") + " €"
-                          : "—"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="block text-xs text-muted-foreground">Économie estimée</span>
-                      <span className="font-bold text-green-600">
-                        {rec.estimatedSaving !== null && rec.estimatedSaving !== undefined
-                          ? rec.estimatedSaving.toLocaleString("fr-FR") + " €/an"
-                          : "—"}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="block text-xs text-muted-foreground">Temps de retour</span>
-                      <span className="font-bold">
-                        {rec.paybackPeriod !== null && rec.paybackPeriod !== undefined
-                          ? rec.paybackPeriod + " an(s)"
-                          : "—"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Climate context */}

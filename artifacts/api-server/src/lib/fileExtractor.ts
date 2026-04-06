@@ -376,6 +376,8 @@ interface ScenarioResult {
   totalDepenseAnnuelle: number | null;
   totalMWhEp: number | null;
   co2TonnesAn: number | null;
+  thceCepM2: number | null;
+  thceGesKgM2: number | null;
 }
 
 function parseScenarios(text: string): ScenarioResult[] {
@@ -454,7 +456,39 @@ function parseScenarios(text: string): ScenarioResult[] {
         totalDepenseAnnuelle,
         totalMWhEp,
         co2TonnesAn,
+        thceCepM2: null,
+        thceGesKgM2: null,
       });
+    }
+  }
+
+  // Enrich each scenario with Th-C-E Bilan Energétique data
+  // The Bilan sections appear in order: #0 = ETAT INITIAL, #1 = MODIFICATION 1, etc.
+  const bilanPositions: number[] = [];
+  let bSearch = 0;
+  while (true) {
+    const found = text.indexOf("Bilan Energétique", bSearch);
+    if (found === -1) break;
+    bilanPositions.push(found);
+    bSearch = found + 1;
+  }
+
+  for (let i = 0; i < scenarios.length; i++) {
+    const bilanIdx = bilanPositions[i + 1];
+    if (bilanIdx !== undefined) {
+      // Text after Bilan Energétique: TOTAL MWhEP, kWhEP/m².an, kg/m²
+      const afterBlock = text.slice(bilanIdx, bilanIdx + 600);
+      const cepM = afterBlock.match(/TOTAL\s+kWhEP\/m²\.an\s*:\s*([\d,\s]+)/);
+      const gesM = afterBlock.match(/TOTAL\s+\(kg\/m²\)\s*:\s*([\d,\s]+)/);
+      if (cepM) scenarios[i].thceCepM2 = parseNum(cepM[1]);
+      if (gesM) scenarios[i].thceGesKgM2 = parseNum(gesM[1]);
+
+      // Text before Bilan Energétique: TOTAL DEPENSE ANNUEL
+      const beforeBlock = text.slice(Math.max(0, bilanIdx - 800), bilanIdx);
+      const depM = beforeBlock.match(/TOTAL DEPENSE ANNUEL[\s\n]+([0-9\s,]+)/);
+      if (depM && scenarios[i].totalDepenseAnnuelle === null) {
+        scenarios[i].totalDepenseAnnuelle = parseNum(depM[1]);
+      }
     }
   }
 
@@ -672,6 +706,8 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
     if (sc.totalKwhEpM2 !== null) addField(`${scSection} - kWhEP/m².an après`, sc.totalKwhEpM2 + " kWhEP/m².an", scSection);
     if (sc.totalCo2KgM2 !== null) addField(`${scSection} - kgCO2/m² après`, sc.totalCo2KgM2 + " kgéqCO2/m².an", scSection);
     if (sc.totalDepenseAnnuelle !== null) addField(`${scSection} - Dépense annuelle après`, sc.totalDepenseAnnuelle.toLocaleString("fr-FR") + " €/an", scSection);
+    if (sc.thceCepM2 !== null) addField(`${scSection} - CEP Th-C-E après`, sc.thceCepM2.toLocaleString("fr-FR") + " kWhEP/m².an", scSection);
+    if (sc.thceGesKgM2 !== null) addField(`${scSection} - GES Th-C-E après`, sc.thceGesKgM2.toLocaleString("fr-FR") + " kgCO2/m².an", scSection);
   }
 
   // ── 13. Compute final values
