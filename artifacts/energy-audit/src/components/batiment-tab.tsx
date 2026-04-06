@@ -26,6 +26,10 @@ import {
   Fence,
   Droplets,
   Save,
+  AirVent,
+  Snowflake,
+  Gauge,
+  Lightbulb,
 } from "lucide-react";
 import {
   AreaChart,
@@ -101,7 +105,7 @@ const MONTHS_SHORT = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", 
 
 // ── Section definitions ───────────────────────────────────────────────────────
 
-type CategoryKey = "facades" | "planchers" | "toitures" | "menuiseries" | "chauffage_ecs";
+type CategoryKey = "facades" | "planchers" | "toitures" | "menuiseries" | "chauffage_ecs" | "ventilation" | "climatisation" | "compteurs" | "eclairage";
 
 interface SectionDef {
   key: CategoryKey;
@@ -121,7 +125,7 @@ const SECTIONS: SectionDef[] = [
     color: "text-orange-600",
     charLabel: "Caractéristiques des murs extérieurs",
     charPlaceholder: "Décrivez les murs extérieurs...",
-    charHints: ["Composition : béton, brique, pierre...", "Isolation : type, épaisseur (cm), λ (W/m.K)", "Coefficient U (W/m².K)", "État général, pathologies constatées"],
+    charHints: ["Composition : béton, brique, pierre, bois...", "Isolation : type (laine de roche, PSE...), épaisseur (cm), λ (W/m.K)", "Coefficient U (W/m².K) — avant et après travaux", "État général, pathologies constatées (fissures, humidité...)"],
   },
   {
     key: "planchers",
@@ -130,7 +134,7 @@ const SECTIONS: SectionDef[] = [
     color: "text-stone-600",
     charLabel: "Caractéristiques des planchers bas",
     charPlaceholder: "Décrivez les planchers bas...",
-    charHints: ["Type : dalle béton, vide sanitaire, terre-plein...", "Isolation : présence, type, épaisseur (cm)", "Coefficient U (W/m².K)", "État et humidité"],
+    charHints: ["Type : dalle béton, vide sanitaire, terre-plein, hourdis...", "Isolation : présence, type, épaisseur (cm), λ (W/m.K)", "Coefficient U (W/m².K)", "État, présence d'humidité, accessibilité"],
   },
   {
     key: "toitures",
@@ -139,7 +143,7 @@ const SECTIONS: SectionDef[] = [
     color: "text-blue-600",
     charLabel: "Caractéristiques des toitures",
     charPlaceholder: "Décrivez les toitures...",
-    charHints: ["Type : terrasse, combles, pente...", "Isolation : type, épaisseur (cm), λ (W/m.K)", "Coefficient U (W/m².K)", "Étanchéité, état de la couverture"],
+    charHints: ["Type : terrasse inaccessible/accessible, combles perdus/aménagés, pente...", "Isolation : type, épaisseur (cm), λ (W/m.K)", "Coefficient U (W/m².K)", "Étanchéité, type de couverture, état général"],
   },
   {
     key: "menuiseries",
@@ -148,7 +152,7 @@ const SECTIONS: SectionDef[] = [
     color: "text-cyan-600",
     charLabel: "Caractéristiques des menuiseries",
     charPlaceholder: "Décrivez les menuiseries...",
-    charHints: ["Matériau : PVC, aluminium, bois...", "Vitrage : simple, double, triple (Ug W/m².K)", "Coefficient Uw (W/m².K)", "Présence de coffre de volet roulant"],
+    charHints: ["Matériau : PVC, aluminium, bois, mixte...", "Vitrage : simple, double (4/16/4), triple — Ug (W/m².K)", "Coefficient Uw (W/m².K) — cadre + vitrage", "Présence de coffre de volet roulant, fermetures extérieures"],
   },
   {
     key: "chauffage_ecs",
@@ -157,7 +161,43 @@ const SECTIONS: SectionDef[] = [
     color: "text-red-600",
     charLabel: "Caractéristiques des systèmes de chauffage et ECS",
     charPlaceholder: "Décrivez les équipements de chauffage et eau chaude sanitaire...",
-    charHints: ["Chauffage : type, énergie, puissance (kW), rendement", "Régulation : thermostat, programmable, vannes TA", "ECS : type, volume ballon (L), énergie", "Âge des équipements, état général"],
+    charHints: ["Chauffage : type (chaudière, PAC, convecteur...), énergie, puissance (kW), rendement/COP", "Régulation : thermostat d'ambiance, programmateur, vannes thermostatiques", "ECS : type (ballon électrique, chauffe-eau solaire...), volume (L), énergie", "Âge des équipements, état général, marque et modèle"],
+  },
+  {
+    key: "ventilation",
+    label: "Ventilation",
+    icon: AirVent,
+    color: "text-emerald-600",
+    charLabel: "Caractéristiques du système de ventilation",
+    charPlaceholder: "Décrivez le système de ventilation...",
+    charHints: ["Type : VMC simple flux (SF), double flux (DF), ventilation naturelle, hybride", "Marque et modèle, année de pose", "Débit nominal (m³/h), niveau sonore (dB)", "État des bouches, entretien, présence de caissons d'extraction", "Efficacité échangeur (pour double flux) : rendement (%)"],
+  },
+  {
+    key: "climatisation",
+    label: "Climatisation",
+    icon: Snowflake,
+    color: "text-sky-600",
+    charLabel: "Caractéristiques du système de climatisation",
+    charPlaceholder: "Décrivez le système de climatisation...",
+    charHints: ["Type : split mural, gainable, VRV/VRF, tour aéroréfrigérante...", "Puissance frigorifique installée (kW)", "SEER (Seasonal Energy Efficiency Ratio) ou EER nominal", "Marque, modèle, année de pose, gaz frigorigène (R410A, R32...)", "Nombre d'unités, état général, contrat de maintenance"],
+  },
+  {
+    key: "compteurs",
+    label: "Compteurs & abonnements",
+    icon: Gauge,
+    color: "text-violet-600",
+    charLabel: "Caractéristiques des compteurs énergétiques",
+    charPlaceholder: "Décrivez les compteurs et abonnements...",
+    charHints: ["Électricité : puissance souscrite (kVA), option tarifaire (Base, HP/HC, EJP...)", "Gaz : compteur Linky, G4/G6/G10, pression de livraison", "Eau : compteur divisionnaire, présence d'un compteur eau chaude", "Compteurs de calories (réseau de chaleur) : présence, type", "Éventuels sous-comptages par bâtiment ou usage"],
+  },
+  {
+    key: "eclairage",
+    label: "Éclairage",
+    icon: Lightbulb,
+    color: "text-yellow-600",
+    charLabel: "Caractéristiques du système d'éclairage",
+    charPlaceholder: "Décrivez les systèmes d'éclairage...",
+    charHints: ["Type de sources : LED, fluorescent T5/T8, halogène, SHP, HQI...", "Puissance totale installée (W ou kW)", "Présence de détecteurs de présence, minuteries, variateurs", "Éclairage de sécurité (blocs de secours) — état et conformité", "Zones concernées : parties communes, locaux techniques, parkings..."],
   },
 ];
 

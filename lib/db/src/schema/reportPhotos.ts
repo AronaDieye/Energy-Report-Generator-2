@@ -7,6 +7,10 @@ export const PHOTO_CATEGORIES = [
   "toitures",
   "menuiseries",
   "chauffage_ecs",
+  "ventilation",
+  "climatisation",
+  "compteurs",
+  "eclairage",
   "general",
 ] as const;
 
