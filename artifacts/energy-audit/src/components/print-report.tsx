@@ -749,83 +749,187 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         <PrintFooter page={3} building={b.name} />
       </div>
 
-      {/* ══ PAGE 4 — ENVELOPPE & SYSTÈMES TECHNIQUES ════════════════════════ */}
+      {/* ══ PAGE 4 — BÂTIMENT & DONNÉES TECHNIQUES ═══════════════════════════ */}
       {!isPreview && <div className="print-page-break" />}
       <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
-        <SectionTitle num="4" title="Enveloppe thermique" subtitle="Caractéristiques des parois et menuiseries" />
+        <SectionTitle num="4" title="Données bâtiment" subtitle="Caractéristiques générales, climatiques et de l'enveloppe" />
 
-        {envelopeRows.length > 0 && (
-          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20, fontSize: 10 }}>
-            <thead>
-              <tr style={{ background: "#1e3a5f", color: "#fff" }}>
-                <th style={{ ...thStyle, textAlign: "left", width: "35%" }}>Élément</th>
-                <th style={{ ...thStyle, textAlign: "left" }}>Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              {envelopeRows.map(({ label, key }, i) => (
-                <tr key={key} style={i % 2 === 0 ? rowEven : rowOdd}>
-                  <td style={{ ...tdLeft, fontWeight: 600 }}>{label}</td>
-                  <td style={{ ...tdLeft, fontWeight: 400 }}>{getRaw(rawFields, key)}</td>
+        {/* — Données générales bâtiment — */}
+        {(() => {
+          const batRows = [
+            { label: "Type de bâtiment", key: "Type de bâtiment" },
+            { label: "Année de construction", key: "Année de construction" },
+            { label: "Nombre de niveaux", key: "Nombre de niveaux" },
+            { label: "Hauteur du bâtiment", key: "Hauteur du bâtiment" },
+            { label: "Surface habitable", key: "Surface habitable" },
+            { label: "Surface SHON", key: "Surface SHON" },
+            { label: "Surface vitrée totale", key: "Surface vitrée totale" },
+            { label: "Département", key: "Département" },
+            { label: "Bordure de mer", key: "Bordure de mer" },
+          ].filter(r => getRaw(rawFields, r.key));
+          if (batRows.length === 0) return null;
+          return (
+            <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16, fontSize: 10 }}>
+              <thead>
+                <tr style={{ background: "#0f766e", color: "#fff" }}>
+                  <th style={{ ...thStyle, textAlign: "left", width: "40%" }}>Caractéristique</th>
+                  <th style={{ ...thStyle, textAlign: "left" }}>Valeur</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {batRows.map(({ label, key }, i) => (
+                  <tr key={key} style={i % 2 === 0 ? rowEven : rowOdd}>
+                    <td style={{ ...tdLeft, fontWeight: 600 }}>{label}</td>
+                    <td style={tdLeft}>{getRaw(rawFields, key)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          );
+        })()}
+
+        {/* — Données climatiques — */}
+        {(() => {
+          const climRows = [
+            { label: "Station météo", key: "Station météo" },
+            { label: "Zone climatique", key: "Zone climatique" },
+            { label: "Température extérieure de base", key: "Température extérieure de base" },
+            { label: "Degrés-jours (base 18°C)", key: "Degrés-jours base 18°C" },
+            { label: "Altitude", key: "Altitude" },
+          ].filter(r => getRaw(rawFields, r.key));
+          if (climRows.length === 0) return null;
+          return (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Données climatiques</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                {climRows.map(({ label, key }) => (
+                  <div key={key} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 5, padding: "6px 10px" }}>
+                    <div style={{ fontSize: 8, color: "#64748b", textTransform: "uppercase" }}>{label}</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#1e3a5f", marginTop: 2 }}>{getRaw(rawFields, key)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* — Enveloppe thermique — */}
+        {envelopeRows.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Enveloppe thermique</div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
+              <thead>
+                <tr style={{ background: "#1e3a5f", color: "#fff" }}>
+                  <th style={{ ...thStyle, textAlign: "left", width: "35%" }}>Élément</th>
+                  <th style={{ ...thStyle, textAlign: "left" }}>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {envelopeRows.map(({ label, key }, i) => (
+                  <tr key={key} style={i % 2 === 0 ? rowEven : rowOdd}>
+                    <td style={{ ...tdLeft, fontWeight: 600 }}>{label}</td>
+                    <td style={tdLeft}>{getRaw(rawFields, key)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
-        {/* Section characteristics text blocks */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-          {["facades", "planchers", "toitures", "menuiseries"].map((cat) => {
-            const text = chars[cat];
-            if (!text) return null;
-            return (
-              <div key={cat} style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: 10, pageBreakInside: "avoid" }}>
-                <div style={{ fontWeight: 700, fontSize: 10, color: "#1e3a5f", marginBottom: 6, borderBottom: "1px solid #e2e8f0", paddingBottom: 4 }}>
-                  {SECTION_LABELS[cat]}
-                </div>
-                <div style={{ fontSize: 9, color: "#374151", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{text}</div>
-              </div>
-            );
-          })}
-        </div>
+        {/* — Section characteristics (observations saisies) — */}
+        {SECTION_ORDER.some(cat => chars[cat]) && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Observations par catégorie</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {SECTION_ORDER.map((cat) => {
+                const text = chars[cat];
+                if (!text) return null;
+                return (
+                  <div key={cat} style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: 8, pageBreakInside: "avoid" }}>
+                    <div style={{ fontWeight: 700, fontSize: 9, color: "#1e3a5f", marginBottom: 4, borderBottom: "1px solid #e2e8f0", paddingBottom: 3 }}>
+                      {SECTION_LABELS[cat]}
+                    </div>
+                    <div style={{ fontSize: 8.5, color: "#374151", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{text}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-        <SectionTitle num="5" title="Systèmes techniques" subtitle="Chauffage, ECS, ventilation, climatisation" />
+        <PrintFooter page={4} building={b.name} />
+      </div>
 
-        {systemRows.length > 0 && (
-          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16, fontSize: 10 }}>
+      {/* ══ PAGE 5 — SYSTÈMES TECHNIQUES ════════════════════════════════════════ */}
+      {!isPreview && <div className="print-page-break" />}
+      <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
+        <SectionTitle num="5" title="Systèmes techniques" subtitle="Chauffage, ECS, ventilation, climatisation — état initial" />
+
+        {systemRows.length > 0 ? (
+          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20, fontSize: 10 }}>
             <thead>
-              <tr style={{ background: "#1e3a5f", color: "#fff" }}>
+              <tr style={{ background: "#7c3aed", color: "#fff" }}>
                 <th style={{ ...thStyle, textAlign: "left", width: "35%" }}>Système</th>
-                <th style={{ ...thStyle, textAlign: "left" }}>Description</th>
+                <th style={{ ...thStyle, textAlign: "left" }}>Description / valeur</th>
               </tr>
             </thead>
             <tbody>
               {systemRows.map(({ label, key }, i) => (
                 <tr key={key} style={i % 2 === 0 ? rowEven : rowOdd}>
                   <td style={{ ...tdLeft, fontWeight: 600 }}>{label}</td>
-                  <td style={{ ...tdLeft, fontWeight: 400 }}>{getRaw(rawFields, key)}</td>
+                  <td style={tdLeft}>{getRaw(rawFields, key)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+        ) : (
+          <div style={{ padding: 16, color: "#94a3b8", fontSize: 10, border: "1px dashed #e2e8f0", borderRadius: 6, marginBottom: 16 }}>
+            Données systèmes CVC non disponibles dans ce fichier.
+          </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          {["chauffage_ecs", "ventilation", "climatisation", "compteurs", "eclairage"].map((cat) => {
-            const text = chars[cat];
-            if (!text) return null;
-            return (
-              <div key={cat} style={{ border: "1px solid #e2e8f0", borderRadius: 6, padding: 10, pageBreakInside: "avoid" }}>
-                <div style={{ fontWeight: 700, fontSize: 10, color: "#1e3a5f", marginBottom: 6, borderBottom: "1px solid #e2e8f0", paddingBottom: 4 }}>
-                  {SECTION_LABELS[cat]}
-                </div>
-                <div style={{ fontSize: 9, color: "#374151", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{text}</div>
-              </div>
-            );
-          })}
-        </div>
+        {/* — Répartition des déperditions — */}
+        {(() => {
+          const deperdRows = [
+            { label: "Murs extérieurs", key: "Déperditions murs" },
+            { label: "Planchers bas", key: "Déperditions planchers" },
+            { label: "Toitures / plafonds", key: "Déperditions toitures" },
+            { label: "Menuiseries", key: "Déperditions menuiseries" },
+            { label: "Renouvellement d'air", key: "Déperditions renouvellement air" },
+            { label: "Ponts thermiques", key: "Déperditions ponts thermiques" },
+          ].filter(r => getRaw(rawFields, r.key));
 
-        <PrintFooter page={4} building={b.name} />
+          // Try getting all RÉPARTITION DÉPERDITIONS section fields dynamically
+          const depSection = rawFields.filter(f => f.section === "RÉPARTITION DÉPERDITIONS");
+
+          if (depSection.length === 0 && deperdRows.length === 0) return null;
+
+          const rows = depSection.length > 0 ? depSection : deperdRows.map(r => ({ key: r.label, value: getRaw(rawFields, r.key) ?? "—" }));
+
+          return (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Répartition des déperditions</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
+                <thead>
+                  <tr style={{ background: "#7c3aed", color: "#fff" }}>
+                    <th style={{ ...thStyle, textAlign: "left", width: "55%" }}>Poste</th>
+                    <th style={{ ...thStyle, textAlign: "right" }}>Valeur</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, i) => (
+                    <tr key={r.key} style={i % 2 === 0 ? rowEven : rowOdd}>
+                      <td style={tdLeft}>{r.key}</td>
+                      <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{r.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
+
+        <PrintFooter page={5} building={b.name} />
       </div>
 
       {/* ══ PAGE 5+ — PHOTOS ════════════════════════════════════════════════ */}
@@ -864,7 +968,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 </div>
               );
             })}
-            <PrintFooter page={5} building={b.name} />
+            <PrintFooter page={6} building={b.name} />
           </div>
         </>
       )}
