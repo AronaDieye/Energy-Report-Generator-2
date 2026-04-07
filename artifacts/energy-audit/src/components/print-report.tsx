@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from "react";
+import {
+  AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+} from "recharts";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -49,6 +53,16 @@ function getScenarioCodes(rawFields: RawField[]): string[] {
 
 function getScVal(rawFields: RawField[], code: string, suffix: string): string | null {
   return rawFields.find((f) => f.key === `SCÉNARIO ${code} - ${suffix}`)?.value ?? null;
+}
+
+const MONTHS_SHORT = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+
+interface MonthlyWeather {
+  month: string;
+  tMax: number;
+  tMin: number;
+  tMean: number;
+  dju: number;
 }
 
 // ── Station coordinates lookup (subset, for static map in print) ──────────────
@@ -242,6 +256,7 @@ interface ReportData {
 
 export function PrintReport({ report, mode = "print" }: { report: ReportData; mode?: "print" | "preview" }) {
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [monthlyWeather, setMonthlyWeather] = useState<MonthlyWeather[] | null>(null);
   const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
   const isPreview = mode === "preview";
 
@@ -251,6 +266,45 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       .then(setPhotos)
       .catch(() => {});
   }, [report.id, apiBase]);
+
+  // Fetch weather data from open-meteo.com for the report's station
+  useEffect(() => {
+    const stRaw = report.rawFields?.find(f => f.key === "Station météo")?.value ?? null;
+    const coords = resolveCoords(stRaw);
+    if (!coords) return;
+    const year = new Date().getFullYear() - 1;
+    const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${coords.lat}&longitude=${coords.lon}`
+      + `&start_date=${year}-01-01&end_date=${year}-12-31`
+      + `&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean`
+      + `&timezone=Europe%2FParis`;
+    fetch(url)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.daily) return;
+        const { time, temperature_2m_max, temperature_2m_min, temperature_2m_mean } = data.daily;
+        const byMonth: Record<number, { max: number[]; min: number[]; mean: number[] }> = {};
+        (time as string[]).forEach((d, i) => {
+          const m = parseInt(d.slice(5, 7), 10) - 1;
+          if (!byMonth[m]) byMonth[m] = { max: [], min: [], mean: [] };
+          byMonth[m].max.push(temperature_2m_max[i]);
+          byMonth[m].min.push(temperature_2m_min[i]);
+          byMonth[m].mean.push(temperature_2m_mean[i]);
+        });
+        const avg = (arr: number[]) => arr.reduce((s, v) => s + v, 0) / arr.length;
+        const result: MonthlyWeather[] = Array.from({ length: 12 }, (_, m) => {
+          const tMean = byMonth[m] ? avg(byMonth[m].mean) : 0;
+          return {
+            month: MONTHS_SHORT[m],
+            tMax: byMonth[m] ? parseFloat(avg(byMonth[m].max).toFixed(1)) : 0,
+            tMin: byMonth[m] ? parseFloat(avg(byMonth[m].min).toFixed(1)) : 0,
+            tMean: parseFloat(tMean.toFixed(1)),
+            dju: byMonth[m] ? Math.round(byMonth[m].mean.reduce((s, t) => s + Math.max(0, 18 - t), 0)) : 0,
+          };
+        });
+        setMonthlyWeather(result);
+      })
+      .catch(() => {});
+  }, [report.rawFields]);
 
   const rawFields = report.rawFields || [];
   const b = report.buildingInfo;
@@ -1022,6 +1076,83 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
             </div>
           );
         })()}
+
+        {/* — Diagrammes météo : températures + DJU — */}
+        {monthlyWeather && (
+          <div style={{ marginBottom: 18 }}>
+            {/* Header */}
+            <div style={{
+              background: "#0369a1",
+              color: "#fff",
+              borderRadius: "6px 6px 0 0",
+              padding: "6px 12px",
+              fontSize: 10,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: 0.8,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}>
+              <span>📈 Températures mensuelles — {stationRaw} ({new Date().getFullYear() - 1})</span>
+              <span style={{ fontSize: 9, opacity: 0.85 }}>Source : Open-Meteo Archives</span>
+            </div>
+            <div style={{ border: "1px solid #bae6fd", borderTop: "none", borderRadius: "0 0 6px 6px", padding: "10px 8px 4px 0", background: "#fff" }}>
+              <AreaChart width={660} height={190} data={monthlyWeather} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="prtMax" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="prtMin" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} unit="°C" width={38} />
+                <Tooltip formatter={(v: number) => `${v}°C`} />
+                <Legend wrapperStyle={{ fontSize: 10, paddingTop: 4 }} />
+                <Area type="monotone" dataKey="tMax" name="T° max" stroke="#f97316" fill="url(#prtMax)" strokeWidth={2} dot={false} />
+                <Area type="monotone" dataKey="tMean" name="T° moy." stroke="#8b5cf6" fill="none" strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
+                <Area type="monotone" dataKey="tMin" name="T° min" stroke="#3b82f6" fill="url(#prtMin)" strokeWidth={2} dot={false} />
+              </AreaChart>
+            </div>
+
+            {/* DJU chart */}
+            <div style={{ marginTop: 10 }}>
+              <div style={{
+                background: "#1d4ed8",
+                color: "#fff",
+                borderRadius: "6px 6px 0 0",
+                padding: "6px 12px",
+                fontSize: 10,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}>
+                <span>📊 Degrés-Jours Unifiés mensuels (DJU base 18°C)</span>
+                <span style={{ fontSize: 9, opacity: 0.85, fontWeight: 600 }}>
+                  Total calculé : {monthlyWeather.reduce((s, m) => s + m.dju, 0)} DJU
+                  {dju && ` — BAO : ${dju}`}
+                </span>
+              </div>
+              <div style={{ border: "1px solid #bfdbfe", borderTop: "none", borderRadius: "0 0 6px 6px", padding: "8px 8px 4px 0", background: "#fff" }}>
+                <BarChart width={660} height={140} data={monthlyWeather} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} width={38} />
+                  <Tooltip formatter={(v: number) => `${v} DJU`} />
+                  <Bar dataKey="dju" name="DJU" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* — Enveloppe thermique — */}
         {envelopeRows.length > 0 && (
