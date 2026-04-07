@@ -1418,15 +1418,23 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           { label: "Coût annuel", initial: initialCost != null ? `${fmtNum(initialCost)}` : null, after: sc.cost != null ? `${fmtNum(sc.cost)}` : null, unit: "€/an" },
         ];
 
-        // Works list
-        const workItems: { label: string; value: string }[] = [];
-        if (sc.isolationToitures) workItems.push({ label: "Isolation toiture / plafond", value: sc.isolationToitures });
-        if (sc.isolationMurs) workItems.push({ label: "Isolation murs extérieurs", value: sc.isolationMurs });
-        if (sc.isolationPlancherBas) workItems.push({ label: "Isolation plancher bas", value: sc.isolationPlancherBas });
-        if (sc.energieChauffagePrincipal) workItems.push({ label: "Énergie chauffage principal", value: sc.energieChauffagePrincipal });
-        sc.travaux.forEach((t, i) => {
-          if (t && !workItems.find(w => w.value === t)) workItems.push({ label: `Travaux ${i + 1}`, value: t });
+        // Works list — two types: structured (label + value) and flat (text only from Conseils)
+        type WorkItem = { type: "structured"; label: string; value: string } | { type: "flat"; text: string };
+        const workItems: WorkItem[] = [];
+        if (sc.isolationToitures) workItems.push({ type: "structured", label: "Isolation toiture / plafond", value: sc.isolationToitures });
+        if (sc.isolationMurs) workItems.push({ type: "structured", label: "Isolation murs extérieurs", value: sc.isolationMurs });
+        if (sc.isolationPlancherBas) workItems.push({ type: "structured", label: "Isolation plancher bas", value: sc.isolationPlancherBas });
+        if (sc.energieChauffagePrincipal) workItems.push({ type: "structured", label: "Énergie chauffage principal", value: sc.energieChauffagePrincipal });
+        sc.travaux.forEach((t) => {
+          const text = t.trim();
+          if (!text) return;
+          const alreadyInStructured = workItems.some(w => w.type === "structured" && w.value === text);
+          if (!alreadyInStructured) workItems.push({ type: "flat", text });
         });
+        // Capitalise first letter of each word for flat items
+        function toTitleCase(str: string) {
+          return str.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+        }
 
         return (
           <React.Fragment key={sc.code}>
@@ -1595,20 +1603,60 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
               {/* ── Travaux du scénario ── */}
               {workItems.length > 0 && (
-                <>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#1e3a5f", borderLeft: `3px solid ${scColor}`, paddingLeft: 8, marginBottom: 10 }}>Travaux du scénario</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 10 }}>
-                    {workItems.map((item) => (
-                      <div key={item.label} style={{ display: "flex", gap: 8, background: scColorLight, border: `1px solid ${scColor}25`, borderRadius: 5, padding: "6px 10px", alignItems: "flex-start" }}>
-                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: scColor, flexShrink: 0, marginTop: 3 }} />
-                        <div>
-                          <div style={{ fontSize: 8, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: 0.3 }}>{item.label}</div>
-                          <div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 1 }}>{item.value}</div>
-                        </div>
-                      </div>
-                    ))}
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                    <div style={{ flex: 1, height: 2, background: scColor, borderRadius: 2 }} />
+                    <div style={{ fontSize: 10, fontWeight: 800, color: scColor, textTransform: "uppercase", letterSpacing: 1.5, whiteSpace: "nowrap" }}>
+                      Travaux préconisés
+                    </div>
+                    <div style={{ flex: 1, height: 2, background: scColor, borderRadius: 2 }} />
                   </div>
-                </>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 0, border: `1.5px solid ${scColor}30`, borderRadius: 8, overflow: "hidden" }}>
+                    {workItems.map((item, wi) => {
+                      const isLast = wi === workItems.length - 1;
+                      const itemKey = item.type === "structured" ? `s-${item.label}` : `f-${wi}-${item.text.slice(0, 20)}`;
+                      if (item.type === "structured") {
+                        return (
+                          <div key={itemKey} style={{
+                            display: "flex", alignItems: "stretch",
+                            borderBottom: isLast ? "none" : `1px solid ${scColor}20`,
+                            background: wi % 2 === 0 ? "#fff" : scColorLight,
+                          }}>
+                            {/* Numéro */}
+                            <div style={{ width: 36, background: scColor, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <span style={{ color: "#fff", fontWeight: 800, fontSize: 11 }}>{wi + 1}</span>
+                            </div>
+                            {/* Label */}
+                            <div style={{ padding: "8px 12px", borderRight: `1px solid ${scColor}20`, width: 160, flexShrink: 0, display: "flex", alignItems: "center" }}>
+                              <span style={{ fontSize: 8.5, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5 }}>{item.label}</span>
+                            </div>
+                            {/* Value */}
+                            <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", flex: 1 }}>
+                              <span style={{ fontSize: 10, fontWeight: 600, color: "#1e3a5f" }}>{item.value}</span>
+                            </div>
+                          </div>
+                        );
+                      }
+                      // flat item (from Conseils)
+                      return (
+                        <div key={itemKey} style={{
+                          display: "flex", alignItems: "stretch",
+                          borderBottom: isLast ? "none" : `1px solid ${scColor}20`,
+                          background: wi % 2 === 0 ? "#fff" : scColorLight,
+                        }}>
+                          {/* Numéro */}
+                          <div style={{ width: 36, background: scColor, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <span style={{ color: "#fff", fontWeight: 800, fontSize: 11 }}>{wi + 1}</span>
+                          </div>
+                          {/* Description full width */}
+                          <div style={{ padding: "10px 16px", display: "flex", alignItems: "center", flex: 1 }}>
+                            <span style={{ fontSize: 10.5, fontWeight: 700, color: "#1e3a5f" }}>{toTitleCase(item.text)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
 
               <PrintFooter page={pageNum} building={b.name} />
