@@ -351,6 +351,60 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/RawExtractedField"
+        metadata:
+          nullable: true
+          type: object
+          properties:
+            bureauEtudes:
+              type: ["string", "null"]
+            bureauAdresse:
+              type: ["string", "null"]
+            bureauEmail:
+              type: ["string", "null"]
+            bureauTelephone:
+              type: ["string", "null"]
+            siret:
+              type: ["string", "null"]
+            qualification:
+              type: ["string", "null"]
+            maitreDoeuvre:
+              type: ["string", "null"]
+            beneficiaire:
+              type: ["string", "null"]
+            adresseClient:
+              type: ["string", "null"]
+            dateVisite:
+              type: ["string", "null"]
+            dateRealisation:
+              type: ["string", "null"]
+            dateRestitution:
+              type: ["string", "null"]
+            reference:
+              type: ["string", "null"]
+            tExtBase:
+              type: ["string", "null"]
+        sectionCharacteristics:
+          nullable: true
+          type: object
+          properties:
+            facades:
+              type: ["string", "null"]
+            planchers:
+              type: ["string", "null"]
+            toitures:
+              type: ["string", "null"]
+            menuiseries:
+              type: ["string", "null"]
+            chauffage_ecs:
+              type: ["string", "null"]
+            ventilation:
+              type: ["string", "null"]
+            climatisation:
+              type: ["string", "null"]
+            compteurs:
+              type: ["string", "null"]
+            eclairage:
+              type: ["string", "null"]
       required:
         - id
         - fileName

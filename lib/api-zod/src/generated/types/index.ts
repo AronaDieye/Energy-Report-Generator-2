@@ -7,6 +7,8 @@
  */
 
 export * from "./auditReport";
+export * from "./auditReportMetadata";
+export * from "./auditReportSectionCharacteristics";
 export * from "./auditReportSummary";
 export * from "./auditStats";
 export * from "./auditStatsBuildingTypeDistribution";

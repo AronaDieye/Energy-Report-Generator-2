@@ -102,6 +102,37 @@ export const UploadAuditFileResponse = zod.object({
       section: zod.string().nullish(),
     }),
   ),
+  metadata: zod
+    .object({
+      bureauEtudes: zod.string().nullish(),
+      bureauAdresse: zod.string().nullish(),
+      bureauEmail: zod.string().nullish(),
+      bureauTelephone: zod.string().nullish(),
+      siret: zod.string().nullish(),
+      qualification: zod.string().nullish(),
+      maitreDoeuvre: zod.string().nullish(),
+      beneficiaire: zod.string().nullish(),
+      adresseClient: zod.string().nullish(),
+      dateVisite: zod.string().nullish(),
+      dateRealisation: zod.string().nullish(),
+      dateRestitution: zod.string().nullish(),
+      reference: zod.string().nullish(),
+      tExtBase: zod.string().nullish(),
+    })
+    .nullish(),
+  sectionCharacteristics: zod
+    .object({
+      facades: zod.string().nullish(),
+      planchers: zod.string().nullish(),
+      toitures: zod.string().nullish(),
+      menuiseries: zod.string().nullish(),
+      chauffage_ecs: zod.string().nullish(),
+      ventilation: zod.string().nullish(),
+      climatisation: zod.string().nullish(),
+      compteurs: zod.string().nullish(),
+      eclairage: zod.string().nullish(),
+    })
+    .nullish(),
 });
 
 /**
@@ -208,6 +239,37 @@ export const GetAuditReportResponse = zod.object({
       section: zod.string().nullish(),
     }),
   ),
+  metadata: zod
+    .object({
+      bureauEtudes: zod.string().nullish(),
+      bureauAdresse: zod.string().nullish(),
+      bureauEmail: zod.string().nullish(),
+      bureauTelephone: zod.string().nullish(),
+      siret: zod.string().nullish(),
+      qualification: zod.string().nullish(),
+      maitreDoeuvre: zod.string().nullish(),
+      beneficiaire: zod.string().nullish(),
+      adresseClient: zod.string().nullish(),
+      dateVisite: zod.string().nullish(),
+      dateRealisation: zod.string().nullish(),
+      dateRestitution: zod.string().nullish(),
+      reference: zod.string().nullish(),
+      tExtBase: zod.string().nullish(),
+    })
+    .nullish(),
+  sectionCharacteristics: zod
+    .object({
+      facades: zod.string().nullish(),
+      planchers: zod.string().nullish(),
+      toitures: zod.string().nullish(),
+      menuiseries: zod.string().nullish(),
+      chauffage_ecs: zod.string().nullish(),
+      ventilation: zod.string().nullish(),
+      climatisation: zod.string().nullish(),
+      compteurs: zod.string().nullish(),
+      eclairage: zod.string().nullish(),
+    })
+    .nullish(),
 });
 
 /**

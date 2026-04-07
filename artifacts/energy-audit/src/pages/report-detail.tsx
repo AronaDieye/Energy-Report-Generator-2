@@ -4,6 +4,10 @@ import { useGetAuditReport } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ArrowLeft,
   Printer,
@@ -25,6 +29,7 @@ import {
   FileText,
   X,
   Download,
+  Edit,
 } from "lucide-react";
 import { EnergyLabel } from "../components/energy-label";
 import { BatimentTab } from "../components/batiment-tab";
@@ -698,12 +703,160 @@ function ClimateContext({ rawFields }: { rawFields: RawField[] }) {
   );
 }
 
+// ── Cover page editor dialog ─────────────────────────────────────────────────
+
+interface CoverForm {
+  buildingName: string;
+  buildingAddress: string;
+  bureauEtudes: string;
+  bureauAdresse: string;
+  bureauEmail: string;
+  bureauTelephone: string;
+  siret: string;
+  qualification: string;
+  beneficiaire: string;
+  maitreDoeuvre: string;
+  dateVisite: string;
+  dateRealisation: string;
+  dateRestitution: string;
+  reference: string;
+}
+
+function CoverPageEditor({
+  reportId,
+  initial,
+  onClose,
+  onSaved,
+}: {
+  reportId: number;
+  initial: CoverForm;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const [form, setForm] = useState<CoverForm>(initial);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const set = (key: keyof CoverForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm(f => ({ ...f, [key]: e.target.value }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`${apiBase}/api/audit/reports/${reportId}/cover`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      onSaved();
+      onClose();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Erreur de sauvegarde");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const Field = ({ label, k, placeholder }: { label: string; k: keyof CoverForm; placeholder?: string }) => (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Input
+        value={form[k]}
+        onChange={set(k)}
+        placeholder={placeholder ?? label}
+        className="h-8 text-sm"
+      />
+    </div>
+  );
+
+  return (
+    <Dialog open onOpenChange={open => !open && onClose()}>
+      <DialogContent className="max-w-2xl p-0 gap-0">
+        <DialogHeader className="px-6 pt-5 pb-3 border-b">
+          <DialogTitle className="flex items-center gap-2">
+            <Edit className="h-4 w-4 text-primary" />
+            Éditer la page de garde
+          </DialogTitle>
+        </DialogHeader>
+
+        <ScrollArea className="max-h-[70vh]">
+          <div className="px-6 py-4 space-y-6">
+
+            {/* Bâtiment */}
+            <div>
+              <div className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <span className="h-px flex-1 bg-blue-200" />
+                Bâtiment
+                <span className="h-px flex-1 bg-blue-200" />
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                <Field label="Nom du bâtiment / Résidence" k="buildingName" />
+                <Field label="Adresse" k="buildingAddress" />
+              </div>
+            </div>
+
+            {/* Bureau d'études */}
+            <div>
+              <div className="text-xs font-bold text-indigo-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <span className="h-px flex-1 bg-indigo-200" />
+                Bureau d'études
+                <span className="h-px flex-1 bg-indigo-200" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Nom du bureau d'études" k="bureauEtudes" />
+                <Field label="Adresse" k="bureauAdresse" />
+                <Field label="Email" k="bureauEmail" placeholder="contact@bureau.fr" />
+                <Field label="Téléphone" k="bureauTelephone" placeholder="01 23 45 67 89" />
+                <Field label="N° SIRET" k="siret" placeholder="123 456 789 00012" />
+                <Field label="Qualification / Certification" k="qualification" placeholder="RGE, OPQIBI..." />
+              </div>
+            </div>
+
+            {/* Mission */}
+            <div>
+              <div className="text-xs font-bold text-green-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <span className="h-px flex-1 bg-green-200" />
+                Informations mission
+                <span className="h-px flex-1 bg-green-200" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Bénéficiaire / Client" k="beneficiaire" />
+                <Field label="Maître d'œuvre / Donneur d'ordre" k="maitreDoeuvre" />
+                <Field label="Date de visite" k="dateVisite" placeholder="JJ/MM/AAAA" />
+                <Field label="Date de réalisation" k="dateRealisation" placeholder="JJ/MM/AAAA" />
+                <Field label="Date de restitution" k="dateRestitution" placeholder="JJ/MM/AAAA" />
+                <Field label="Référence dossier" k="reference" placeholder="REF-2025-001" />
+              </div>
+            </div>
+
+          </div>
+        </ScrollArea>
+
+        {error && (
+          <div className="px-6 py-2 text-sm text-red-600 bg-red-50 border-t">{error}</div>
+        )}
+
+        <DialogFooter className="px-6 py-3 border-t gap-2">
+          <Button variant="outline" onClick={onClose} disabled={saving}>Annuler</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "Enregistrement…" : "Enregistrer"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function ReportDetail() {
   const { id } = useParams();
-  const { data: report, isLoading } = useGetAuditReport(Number(id), {
+  const { data: report, isLoading, refetch } = useGetAuditReport(Number(id), {
     query: { enabled: !!id },
   });
   const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [showCoverEditor, setShowCoverEditor] = useState(false);
 
   const handleDownloadPdf = useCallback(() => {
     setShowPdfPreview(false);
@@ -758,6 +911,10 @@ export function ReportDetail() {
           <p className="text-muted-foreground">{report.fileName}</p>
         </div>
         <div className="flex gap-2 print:hidden">
+          <Button variant="outline" onClick={() => setShowCoverEditor(true)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Éditer la page de garde
+          </Button>
           <Button variant="outline" onClick={() => setShowPdfPreview(true)}>
             <FileText className="h-4 w-4 mr-2" />
             Aperçu PDF
@@ -768,6 +925,31 @@ export function ReportDetail() {
           </Button>
         </div>
       </div>
+
+      {/* Cover page editor dialog */}
+      {showCoverEditor && (
+        <CoverPageEditor
+          reportId={Number(id)}
+          initial={{
+            buildingName: report.buildingInfo.name ?? "",
+            buildingAddress: report.buildingInfo.address ?? "",
+            bureauEtudes: report.metadata?.bureauEtudes ?? "",
+            bureauAdresse: report.metadata?.bureauAdresse ?? "",
+            bureauEmail: report.metadata?.bureauEmail ?? "",
+            bureauTelephone: report.metadata?.bureauTelephone ?? "",
+            siret: report.metadata?.siret ?? "",
+            qualification: report.metadata?.qualification ?? "",
+            beneficiaire: report.metadata?.beneficiaire ?? "",
+            maitreDoeuvre: report.metadata?.maitreDoeuvre ?? "",
+            dateVisite: report.metadata?.dateVisite ?? "",
+            dateRealisation: report.metadata?.dateRealisation ?? "",
+            dateRestitution: report.metadata?.dateRestitution ?? "",
+            reference: report.metadata?.reference ?? "",
+          }}
+          onClose={() => setShowCoverEditor(false)}
+          onSaved={() => refetch()}
+        />
+      )}
 
       {/* Hero card + DPE + cost + CO2 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -152,6 +152,58 @@ export interface RawExtractedField {
   section?: string | null;
 }
 
+export type AuditReportMetadata = {
+  /** @nullable */
+  bureauEtudes?: string | null;
+  /** @nullable */
+  bureauAdresse?: string | null;
+  /** @nullable */
+  bureauEmail?: string | null;
+  /** @nullable */
+  bureauTelephone?: string | null;
+  /** @nullable */
+  siret?: string | null;
+  /** @nullable */
+  qualification?: string | null;
+  /** @nullable */
+  maitreDoeuvre?: string | null;
+  /** @nullable */
+  beneficiaire?: string | null;
+  /** @nullable */
+  adresseClient?: string | null;
+  /** @nullable */
+  dateVisite?: string | null;
+  /** @nullable */
+  dateRealisation?: string | null;
+  /** @nullable */
+  dateRestitution?: string | null;
+  /** @nullable */
+  reference?: string | null;
+  /** @nullable */
+  tExtBase?: string | null;
+} | null;
+
+export type AuditReportSectionCharacteristics = {
+  /** @nullable */
+  facades?: string | null;
+  /** @nullable */
+  planchers?: string | null;
+  /** @nullable */
+  toitures?: string | null;
+  /** @nullable */
+  menuiseries?: string | null;
+  /** @nullable */
+  chauffage_ecs?: string | null;
+  /** @nullable */
+  ventilation?: string | null;
+  /** @nullable */
+  climatisation?: string | null;
+  /** @nullable */
+  compteurs?: string | null;
+  /** @nullable */
+  eclairage?: string | null;
+} | null;
+
 export interface AuditReport {
   id: number;
   fileName: string;
@@ -166,6 +218,8 @@ export interface AuditReport {
   energyLabel: EnergyLabel;
   recommendations: Recommendation[];
   rawFields: RawExtractedField[];
+  metadata?: AuditReportMetadata;
+  sectionCharacteristics?: AuditReportSectionCharacteristics;
 }
 
 export interface AuditReportSummary {

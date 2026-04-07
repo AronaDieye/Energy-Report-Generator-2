@@ -367,6 +367,40 @@ router.get("/audit/reports/:id/photos", async (req, res): Promise<void> => {
   res.json(photos.map((p) => ({ ...p, url: `/api/audit/reports/${reportId}/photos/${p.id}/data` })));
 });
 
+router.patch("/audit/reports/:id/cover", async (req, res): Promise<void> => {
+  const reportId = parseInt(req.params.id, 10);
+  if (isNaN(reportId)) { res.status(400).json({ error: "ID invalide" }); return; }
+
+  const [existing] = await db.select().from(auditReportsTable).where(eq(auditReportsTable.id, reportId));
+  if (!existing) { res.status(404).json({ error: "Rapport introuvable" }); return; }
+
+  const {
+    buildingName, buildingAddress,
+    bureauEtudes, bureauAdresse, bureauEmail, bureauTelephone, siret, qualification,
+    maitreDoeuvre, beneficiaire, adresseClient, dateVisite, dateRealisation, dateRestitution, reference,
+  } = req.body;
+
+  const metaPatch: Record<string, string | null> = {};
+  for (const [k, v] of Object.entries({
+    bureauEtudes, bureauAdresse, bureauEmail, bureauTelephone, siret, qualification,
+    maitreDoeuvre, beneficiaire, adresseClient, dateVisite, dateRealisation, dateRestitution, reference,
+  })) {
+    if (v !== undefined) metaPatch[k] = v === "" ? null : v;
+  }
+
+  const mergedMeta = { ...(existing.metadata ?? {}), ...metaPatch };
+  const updateData: Record<string, unknown> = { metadata: mergedMeta };
+  if (buildingName !== undefined) updateData.buildingName = buildingName === "" ? null : buildingName;
+  if (buildingAddress !== undefined) updateData.buildingAddress = buildingAddress === "" ? null : buildingAddress;
+
+  const [updated] = await db.update(auditReportsTable)
+    .set(updateData)
+    .where(eq(auditReportsTable.id, reportId))
+    .returning({ id: auditReportsTable.id });
+
+  res.json({ ok: true, id: updated.id });
+});
+
 router.patch("/audit/reports/:id/characteristics", async (req, res): Promise<void> => {
   const reportId = parseInt(req.params.id, 10);
   if (isNaN(reportId)) { res.status(400).json({ error: "ID invalide" }); return; }

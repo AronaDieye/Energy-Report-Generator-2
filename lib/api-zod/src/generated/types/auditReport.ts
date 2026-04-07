@@ -5,6 +5,8 @@
  * Energy audit report generation API
  * OpenAPI spec version: 0.1.0
  */
+import type { AuditReportMetadata } from "./auditReportMetadata";
+import type { AuditReportSectionCharacteristics } from "./auditReportSectionCharacteristics";
 import type { BuildingInfo } from "./buildingInfo";
 import type { CO2Emissions } from "./cO2Emissions";
 import type { EnergyConsumption } from "./energyConsumption";
@@ -29,4 +31,6 @@ export interface AuditReport {
   energyLabel: EnergyLabel;
   recommendations: Recommendation[];
   rawFields: RawExtractedField[];
+  metadata?: AuditReportMetadata;
+  sectionCharacteristics?: AuditReportSectionCharacteristics;
 }
