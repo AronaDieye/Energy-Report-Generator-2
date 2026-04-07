@@ -224,6 +224,7 @@ interface BaoMetadata {
   cef5UsagesInitial?: number | null;
   cep5UsagesInitial?: number | null;
   gesInitialKgCo2M2?: number | null;
+  coverPhotoId?: number | null;
   scenarios?: BaoScenarioMeta[];
 }
 
@@ -496,6 +497,33 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
         {/* ── CORPS DE PAGE ── */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "28px 56px 0" }}>
+
+          {/* Photo du bâtiment (si définie) */}
+          {(() => {
+            const coverPhotoId = meta?.coverPhotoId;
+            const coverPhoto = coverPhotoId ? photos.find(p => p.id === coverPhotoId) : null;
+            if (!coverPhoto) return null;
+            return (
+              <div style={{ width: "100%", height: 210, marginBottom: 20, borderRadius: 8, overflow: "hidden", position: "relative", boxShadow: "0 2px 10px rgba(0,0,0,0.15)", flexShrink: 0 }}>
+                <img
+                  src={`${apiBase}${coverPhoto.url}`}
+                  alt={coverPhoto.caption || "Photo du bâtiment"}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                />
+                {coverPhoto.caption && (
+                  <div style={{
+                    position: "absolute", bottom: 0, left: 0, right: 0,
+                    background: "linear-gradient(transparent, rgba(0,0,0,0.65))",
+                    color: "#fff", fontSize: 9, padding: "18px 12px 8px",
+                    fontStyle: "italic",
+                  }}>
+                    {coverPhoto.caption}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Ligne 1 : Bâtiment (gauche) + DPE (droite) */}
           <div style={{ display: "flex", gap: 20, marginBottom: 22 }}>

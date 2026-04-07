@@ -720,6 +720,15 @@ interface CoverForm {
   dateRealisation: string;
   dateRestitution: string;
   reference: string;
+  coverPhotoId: number | null;
+}
+
+interface EditorPhoto {
+  id: number;
+  fileName: string;
+  caption: string | null;
+  category: string;
+  url: string;
 }
 
 // Stable component defined OUTSIDE CoverPageEditor to avoid remount on each keystroke
@@ -747,12 +756,20 @@ function CoverField({
   );
 }
 
+const SECTION_COLORS: Record<string, { text: string; line: string }> = {
+  blue:   { text: "#1d4ed8", line: "#bfdbfe" },
+  indigo: { text: "#4338ca", line: "#c7d2fe" },
+  green:  { text: "#15803d", line: "#bbf7d0" },
+  purple: { text: "#7e22ce", line: "#e9d5ff" },
+};
+
 function SectionDivider({ label, color }: { label: string; color: string }) {
+  const c = SECTION_COLORS[color] ?? SECTION_COLORS.blue;
   return (
-    <div className={`text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2 text-${color}-700`}>
-      <span className={`h-px flex-1 bg-${color}-200`} />
+    <div style={{ color: c.text }} className="text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+      <span style={{ background: c.line }} className="h-px flex-1" />
       {label}
-      <span className={`h-px flex-1 bg-${color}-200`} />
+      <span style={{ background: c.line }} className="h-px flex-1" />
     </div>
   );
 }
@@ -772,10 +789,51 @@ function CoverPageEditor({
   const [form, setForm] = useState<CoverForm>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<EditorPhoto[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Fetch existing photos on open
+  React.useEffect(() => {
+    fetch(`${apiBase}/api/audit/reports/${reportId}/photos`)
+      .then(r => r.ok ? r.json() : [])
+      .then((ps: EditorPhoto[]) => setPhotos(ps))
+      .catch(() => {});
+  }, [reportId, apiBase]);
 
   const handleChange = useCallback((key: keyof CoverForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(f => ({ ...f, [key]: e.target.value }));
   }, []);
+
+  const handlePhotoSelect = useCallback((id: number) => {
+    setForm(f => ({ ...f, coverPhotoId: f.coverPhotoId === id ? null : id }));
+  }, []);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const fd = new FormData();
+      fd.append("photo", file);
+      fd.append("category", "facades");
+      fd.append("caption", "Photo du bâtiment");
+      const res = await fetch(`${apiBase}/api/audit/reports/${reportId}/photos`, { method: "POST", body: fd });
+      if (!res.ok) throw new Error("Upload échoué");
+      const newPhoto = await res.json();
+      // Refresh photo list
+      const listRes = await fetch(`${apiBase}/api/audit/reports/${reportId}/photos`);
+      const ps: EditorPhoto[] = listRes.ok ? await listRes.json() : photos;
+      setPhotos(ps);
+      // Auto-select newly uploaded photo
+      setForm(f => ({ ...f, coverPhotoId: newPhoto.id }));
+    } catch {
+      setError("Erreur lors de l'envoi de la photo");
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -806,8 +864,81 @@ function CoverPageEditor({
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[70vh]">
+        <ScrollArea className="max-h-[75vh]">
           <div className="px-6 py-4 space-y-6">
+
+            {/* Photo de couverture */}
+            <div>
+              <SectionDivider label="Photo du bâtiment" color="purple" />
+              <div className="space-y-3">
+                {photos.length === 0 && !uploadingPhoto && (
+                  <p className="text-xs text-muted-foreground">Aucune photo importée. Ajoutez-en une ci-dessous.</p>
+                )}
+                {photos.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {photos.map(p => {
+                      const selected = form.coverPhotoId === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => handlePhotoSelect(p.id)}
+                          className={`relative rounded-md overflow-hidden border-2 transition-all focus:outline-none ${
+                            selected
+                              ? "border-primary ring-2 ring-primary/30"
+                              : "border-transparent hover:border-muted-foreground/40"
+                          }`}
+                          style={{ aspectRatio: "4/3" }}
+                        >
+                          <img
+                            src={`${apiBase}${p.url}`}
+                            alt={p.caption || p.fileName}
+                            className="w-full h-full object-cover"
+                          />
+                          {selected && (
+                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                              <div className="bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">✓</div>
+                            </div>
+                          )}
+                          {p.caption && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[9px] px-1 py-0.5 truncate">
+                              {p.caption}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={uploadingPhoto}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {uploadingPhoto ? "Envoi en cours…" : "Importer une photo"}
+                  </Button>
+                  {form.coverPhotoId && (
+                    <button
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, coverPhotoId: null }))}
+                      className="text-xs text-muted-foreground hover:text-destructive underline"
+                    >
+                      Retirer la photo de couverture
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
 
             {/* Bâtiment */}
             <div>
@@ -957,6 +1088,7 @@ export function ReportDetail() {
             dateRealisation: report.metadata?.dateRealisation ?? "",
             dateRestitution: report.metadata?.dateRestitution ?? "",
             reference: report.metadata?.reference ?? "",
+            coverPhotoId: (report.metadata as Record<string, unknown>)?.coverPhotoId as number | null ?? null,
           }}
           onClose={() => setShowCoverEditor(false)}
           onSaved={() => refetch()}

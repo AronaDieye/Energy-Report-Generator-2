@@ -181,6 +181,8 @@ export type AuditReportMetadata = {
   reference?: string | null;
   /** @nullable */
   tExtBase?: string | null;
+  /** @nullable */
+  coverPhotoId?: number | null;
 } | null;
 
 export type AuditReportSectionCharacteristics = {

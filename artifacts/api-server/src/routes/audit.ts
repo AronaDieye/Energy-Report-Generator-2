@@ -378,14 +378,18 @@ router.patch("/audit/reports/:id/cover", async (req, res): Promise<void> => {
     buildingName, buildingAddress,
     bureauEtudes, bureauAdresse, bureauEmail, bureauTelephone, siret, qualification,
     maitreDoeuvre, beneficiaire, adresseClient, dateVisite, dateRealisation, dateRestitution, reference,
+    coverPhotoId,
   } = req.body;
 
-  const metaPatch: Record<string, string | null> = {};
+  const metaPatch: Record<string, unknown> = {};
   for (const [k, v] of Object.entries({
     bureauEtudes, bureauAdresse, bureauEmail, bureauTelephone, siret, qualification,
     maitreDoeuvre, beneficiaire, adresseClient, dateVisite, dateRealisation, dateRestitution, reference,
   })) {
     if (v !== undefined) metaPatch[k] = v === "" ? null : v;
+  }
+  if (coverPhotoId !== undefined) {
+    metaPatch.coverPhotoId = coverPhotoId === null ? null : Number(coverPhotoId);
   }
 
   const mergedMeta = { ...(existing.metadata ?? {}), ...metaPatch };

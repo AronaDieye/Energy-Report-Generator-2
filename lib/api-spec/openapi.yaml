@@ -383,6 +383,8 @@ components:
               type: ["string", "null"]
             tExtBase:
               type: ["string", "null"]
+            coverPhotoId:
+              type: ["integer", "null"]
         sectionCharacteristics:
           nullable: true
           type: object

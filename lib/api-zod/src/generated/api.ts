@@ -118,6 +118,7 @@ export const UploadAuditFileResponse = zod.object({
       dateRestitution: zod.string().nullish(),
       reference: zod.string().nullish(),
       tExtBase: zod.string().nullish(),
+      coverPhotoId: zod.number().nullish(),
     })
     .nullish(),
   sectionCharacteristics: zod
@@ -255,6 +256,7 @@ export const GetAuditReportResponse = zod.object({
       dateRestitution: zod.string().nullish(),
       reference: zod.string().nullish(),
       tExtBase: zod.string().nullish(),
+      coverPhotoId: zod.number().nullish(),
     })
     .nullish(),
   sectionCharacteristics: zod
