@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { useParams, Link } from "wouter";
 import { useGetAuditReport } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,9 @@ import {
   Layers,
   PieChart,
   BarChart3,
+  FileText,
+  X,
+  Download,
 } from "lucide-react";
 import { EnergyLabel } from "../components/energy-label";
 import { BatimentTab } from "../components/batiment-tab";
@@ -700,6 +703,12 @@ export function ReportDetail() {
   const { data: report, isLoading } = useGetAuditReport(Number(id), {
     query: { enabled: !!id },
   });
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
+
+  const handleDownloadPdf = useCallback(() => {
+    setShowPdfPreview(false);
+    setTimeout(() => window.print(), 150);
+  }, []);
 
   if (isLoading) {
     return (
@@ -748,10 +757,16 @@ export function ReportDetail() {
           <h1 className="text-3xl font-bold tracking-tight">Rapport d'audit énergétique</h1>
           <p className="text-muted-foreground">{report.fileName}</p>
         </div>
-        <Button onClick={() => window.print()} className="print:hidden">
-          <Printer className="h-4 w-4 mr-2" />
-          Imprimer
-        </Button>
+        <div className="flex gap-2 print:hidden">
+          <Button variant="outline" onClick={() => setShowPdfPreview(true)}>
+            <FileText className="h-4 w-4 mr-2" />
+            Aperçu PDF
+          </Button>
+          <Button onClick={() => window.print()}>
+            <Printer className="h-4 w-4 mr-2" />
+            Imprimer
+          </Button>
+        </div>
       </div>
 
       {/* Hero card + DPE + cost + CO2 */}
@@ -908,11 +923,75 @@ export function ReportDetail() {
 
       {/* ── Vue impression (cachée à l'écran, affichée à l'impression) ─ */}
       <PrintReport
+        mode="print"
         report={{
           ...report,
           sectionCharacteristics: (report as unknown as { sectionCharacteristics?: Record<string, string> }).sectionCharacteristics ?? {},
         }}
       />
+
+      {/* ── Modale d'aperçu PDF ───────────────────────────────────────── */}
+      {showPdfPreview && (
+        <div
+          className="print:hidden"
+          style={{
+            position: "fixed", inset: 0, zIndex: 1000,
+            display: "flex", flexDirection: "column",
+            background: "#374151",
+          }}
+        >
+          {/* Toolbar */}
+          <div style={{
+            background: "#1e293b", padding: "10px 20px",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            flexShrink: 0, boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <FileText style={{ color: "#94a3b8", width: 18, height: 18 }} />
+              <span style={{ color: "#f1f5f9", fontWeight: 600, fontSize: 14 }}>
+                Aperçu PDF — {report.buildingInfo.name || "Rapport"}
+              </span>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={handleDownloadPdf}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  background: "#2563eb", color: "#fff", border: "none",
+                  borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                <Download style={{ width: 14, height: 14 }} />
+                Télécharger PDF
+              </button>
+              <button
+                onClick={() => setShowPdfPreview(false)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  background: "#374151", color: "#d1d5db", border: "1px solid #4b5563",
+                  borderRadius: 6, padding: "7px 12px", fontSize: 13, fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                <X style={{ width: 14, height: 14 }} />
+                Fermer
+              </button>
+            </div>
+          </div>
+
+          {/* Scrollable PDF content */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "32px 24px" }}>
+            <PrintReport
+              mode="preview"
+              report={{
+                ...report,
+                sectionCharacteristics: (report as unknown as { sectionCharacteristics?: Record<string, string> }).sectionCharacteristics ?? {},
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

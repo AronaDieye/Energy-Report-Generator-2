@@ -113,9 +113,10 @@ interface ReportData {
   sectionCharacteristics?: Record<string, string> | null;
 }
 
-export function PrintReport({ report }: { report: ReportData }) {
+export function PrintReport({ report, mode = "print" }: { report: ReportData; mode?: "print" | "preview" }) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const isPreview = mode === "preview";
 
   useEffect(() => {
     fetch(`${apiBase}/api/audit/reports/${report.id}/photos`)
@@ -206,11 +207,23 @@ export function PrintReport({ report }: { report: ReportData }) {
     return { poste, kwhEP, kwhAn, euros };
   }).filter((r) => r.kwhEP !== null || r.kwhAn !== null);
 
+  const containerStyle: React.CSSProperties = isPreview
+    ? { fontFamily: "'Segoe UI', Arial, sans-serif", fontSize: 11, color: "#1e293b", padding: "32px 0" }
+    : { fontFamily: "'Segoe UI', Arial, sans-serif", fontSize: 11, color: "#1e293b" };
+
+  const pageStyle: React.CSSProperties = isPreview
+    ? {
+        width: 794, minHeight: 1123, margin: "0 auto 28px", background: "#fff",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.25)", borderRadius: 2,
+        padding: "56px 60px 48px", display: "flex", flexDirection: "column", position: "relative", boxSizing: "border-box",
+      }
+    : { minHeight: "277mm", display: "flex", flexDirection: "column", position: "relative" };
+
   return (
-    <div className="print-only" style={{ fontFamily: "'Segoe UI', Arial, sans-serif", fontSize: 11, color: "#1e293b" }}>
+    <div className={isPreview ? undefined : "print-only"} style={containerStyle}>
 
       {/* ══ PAGE 1 — COUVERTURE ══════════════════════════════════════════════ */}
-      <div className="print-page" style={{ minHeight: "277mm", display: "flex", flexDirection: "column", position: "relative" }}>
+      <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
 
         {/* Header band */}
         <div style={{ background: "#1e3a5f", color: "#fff", padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -332,8 +345,8 @@ export function PrintReport({ report }: { report: ReportData }) {
       </div>
 
       {/* ══ PAGE 2 — SYNTHÈSE GLOBALE ════════════════════════════════════════ */}
-      <div className="print-page-break" />
-      <div className="print-page">
+      {!isPreview && <div className="print-page-break" />}
+      <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
         <SectionTitle num="1" title="Synthèse audit énergétique globale" subtitle="Comparaison des indicateurs entre l'état initial et les scénarios de travaux" />
 
         {/* Comparison table */}
@@ -456,8 +469,8 @@ export function PrintReport({ report }: { report: ReportData }) {
       {/* ══ PAGE 3 — CONSOMMATIONS ═══════════════════════════════════════════ */}
       {consumPostes.length > 0 && (
         <>
-          <div className="print-page-break" />
-          <div className="print-page">
+          {!isPreview && <div className="print-page-break" />}
+          <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
             <SectionTitle num="3" title="Consommations énergétiques par usage" subtitle="État initial — répartition par poste" />
 
             <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20, fontSize: 10 }}>
@@ -524,8 +537,8 @@ export function PrintReport({ report }: { report: ReportData }) {
       )}
 
       {/* ══ PAGE 4 — ENVELOPPE & SYSTÈMES TECHNIQUES ════════════════════════ */}
-      <div className="print-page-break" />
-      <div className="print-page">
+      {!isPreview && <div className="print-page-break" />}
+      <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
         <SectionTitle num="4" title="Enveloppe thermique" subtitle="Caractéristiques des parois et menuiseries" />
 
         {envelopeRows.length > 0 && (
@@ -605,8 +618,8 @@ export function PrintReport({ report }: { report: ReportData }) {
       {/* ══ PAGE 5+ — PHOTOS ════════════════════════════════════════════════ */}
       {Object.keys(photosByCategory).length > 0 && (
         <>
-          <div className="print-page-break" />
-          <div className="print-page">
+          {!isPreview && <div className="print-page-break" />}
+          <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
             <SectionTitle num="6" title="Photos du bâtiment" subtitle="Relevé photographique par catégorie" />
             {SECTION_ORDER.map((cat) => {
               const catPhotos = photosByCategory[cat];
