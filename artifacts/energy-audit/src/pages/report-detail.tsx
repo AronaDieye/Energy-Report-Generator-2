@@ -161,7 +161,7 @@ function SyntheseGlobale({
     const gainPct = thce !== null && thceInitial !== null && thceInitial > 0
       ? ((thceInitial - thce) / thceInitial) * 100 : null;
     const conseils = getScVal(rawFields, code, "Conseils") ?? "";
-    const travaux = conseils.split(/\s+\/\s*|\s*\/\s+/).map(t => t.trim().replace(/\s+/g, " ")).filter(t => t.length > 2);
+    const travaux = conseils.split(/\s*\/\s*/).map(t => t.trim()).filter(t => t.length > 2);
     return { code, thce, cef, ges, cost, invest, tempsRetour, gainEco, gainPct, travaux, i };
   });
 
@@ -362,7 +362,7 @@ function ScenarioCards({
           ? ((thceInitial - thce) / thceInitial) * 100 : null;
         const gainEco = cost !== null && initialCost !== null ? initialCost - cost : null;
 
-        const travaux = conseils.split(/\s+\/\s*|\s*\/\s+/).map(t => t.trim().replace(/\s+/g, " ")).filter(t => t.length > 2);
+        const travaux = conseils.split(/\s*\/\s*/).map(t => t.trim()).filter(t => t.length > 2);
 
         return (
           <Card key={code} className={`border-l-4 ${scBorderColors[i] || "border-slate-400"}`}>
