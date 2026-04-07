@@ -1393,12 +1393,228 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         <PrintFooter page={5} building={b.name} />
       </div>
 
-      {/* ══ PAGE 5+ — PHOTOS ════════════════════════════════════════════════ */}
+      {/* ══ PAGES SCÉNARIOS ═══════════════════════════════════════════════════ */}
+      {scData.map((sc, idx) => {
+        const scColor = ["#16a34a", "#2563eb", "#7c3aed", "#dc2626", "#ea580c"][idx] ?? "#374151";
+        const scColorLight = ["#f0fdf4", "#eff6ff", "#f5f3ff", "#fef2f2", "#fff7ed"][idx] ?? "#f8fafc";
+        const pageNum = 6 + idx;
+
+        // DPE arrow progression
+        const DPE_ORDER = ["A", "B", "C", "D", "E", "F", "G"];
+        const initialDpeLabel = report.energyLabel.currentLabel ?? null;
+        const targetDpeLabel = sc.dpeLabel;
+
+        // Indicator cards
+        const cards: { label: string; initial: string | null; after: string | null; unit?: string; highlight?: boolean }[] = [
+          { label: "CEP — 5 usages", initial: cefInitial != null ? `${fmtNum(cefInitial, 1)}` : null, after: sc.cef != null ? `${fmtNum(sc.cef, 1)}` : null, unit: "kWhEF/m².an", highlight: true },
+          { label: "CEP — Th-C-E", initial: thceInitial != null ? `${fmtNum(thceInitial, 1)}` : null, after: sc.thce != null ? `${fmtNum(sc.thce, 1)}` : null, unit: "kWhEP/m².an" },
+          { label: "GES", initial: gesInitial != null ? `${fmtNum(gesInitial, 1)}` : null, after: sc.ges != null ? `${fmtNum(sc.ges, 1)}` : null, unit: "kgCO₂/m².an" },
+          { label: "Coût annuel", initial: initialCost != null ? `${fmtNum(initialCost)}` : null, after: sc.cost != null ? `${fmtNum(sc.cost)}` : null, unit: "€/an" },
+        ];
+
+        // Works list
+        const workItems: { label: string; value: string }[] = [];
+        if (sc.isolationToitures) workItems.push({ label: "Isolation toiture / plafond", value: sc.isolationToitures });
+        if (sc.isolationMurs) workItems.push({ label: "Isolation murs extérieurs", value: sc.isolationMurs });
+        if (sc.isolationPlancherBas) workItems.push({ label: "Isolation plancher bas", value: sc.isolationPlancherBas });
+        if (sc.energieChauffagePrincipal) workItems.push({ label: "Énergie chauffage principal", value: sc.energieChauffagePrincipal });
+        sc.travaux.forEach((t, i) => {
+          if (t && !workItems.find(w => w.value === t)) workItems.push({ label: `Travaux ${i + 1}`, value: t });
+        });
+
+        return (
+          <React.Fragment key={sc.code}>
+            {!isPreview && <div className="print-page-break" />}
+            <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
+
+              {/* ── Header banner ── */}
+              <div style={{ background: scColor, borderRadius: "6px 6px 0 0", padding: "14px 20px", marginBottom: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 8, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", marginBottom: 2 }}>Scénario de rénovation</div>
+                  <div style={{ color: "#fff", fontSize: 16, fontWeight: 800, letterSpacing: 0.5 }}>{sc.code} — {sc.label}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  {targetDpeLabel && (
+                    <div>
+                      <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 7, letterSpacing: 1, textTransform: "uppercase", marginBottom: 3 }}>Étiquette cible</div>
+                      <span style={{ background: DPE_COLORS[targetDpeLabel] ?? "#6b7280", color: "#fff", fontWeight: 800, fontSize: 18, padding: "3px 14px", borderRadius: 5, border: "2px solid rgba(255,255,255,0.4)" }}>
+                        {targetDpeLabel}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── DPE progression bar ── */}
+              {(initialDpeLabel || targetDpeLabel) && (
+                <div style={{ background: scColorLight, border: `1px solid ${scColor}30`, borderTop: "none", padding: "10px 20px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 9, color: "#64748b", fontWeight: 600, marginRight: 4 }}>Progression DPE :</span>
+                  {DPE_ORDER.map((lbl) => {
+                    const isInitial = lbl === initialDpeLabel;
+                    const isTarget = lbl === targetDpeLabel;
+                    const initialIdx = DPE_ORDER.indexOf(initialDpeLabel ?? "");
+                    const targetIdx = DPE_ORDER.indexOf(targetDpeLabel ?? "");
+                    const isBetween = initialIdx >= 0 && targetIdx >= 0 && DPE_ORDER.indexOf(lbl) > targetIdx && DPE_ORDER.indexOf(lbl) <= initialIdx;
+                    return (
+                      <React.Fragment key={lbl}>
+                        <div style={{
+                          background: isInitial || isTarget ? (DPE_COLORS[lbl] ?? "#6b7280") : isBetween ? `${DPE_COLORS[lbl] ?? "#6b7280"}55` : `${DPE_COLORS[lbl] ?? "#6b7280"}22`,
+                          color: isInitial || isTarget ? "#fff" : "#64748b",
+                          fontWeight: isInitial || isTarget ? 800 : 500,
+                          fontSize: isInitial || isTarget ? 12 : 9,
+                          padding: isInitial || isTarget ? "4px 10px" : "3px 7px",
+                          borderRadius: 4,
+                          border: isTarget ? `2px solid ${scColor}` : "1px solid transparent",
+                          position: "relative",
+                        }}>
+                          {lbl}
+                          {isInitial && <div style={{ position: "absolute", bottom: -12, left: "50%", transform: "translateX(-50%)", fontSize: 7, color: "#64748b", whiteSpace: "nowrap" }}>initial</div>}
+                          {isTarget && <div style={{ position: "absolute", bottom: -12, left: "50%", transform: "translateX(-50%)", fontSize: 7, color: scColor, fontWeight: 700, whiteSpace: "nowrap" }}>cible</div>}
+                        </div>
+                        {lbl !== "G" && <span style={{ color: "#cbd5e1", fontSize: 8 }}>›</span>}
+                      </React.Fragment>
+                    );
+                  })}
+                  {sc.gainPct != null && (
+                    <div style={{ marginLeft: "auto", background: scColor, color: "#fff", fontSize: 10, fontWeight: 700, padding: "4px 12px", borderRadius: 20 }}>
+                      −{fmtNum(sc.gainPct, 0)} % de CEP
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Indicateurs clés ── */}
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#1e3a5f", borderLeft: `3px solid ${scColor}`, paddingLeft: 8, marginBottom: 10 }}>Indicateurs clés</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 18 }}>
+                {cards.map((card) => (
+                  <div key={card.label} style={{ background: card.highlight ? scColorLight : "#f8fafc", border: `1px solid ${card.highlight ? scColor + "40" : "#e2e8f0"}`, borderRadius: 6, padding: "8px 10px" }}>
+                    <div style={{ fontSize: 7.5, color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>{card.label}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 4 }}>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 8, color: "#94a3b8" }}>Initial</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>{card.initial ?? "—"}</div>
+                      </div>
+                      <div style={{ color: scColor, fontSize: 14, fontWeight: 700 }}>→</div>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 8, color: "#94a3b8" }}>Après</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: scColor }}>{card.after ?? "—"}</div>
+                      </div>
+                    </div>
+                    {card.unit && <div style={{ fontSize: 7.5, color: "#94a3b8", textAlign: "center", marginTop: 2 }}>{card.unit}</div>}
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Indicateurs financiers ── */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 18 }}>
+                {[
+                  { label: "Gain économique", value: sc.gainEconomiqueEur != null ? `${fmtNum(sc.gainEconomiqueEur)} €/an` : null },
+                  { label: "Investissement HT", value: sc.invest != null ? `${fmtNum(sc.invest)} €` : null },
+                  { label: "Temps de retour", value: sc.payback != null ? `${fmtNum(sc.payback, 1)} ans` : null },
+                  { label: "Taux ENR-R", value: sc.tauxEnrRPct != null ? `${fmtNum(sc.tauxEnrRPct, 1)} %` : null },
+                  { label: "Prime CEE (BAR-TH-145)", value: sc.primeBarTh145Euros != null ? `${fmtNum(sc.primeBarTh145Euros)} €` : null },
+                ].filter(c => c.value).map((card) => (
+                  <div key={card.label} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 6, padding: "8px 10px" }}>
+                    <div style={{ fontSize: 7.5, color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 3 }}>{card.label}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#1e3a5f" }}>{card.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Tableau des consommations ── */}
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#1e3a5f", borderLeft: `3px solid ${scColor}`, paddingLeft: 8, marginBottom: 10 }}>Tableau des consommations</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 18, fontSize: 10 }}>
+                <thead>
+                  <tr style={{ background: scColor, color: "#fff" }}>
+                    <th style={{ ...thStyle, textAlign: "left", width: "35%" }}>Indicateur</th>
+                    <th style={{ ...thStyle, width: "20%" }}>État initial</th>
+                    <th style={{ ...thStyle, width: "20%" }}>Après travaux</th>
+                    <th style={{ ...thStyle, width: "12%" }}>Réduction</th>
+                    <th style={{ ...thStyle, width: "13%" }}>Gain</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    {
+                      label: "CEF — 5 usages (kWhEF/m².an)",
+                      initial: cefInitial,
+                      after: sc.cef,
+                    },
+                    {
+                      label: "CEP — Th-C-E (kWhEP/m².an)",
+                      initial: thceInitial,
+                      after: sc.thce,
+                    },
+                    {
+                      label: "CEF — 3 usages (kWhEF/m².an)",
+                      initial: meta?.cef3UsagesInitial ?? null,
+                      after: sc.cef3,
+                    },
+                    {
+                      label: "CEP — 3 usages (kWhEP/m².an)",
+                      initial: meta?.cep3UsagesInitial ?? null,
+                      after: sc.cep3,
+                    },
+                    {
+                      label: "GES (kgCO₂éq/m².an)",
+                      initial: gesInitial,
+                      after: sc.ges,
+                    },
+                    {
+                      label: "Coût annuel (€/an)",
+                      initial: initialCost,
+                      after: sc.cost,
+                    },
+                  ].filter(r => r.initial != null || r.after != null).map((row, i) => {
+                    const reduction = row.initial != null && row.after != null ? row.initial - row.after : null;
+                    const gainPct = row.initial != null && row.after != null && row.initial !== 0 ? ((row.initial - row.after) / row.initial * 100) : null;
+                    return (
+                      <tr key={row.label} style={i % 2 === 0 ? rowEven : rowOdd}>
+                        <td style={{ ...tdLeft, fontWeight: 600 }}>{row.label}</td>
+                        <td style={td}>{row.initial != null ? fmtNum(row.initial, 1) : "—"}</td>
+                        <td style={{ ...td, color: scColor, fontWeight: 700 }}>{row.after != null ? fmtNum(row.after, 1) : "—"}</td>
+                        <td style={{ ...td, color: reduction != null && reduction > 0 ? "#16a34a" : "#374151" }}>
+                          {reduction != null ? `−${fmtNum(Math.abs(reduction), 1)}` : "—"}
+                        </td>
+                        <td style={{ ...td, fontWeight: 700, color: gainPct != null && gainPct > 0 ? "#16a34a" : "#374151" }}>
+                          {gainPct != null ? `−${fmtNum(Math.abs(gainPct), 1)} %` : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {/* ── Travaux du scénario ── */}
+              {workItems.length > 0 && (
+                <>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#1e3a5f", borderLeft: `3px solid ${scColor}`, paddingLeft: 8, marginBottom: 10 }}>Travaux du scénario</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 10 }}>
+                    {workItems.map((item) => (
+                      <div key={item.label} style={{ display: "flex", gap: 8, background: scColorLight, border: `1px solid ${scColor}25`, borderRadius: 5, padding: "6px 10px", alignItems: "flex-start" }}>
+                        <div style={{ width: 6, height: 6, borderRadius: "50%", background: scColor, flexShrink: 0, marginTop: 3 }} />
+                        <div>
+                          <div style={{ fontSize: 8, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: 0.3 }}>{item.label}</div>
+                          <div style={{ fontSize: 9, color: "#1e3a5f", marginTop: 1 }}>{item.value}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <PrintFooter page={pageNum} building={b.name} />
+            </div>
+          </React.Fragment>
+        );
+      })}
+
+      {/* ══ PAGE PHOTOS ═══════════════════════════════════════════════════════ */}
       {Object.keys(photosByCategory).length > 0 && (
         <>
           {!isPreview && <div className="print-page-break" />}
           <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
-            <SectionTitle num="6" title="Photos du bâtiment" subtitle="Relevé photographique par catégorie" />
+            <SectionTitle num={`${6 + scData.length}`} title="Photos du bâtiment" subtitle="Relevé photographique par catégorie" />
             {SECTION_ORDER.map((cat) => {
               const catPhotos = photosByCategory[cat];
               if (!catPhotos) return null;
@@ -1429,7 +1645,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 </div>
               );
             })}
-            <PrintFooter page={6} building={b.name} />
+            <PrintFooter page={6 + scData.length} building={b.name} />
           </div>
         </>
       )}
