@@ -722,6 +722,41 @@ interface CoverForm {
   reference: string;
 }
 
+// Stable component defined OUTSIDE CoverPageEditor to avoid remount on each keystroke
+function CoverField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Input
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder ?? label}
+        className="h-8 text-sm"
+      />
+    </div>
+  );
+}
+
+function SectionDivider({ label, color }: { label: string; color: string }) {
+  return (
+    <div className={`text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2 text-${color}-700`}>
+      <span className={`h-px flex-1 bg-${color}-200`} />
+      {label}
+      <span className={`h-px flex-1 bg-${color}-200`} />
+    </div>
+  );
+}
+
 function CoverPageEditor({
   reportId,
   initial,
@@ -738,8 +773,9 @@ function CoverPageEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const set = (key: keyof CoverForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const handleChange = useCallback((key: keyof CoverForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(f => ({ ...f, [key]: e.target.value }));
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
@@ -760,21 +796,9 @@ function CoverPageEditor({
     }
   };
 
-  const Field = ({ label, k, placeholder }: { label: string; k: keyof CoverForm; placeholder?: string }) => (
-    <div className="space-y-1">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <Input
-        value={form[k]}
-        onChange={set(k)}
-        placeholder={placeholder ?? label}
-        className="h-8 text-sm"
-      />
-    </div>
-  );
-
   return (
     <Dialog open onOpenChange={open => !open && onClose()}>
-      <DialogContent className="max-w-2xl p-0 gap-0">
+      <DialogContent className="max-w-2xl p-0 gap-0" aria-describedby={undefined}>
         <DialogHeader className="px-6 pt-5 pb-3 border-b">
           <DialogTitle className="flex items-center gap-2">
             <Edit className="h-4 w-4 text-primary" />
@@ -787,48 +811,36 @@ function CoverPageEditor({
 
             {/* Bâtiment */}
             <div>
-              <div className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <span className="h-px flex-1 bg-blue-200" />
-                Bâtiment
-                <span className="h-px flex-1 bg-blue-200" />
-              </div>
+              <SectionDivider label="Bâtiment" color="blue" />
               <div className="grid grid-cols-1 gap-3">
-                <Field label="Nom du bâtiment / Résidence" k="buildingName" />
-                <Field label="Adresse" k="buildingAddress" />
+                <CoverField label="Nom du bâtiment / Résidence" value={form.buildingName} onChange={handleChange("buildingName")} />
+                <CoverField label="Adresse" value={form.buildingAddress} onChange={handleChange("buildingAddress")} />
               </div>
             </div>
 
             {/* Bureau d'études */}
             <div>
-              <div className="text-xs font-bold text-indigo-700 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <span className="h-px flex-1 bg-indigo-200" />
-                Bureau d'études
-                <span className="h-px flex-1 bg-indigo-200" />
-              </div>
+              <SectionDivider label="Bureau d'études" color="indigo" />
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Nom du bureau d'études" k="bureauEtudes" />
-                <Field label="Adresse" k="bureauAdresse" />
-                <Field label="Email" k="bureauEmail" placeholder="contact@bureau.fr" />
-                <Field label="Téléphone" k="bureauTelephone" placeholder="01 23 45 67 89" />
-                <Field label="N° SIRET" k="siret" placeholder="123 456 789 00012" />
-                <Field label="Qualification / Certification" k="qualification" placeholder="RGE, OPQIBI..." />
+                <CoverField label="Nom du bureau d'études" value={form.bureauEtudes} onChange={handleChange("bureauEtudes")} />
+                <CoverField label="Adresse" value={form.bureauAdresse} onChange={handleChange("bureauAdresse")} />
+                <CoverField label="Email" value={form.bureauEmail} onChange={handleChange("bureauEmail")} placeholder="contact@bureau.fr" />
+                <CoverField label="Téléphone" value={form.bureauTelephone} onChange={handleChange("bureauTelephone")} placeholder="01 23 45 67 89" />
+                <CoverField label="N° SIRET" value={form.siret} onChange={handleChange("siret")} placeholder="123 456 789 00012" />
+                <CoverField label="Qualification / Certification" value={form.qualification} onChange={handleChange("qualification")} placeholder="RGE, OPQIBI..." />
               </div>
             </div>
 
             {/* Mission */}
             <div>
-              <div className="text-xs font-bold text-green-700 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <span className="h-px flex-1 bg-green-200" />
-                Informations mission
-                <span className="h-px flex-1 bg-green-200" />
-              </div>
+              <SectionDivider label="Informations mission" color="green" />
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Bénéficiaire / Client" k="beneficiaire" />
-                <Field label="Maître d'œuvre / Donneur d'ordre" k="maitreDoeuvre" />
-                <Field label="Date de visite" k="dateVisite" placeholder="JJ/MM/AAAA" />
-                <Field label="Date de réalisation" k="dateRealisation" placeholder="JJ/MM/AAAA" />
-                <Field label="Date de restitution" k="dateRestitution" placeholder="JJ/MM/AAAA" />
-                <Field label="Référence dossier" k="reference" placeholder="REF-2025-001" />
+                <CoverField label="Bénéficiaire / Client" value={form.beneficiaire} onChange={handleChange("beneficiaire")} />
+                <CoverField label="Maître d'œuvre / Donneur d'ordre" value={form.maitreDoeuvre} onChange={handleChange("maitreDoeuvre")} />
+                <CoverField label="Date de visite" value={form.dateVisite} onChange={handleChange("dateVisite")} placeholder="JJ/MM/AAAA" />
+                <CoverField label="Date de réalisation" value={form.dateRealisation} onChange={handleChange("dateRealisation")} placeholder="JJ/MM/AAAA" />
+                <CoverField label="Date de restitution" value={form.dateRestitution} onChange={handleChange("dateRestitution")} placeholder="JJ/MM/AAAA" />
+                <CoverField label="Référence dossier" value={form.reference} onChange={handleChange("reference")} placeholder="REF-2025-001" />
               </div>
             </div>
 
