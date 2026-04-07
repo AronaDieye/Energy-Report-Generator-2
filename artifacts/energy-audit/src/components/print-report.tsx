@@ -87,6 +87,52 @@ const SECTION_ORDER = ["facades", "planchers", "toitures", "menuiseries", "chauf
 
 // ── Main PrintReport ──────────────────────────────────────────────────────────
 
+interface BaoScenarioMeta {
+  index: number;
+  travaux: string[];
+  isolationToitures?: string | null;
+  isolationMurs?: string | null;
+  isolationPlancherBas?: string | null;
+  energieChauffagePrincipal?: string | null;
+  cef3KwhEfM2?: number | null;
+  cep3KwhEpM2?: number | null;
+  cef5KwhEfM2?: number | null;
+  cep5KwhEpM2?: number | null;
+  gesCo2KgM2?: number | null;
+  gainEconomiqueEur?: number | null;
+  gainEnergetiquePct?: number | null;
+  tauxEnrRPct?: number | null;
+  primeBarTh145Euros?: number | null;
+  primeBarTh145KWhcumac?: number | null;
+  labelDpe?: string | null;
+  totalDepenseAnnuelle?: number | null;
+  totalKwhEfAn?: number | null;
+}
+
+interface BaoMetadata {
+  bureauEtudes?: string | null;
+  bureauAdresse?: string | null;
+  bureauEmail?: string | null;
+  bureauTelephone?: string | null;
+  siret?: string | null;
+  qualification?: string | null;
+  maitreDoeuvre?: string | null;
+  beneficiaire?: string | null;
+  adresseClient?: string | null;
+  dateVisite?: string | null;
+  dateRealisation?: string | null;
+  dateRestitution?: string | null;
+  reference?: string | null;
+  tExtBase?: string | null;
+  rendementInitial?: string | null;
+  cef3UsagesInitial?: number | null;
+  cep3UsagesInitial?: number | null;
+  cef5UsagesInitial?: number | null;
+  cep5UsagesInitial?: number | null;
+  gesInitialKgCo2M2?: number | null;
+  scenarios?: BaoScenarioMeta[];
+}
+
 interface ReportData {
   id: number;
   fileName: string;
@@ -111,6 +157,7 @@ interface ReportData {
   co2Emissions: { totalEmissions?: number | null };
   rawFields: RawField[];
   sectionCharacteristics?: Record<string, string> | null;
+  metadata?: BaoMetadata | null;
 }
 
 export function PrintReport({ report, mode = "print" }: { report: ReportData; mode?: "print" | "preview" }) {
@@ -128,6 +175,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
   const rawFields = report.rawFields || [];
   const b = report.buildingInfo;
   const chars = (report.sectionCharacteristics ?? {}) as Record<string, string>;
+  const meta = report.metadata ?? null;
   const scenarioCodes = getScenarioCodes(rawFields);
 
   const initialEP = report.energyLabel.primaryEnergyConsumption;
@@ -137,7 +185,8 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
   const thceInitial = parseVal(rawFields.find((f) => f.key === "Total énergie primaire (Th-C-E)")?.value);
   const cefInitial = parseVal(rawFields.find((f) => f.key === "CEF initial (Th-C-E)")?.value);
-  const gesInitial = parseVal(rawFields.find((f) => f.key === "CO2 par m² (kg CO2éq/m²/an)")?.value);
+  const gesInitial = parseVal(rawFields.find((f) => f.key === "CO2 par m² (kg CO2éq/m²/an)")?.value)
+    ?? meta?.gesInitialKgCo2M2 ?? null;
 
   const stationRaw = getRaw(rawFields, "Station météo");
   const dept = getRaw(rawFields, "Département");
@@ -165,18 +214,31 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
     })),
   ];
 
-  const scData = scenarioCodes.map((code) => ({
-    code,
-    label: getScVal(rawFields, code, "Libellé") || code,
-    thce: parseVal(getScVal(rawFields, code, "CEP Th-C-E après")),
-    cef: parseVal(getScVal(rawFields, code, "CEF Th-C-E après")),
-    ges: parseVal(getScVal(rawFields, code, "GES après")),
-    cost: parseVal(getScVal(rawFields, code, "Coût annuel après")),
-    dpeLabel: getScVal(rawFields, code, "Étiquette DPE après"),
-    invest: parseVal(getScVal(rawFields, code, "Investissement TTC")),
-    payback: parseVal(getScVal(rawFields, code, "Temps de retour simple")),
-    gainPct: parseVal(getScVal(rawFields, code, "Gain sur CEP")),
-  }));
+  const scData = scenarioCodes.map((code, idx) => {
+    const metaSc = meta?.scenarios?.[idx] ?? null;
+    return {
+      code,
+      label: getScVal(rawFields, code, "Libellé") || code,
+      thce: parseVal(getScVal(rawFields, code, "CEP Th-C-E après")) ?? metaSc?.cep5KwhEpM2 ?? null,
+      cef: parseVal(getScVal(rawFields, code, "CEF Th-C-E après")) ?? metaSc?.cef5KwhEfM2 ?? null,
+      cep3: metaSc?.cep3KwhEpM2 ?? null,
+      cef3: metaSc?.cef3KwhEfM2 ?? null,
+      ges: parseVal(getScVal(rawFields, code, "GES Th-C-E après")) ?? metaSc?.gesCo2KgM2 ?? null,
+      cost: parseVal(getScVal(rawFields, code, "Dépense annuelle après")) ?? metaSc?.totalDepenseAnnuelle ?? null,
+      dpeLabel: getScVal(rawFields, code, "Étiquette DPE après") ?? metaSc?.labelDpe ?? null,
+      invest: parseVal(getScVal(rawFields, code, "Investissement")) ?? null,
+      payback: parseVal(getScVal(rawFields, code, "Temps de retour")) ?? null,
+      gainPct: parseVal(getScVal(rawFields, code, "Gain sur CEP")) ?? metaSc?.gainEnergetiquePct ?? null,
+      gainEconomiqueEur: metaSc?.gainEconomiqueEur ?? null,
+      tauxEnrRPct: metaSc?.tauxEnrRPct ?? null,
+      primeBarTh145Euros: metaSc?.primeBarTh145Euros ?? null,
+      travaux: metaSc?.travaux ?? [],
+      isolationToitures: metaSc?.isolationToitures ?? null,
+      isolationMurs: metaSc?.isolationMurs ?? null,
+      isolationPlancherBas: metaSc?.isolationPlancherBas ?? null,
+      energieChauffagePrincipal: metaSc?.energieChauffagePrincipal ?? null,
+    };
+  });
 
   // Rows for envelope table from rawFields
   const envelopeRows = [
@@ -336,6 +398,46 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           </div>
         )}
 
+        {/* Bureau d'études & mission info */}
+        {meta && (meta.bureauEtudes || meta.maitreDoeuvre || meta.dateVisite || meta.reference) && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+            {/* Bureau d'études */}
+            {(meta.bureauEtudes || meta.siret || meta.qualification || meta.bureauEmail) && (
+              <div style={{ border: "1px solid #dbeafe", borderRadius: 6, padding: "10px 12px", background: "#eff6ff" }}>
+                <div style={{ fontSize: 8, fontWeight: 700, color: "#1e40af", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Bureau d'études</div>
+                {meta.bureauEtudes && <div style={{ fontSize: 11, fontWeight: 700, color: "#1e3a5f" }}>{meta.bureauEtudes}</div>}
+                {meta.bureauAdresse && <div style={{ fontSize: 9, color: "#64748b", marginTop: 2 }}>{meta.bureauAdresse}</div>}
+                {meta.bureauEmail && <div style={{ fontSize: 9, color: "#64748b" }}>{meta.bureauEmail}</div>}
+                {meta.bureauTelephone && <div style={{ fontSize: 9, color: "#64748b" }}>{meta.bureauTelephone}</div>}
+                {meta.siret && <div style={{ fontSize: 8, color: "#94a3b8", marginTop: 3 }}>SIRET : {meta.siret}</div>}
+                {meta.qualification && <div style={{ fontSize: 8, color: "#94a3b8" }}>{meta.qualification}</div>}
+              </div>
+            )}
+
+            {/* Mission */}
+            <div style={{ border: "1px solid #d1fae5", borderRadius: 6, padding: "10px 12px", background: "#f0fdf4" }}>
+              <div style={{ fontSize: 8, fontWeight: 700, color: "#166534", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Informations mission</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
+                {[
+                  { l: "Maître d'œuvre", v: meta.maitreDoeuvre },
+                  { l: "Client / Bénéficiaire", v: meta.beneficiaire },
+                  { l: "Date de visite", v: meta.dateVisite },
+                  { l: "Date de réalisation", v: meta.dateRealisation },
+                  { l: "Date de restitution", v: meta.dateRestitution },
+                  { l: "Référence dossier", v: meta.reference },
+                  { l: "T° ext. de base", v: meta.tExtBase },
+                  { l: "Rendement initial", v: meta.rendementInitial },
+                ].filter((r) => r.v).map(({ l, v }) => (
+                  <div key={l}>
+                    <div style={{ fontSize: 7, color: "#94a3b8", textTransform: "uppercase" }}>{l}</div>
+                    <div style={{ fontSize: 9, fontWeight: 600, color: "#374151" }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
         <div style={{ marginTop: "auto", borderTop: "1px solid #e2e8f0", paddingTop: 8, display: "flex", justifyContent: "space-between", fontSize: 8, color: "#94a3b8" }}>
           <span>AuditTech Pro — Rapport d'audit énergétique — {b.name || "Bâtiment"}</span>
@@ -402,14 +504,60 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 <td key={sc.code} style={{ ...td, color: "#1d4ed8", fontWeight: 700 }}>{fmtNum(sc.cost)}</td>
               ))}
             </tr>
+            {/* CEP 3 usages */}
+            {(meta?.cep3UsagesInitial !== null && meta?.cep3UsagesInitial !== undefined) && (
+              <tr style={rowEven}>
+                <td style={tdLeft}>CEP (kWhEP/m².an)<br /><span style={{ color: "#94a3b8", fontSize: 9 }}>3 usages</span></td>
+                <td style={td}>{fmtNum(meta.cep3UsagesInitial, 1)}</td>
+                {scData.map((sc) => (
+                  <td key={sc.code} style={{ ...td, color: "#16a34a", fontWeight: 700 }}>{fmtNum(sc.cep3, 1)}</td>
+                ))}
+              </tr>
+            )}
             {/* Gain */}
             {scData.some((sc) => sc.gainPct !== null) && (
               <tr style={rowOdd}>
-                <td style={tdLeft}>Gain sur CEP (%)</td>
+                <td style={tdLeft}>Gain énergétique (%)</td>
                 <td style={td}>—</td>
                 {scData.map((sc) => (
                   <td key={sc.code} style={{ ...td, color: "#16a34a", fontWeight: 700 }}>
                     {sc.gainPct !== null ? `${fmtNum(sc.gainPct, 1)} %` : "—"}
+                  </td>
+                ))}
+              </tr>
+            )}
+            {/* Gain économique */}
+            {scData.some((sc) => sc.gainEconomiqueEur !== null) && (
+              <tr style={rowEven}>
+                <td style={tdLeft}>Gain économique (€/an)</td>
+                <td style={td}>—</td>
+                {scData.map((sc) => (
+                  <td key={sc.code} style={{ ...td, color: "#2563eb", fontWeight: 700 }}>
+                    {sc.gainEconomiqueEur !== null ? `${fmtNum(sc.gainEconomiqueEur)} €` : "—"}
+                  </td>
+                ))}
+              </tr>
+            )}
+            {/* Taux ENR&R */}
+            {scData.some((sc) => sc.tauxEnrRPct !== null) && (
+              <tr style={rowOdd}>
+                <td style={tdLeft}>Taux ENR&R (%)</td>
+                <td style={td}>—</td>
+                {scData.map((sc) => (
+                  <td key={sc.code} style={{ ...td, color: "#7c3aed", fontWeight: 700 }}>
+                    {sc.tauxEnrRPct !== null ? `${fmtNum(sc.tauxEnrRPct, 2)} %` : "—"}
+                  </td>
+                ))}
+              </tr>
+            )}
+            {/* Prime BAR-TH-145 */}
+            {scData.some((sc) => sc.primeBarTh145Euros !== null) && (
+              <tr style={rowEven}>
+                <td style={tdLeft}>Prime BAR-TH-145 (€)</td>
+                <td style={td}>—</td>
+                {scData.map((sc) => (
+                  <td key={sc.code} style={{ ...td, color: "#dc2626", fontWeight: 700 }}>
+                    {sc.primeBarTh145Euros !== null ? `${fmtNum(sc.primeBarTh145Euros)} €` : "—"}
                   </td>
                 ))}
               </tr>
@@ -429,25 +577,58 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                   || rawFields.find((f) => f.key.startsWith(`SCÉNARIO ${sc.code}`) && f.key.includes("Description"))?.value;
                 return (
                   <div key={sc.code} style={{ border: `2px solid ${palette}`, borderRadius: 6, padding: 12, pageBreakInside: "avoid" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                       <span style={{ fontWeight: 800, color: palette, fontSize: 13 }}>{sc.code}</span>
                       {sc.dpeLabel && <DpeLabel label={sc.dpeLabel} />}
                     </div>
                     {sc.label && sc.label !== sc.code && (
-                      <div style={{ fontSize: 10, fontWeight: 600, marginBottom: 8, color: "#374151" }}>{sc.label}</div>
+                      <div style={{ fontSize: 10, fontWeight: 600, marginBottom: 4, color: "#374151" }}>{sc.label}</div>
                     )}
                     {desc && (
-                      <div style={{ fontSize: 9, color: "#64748b", marginBottom: 8, lineHeight: 1.4 }}>{desc}</div>
+                      <div style={{ fontSize: 9, color: "#64748b", marginBottom: 6, lineHeight: 1.4 }}>{desc}</div>
                     )}
+
+                    {/* Travaux list from BAO metadata */}
+                    {sc.travaux.length > 0 && (
+                      <div style={{ marginBottom: 8 }}>
+                        <div style={{ fontSize: 8, fontWeight: 700, color: palette, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Travaux préconisés</div>
+                        <ul style={{ margin: 0, paddingLeft: 14, fontSize: 8.5, color: "#374151", lineHeight: 1.5 }}>
+                          {sc.travaux.map((t, ti) => <li key={ti}>{t}</li>)}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Isolation / CVC states */}
+                    {(sc.isolationToitures || sc.isolationMurs || sc.isolationPlancherBas || sc.energieChauffagePrincipal) && (
+                      <div style={{ marginBottom: 8, background: "#f8fafc", borderRadius: 4, padding: "4px 6px" }}>
+                        <div style={{ fontSize: 8, fontWeight: 700, color: "#64748b", marginBottom: 3 }}>ÉTAT APRÈS TRAVAUX</div>
+                        {[
+                          { l: "Isolation toitures", v: sc.isolationToitures },
+                          { l: "Isolation murs", v: sc.isolationMurs },
+                          { l: "Isolation plancher bas", v: sc.isolationPlancherBas },
+                          { l: "Énergie principale", v: sc.energieChauffagePrincipal },
+                        ].filter((r) => r.v).map(({ l, v }) => (
+                          <div key={l} style={{ display: "flex", gap: 4, fontSize: 8, marginBottom: 1 }}>
+                            <span style={{ color: "#94a3b8", minWidth: 100 }}>{l} :</span>
+                            <span style={{ fontWeight: 600 }}>{v}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     <table style={{ width: "100%", fontSize: 9, borderCollapse: "collapse" }}>
                       <tbody>
                         {[
                           { l: "Investissement TTC", v: sc.invest !== null ? `${fmtNum(sc.invest)} €` : null },
                           { l: "Temps de retour simple", v: sc.payback !== null ? `${fmtNum(sc.payback, 1)} ans` : null },
-                          { l: "Gain énergétique (CEP)", v: sc.gainPct !== null ? `${fmtNum(sc.gainPct, 1)} %` : null },
-                          { l: "Coût annuel après travaux", v: sc.cost !== null ? `${fmtNum(sc.cost)} €/an` : null },
-                          { l: "CEP après (kWhEP/m².an)", v: sc.thce !== null ? fmtNum(sc.thce, 1) : null },
-                          { l: "GES après (kgCO₂/m².an)", v: sc.ges !== null ? fmtNum(sc.ges, 1) : null },
+                          { l: "Gain énergétique", v: sc.gainPct !== null ? `${fmtNum(sc.gainPct, 1)} %` : null },
+                          { l: "Gain économique", v: sc.gainEconomiqueEur !== null ? `${fmtNum(sc.gainEconomiqueEur)} €/an` : null },
+                          { l: "Dépense annuelle", v: sc.cost !== null ? `${fmtNum(sc.cost)} €/an` : null },
+                          { l: "CEP 5 usages (kWhEP/m².an)", v: sc.thce !== null ? fmtNum(sc.thce, 1) : null },
+                          { l: "CEP 3 usages (kWhEP/m².an)", v: sc.cep3 !== null ? fmtNum(sc.cep3, 1) : null },
+                          { l: "GES (kgCO₂/m².an)", v: sc.ges !== null ? fmtNum(sc.ges, 1) : null },
+                          { l: "Taux ENR&R", v: sc.tauxEnrRPct !== null ? `${fmtNum(sc.tauxEnrRPct, 2)} %` : null },
+                          { l: "Prime BAR-TH-145", v: sc.primeBarTh145Euros !== null ? `${fmtNum(sc.primeBarTh145Euros)} €` : null },
                         ].filter((r) => r.v !== null).map(({ l, v }) => (
                           <tr key={l}>
                             <td style={{ padding: "2px 4px", color: "#64748b", borderBottom: "1px solid #f1f5f9" }}>{l}</td>

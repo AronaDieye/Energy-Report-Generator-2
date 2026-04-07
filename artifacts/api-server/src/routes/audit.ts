@@ -114,6 +114,7 @@ router.post(
           energyIndex: extracted.energyIndex,
           recommendations: extracted.recommendations,
           rawFields: extracted.rawFields,
+          metadata: extracted.metadata ?? null,
         })
         .returning();
 
@@ -303,6 +304,7 @@ function mapToApiReport(r: typeof auditReportsTable.$inferSelect) {
     recommendations: r.recommendations ?? [],
     rawFields: r.rawFields ?? [],
     sectionCharacteristics: r.sectionCharacteristics ?? {},
+    metadata: r.metadata ?? null,
   };
 }
 

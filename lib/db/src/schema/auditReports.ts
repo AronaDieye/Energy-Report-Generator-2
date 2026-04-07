@@ -98,6 +98,50 @@ export const auditReportsTable = pgTable("audit_reports", {
     compteurs?: string;
     eclairage?: string;
   }>(),
+
+  metadata: jsonb("metadata").$type<{
+    bureauEtudes?: string | null;
+    bureauAdresse?: string | null;
+    bureauEmail?: string | null;
+    bureauTelephone?: string | null;
+    siret?: string | null;
+    qualification?: string | null;
+    maitreDoeuvre?: string | null;
+    beneficiaire?: string | null;
+    adresseClient?: string | null;
+    dateVisite?: string | null;
+    dateRealisation?: string | null;
+    dateRestitution?: string | null;
+    reference?: string | null;
+    tExtBase?: string | null;
+    rendementInitial?: string | null;
+    cef3UsagesInitial?: number | null;
+    cep3UsagesInitial?: number | null;
+    cef5UsagesInitial?: number | null;
+    cep5UsagesInitial?: number | null;
+    gesInitialKgCo2M2?: number | null;
+    scenarios?: Array<{
+      index: number;
+      travaux: string[];
+      isolationToitures?: string | null;
+      isolationMurs?: string | null;
+      isolationPlancherBas?: string | null;
+      energieChauffagePrincipal?: string | null;
+      cef3KwhEfM2?: number | null;
+      cep3KwhEpM2?: number | null;
+      cef5KwhEfM2?: number | null;
+      cep5KwhEpM2?: number | null;
+      gesCo2KgM2?: number | null;
+      gainEconomiqueEur?: number | null;
+      gainEnergetiquePct?: number | null;
+      tauxEnrRPct?: number | null;
+      primeBarTh145Euros?: number | null;
+      primeBarTh145KWhcumac?: number | null;
+      labelDpe?: string | null;
+      totalDepenseAnnuelle?: number | null;
+      totalKwhEfAn?: number | null;
+    }>;
+  }>(),
 });
 
 export const insertAuditReportSchema = createInsertSchema(

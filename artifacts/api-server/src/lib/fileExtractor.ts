@@ -7,6 +7,50 @@ export interface RawField {
   section: string | null;
 }
 
+export interface BaoMetadata {
+  bureauEtudes?: string | null;
+  bureauAdresse?: string | null;
+  bureauEmail?: string | null;
+  bureauTelephone?: string | null;
+  siret?: string | null;
+  qualification?: string | null;
+  maitreDoeuvre?: string | null;
+  beneficiaire?: string | null;
+  adresseClient?: string | null;
+  dateVisite?: string | null;
+  dateRealisation?: string | null;
+  dateRestitution?: string | null;
+  reference?: string | null;
+  tExtBase?: string | null;
+  rendementInitial?: string | null;
+  cef3UsagesInitial?: number | null;
+  cep3UsagesInitial?: number | null;
+  cef5UsagesInitial?: number | null;
+  cep5UsagesInitial?: number | null;
+  gesInitialKgCo2M2?: number | null;
+  scenarios?: Array<{
+    index: number;
+    travaux: string[];
+    isolationToitures?: string | null;
+    isolationMurs?: string | null;
+    isolationPlancherBas?: string | null;
+    energieChauffagePrincipal?: string | null;
+    cef3KwhEfM2?: number | null;
+    cep3KwhEpM2?: number | null;
+    cef5KwhEfM2?: number | null;
+    cep5KwhEpM2?: number | null;
+    gesCo2KgM2?: number | null;
+    gainEconomiqueEur?: number | null;
+    gainEnergetiquePct?: number | null;
+    tauxEnrRPct?: number | null;
+    primeBarTh145Euros?: number | null;
+    primeBarTh145KWhcumac?: number | null;
+    labelDpe?: string | null;
+    totalDepenseAnnuelle?: number | null;
+    totalKwhEfAn?: number | null;
+  }>;
+}
+
 export interface ExtractedAuditData {
   buildingName: string | null;
   buildingAddress: string | null;
@@ -68,6 +112,7 @@ export interface ExtractedAuditData {
   }>;
 
   rawFields: RawField[];
+  metadata?: BaoMetadata | null;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -503,6 +548,311 @@ function parseScenarios(text: string): ScenarioResult[] {
   return scenarios;
 }
 
+// ─── BAO Metadata: bureau/client info, synthèse table, travaux ───────────────
+
+function extractSeqNumbers(section: string, n: number): (number | null)[] {
+  const nums: (number | null)[] = [];
+  const pattern = /(?<!\w)([\d][\d\s]*[,.][\d]+|[\d]{4,}[\d\s]*)/g;
+  let m;
+  while ((m = pattern.exec(section)) !== null && nums.length < n) {
+    const val = parseNum(m[1]);
+    if (val !== null && val > 0) nums.push(val);
+  }
+  while (nums.length < n) nums.push(null);
+  return nums;
+}
+
+function parseBureauInfo(text: string): Partial<BaoMetadata> {
+  const header = text.substring(0, Math.min(text.length, 4000));
+
+  const bureauEtudes = extractField(header, "BUREAU D'ETUDES") ||
+    extractField(header, "BUREAU D'ÉTUDES") ||
+    extractField(header, "Bureau d'études");
+  const bureauAdresse = extractField(header, "ADRESSE");
+  const bureauEmail = extractField(header, "EMAIL");
+  const bureauTelephone = extractField(header, "NUMERO TELEPHONE") ||
+    extractField(header, "NUMÉRO TÉLÉPHONE") ||
+    extractField(header, "Téléphone") ||
+    extractField(header, "Telephone");
+  const siret = extractField(header, "SIRET");
+  const qualification = extractField(header, "QUALIFICATION");
+
+  const maitreDoeuvre = extractField(header, "MAITRE D'ŒUVRE") ||
+    extractField(header, "MAITRE D'OEUVRE") ||
+    extractField(header, "Maître d'œuvre") ||
+    extractField(header, "Maître d'oeuvre");
+  const client = extractField(header, "CLIENT") ||
+    extractField(header, "Bénéficiaire") ||
+    extractField(header, "Beneficiaire");
+  const adresseClient = extractField(header, "ADRESSE CLIENT") ||
+    (/CLIENT\s*:\s*[^\n]+\s*\nADRESSE\s*:\s*([^\n]+)/i.exec(text)?.[1] ?? null);
+
+  const dateVisite = extractField(header, "DATE DE LA VISITE") ||
+    extractField(header, "Date de la visite");
+  const dateRealisation = extractField(header, "DATE DE REALISATION") ||
+    extractField(header, "DATE DE RÉALISATION") ||
+    extractField(header, "Date de réalisation");
+  const dateRestitution = extractField(header, "DATE DE RESTITUTION") ||
+    extractField(header, "Date de restitution");
+  const reference = extractField(header, "REFERENCE") ||
+    extractField(header, "RÉFÉRENCE") ||
+    extractField(header, "Référence");
+  const tExtBase = extractField(header, "T° Ext de Base") ||
+    extractField(text, "Température extérieure de base");
+  const rendementInitial = extractField(header, "Rendement initial") ||
+    extractField(text, "Rendement initial");
+
+  return {
+    bureauEtudes: bureauEtudes?.replace(/\s+/g, " ").trim() || null,
+    bureauAdresse: bureauAdresse?.trim() || null,
+    bureauEmail: bureauEmail?.trim() || null,
+    bureauTelephone: bureauTelephone?.trim() || null,
+    siret: siret?.trim() || null,
+    qualification: qualification?.trim() || null,
+    maitreDoeuvre: maitreDoeuvre?.replace(/\s+/g, " ").trim() || null,
+    beneficiaire: client?.replace(/\s+/g, " ").trim() || null,
+    adresseClient: adresseClient?.trim() || null,
+    dateVisite: dateVisite?.trim() || null,
+    dateRealisation: dateRealisation?.trim() || null,
+    dateRestitution: dateRestitution?.trim() || null,
+    reference: reference?.trim() || null,
+    tExtBase: tExtBase?.trim() || null,
+    rendementInitial: rendementInitial?.trim() || null,
+  };
+}
+
+function parseSyntheseTable(text: string): Partial<BaoMetadata> {
+  const result: Partial<BaoMetadata> = {};
+
+  // Find the SYNTHESE AUDIT ENERGETIQUE GLOBALE section
+  const synStart = text.search(/SYNTHESE\s+AUDIT\s+ENER/i);
+  if (synStart < 0) return result;
+
+  // Take a generous slice up to the first SCENARIO keyword
+  const synEnd = text.search(/SC[EÉ]NARIO\s+1/i);
+  const synSection = text.slice(synStart, synEnd > synStart ? synEnd : synStart + 8000);
+
+  // ── Conso 3 usages: 8 numbers (CEF_init, CEP_init, CEF_sc1, CEP_sc1, CEF_sc2, CEP_sc2, CEF_sc3, CEP_sc3)
+  const conso3Idx = synSection.search(/Conso\s*\(3\s*usages?\)/i);
+  if (conso3Idx >= 0) {
+    const slice3 = synSection.slice(conso3Idx, conso3Idx + 600);
+    const nums3 = extractSeqNumbers(slice3, 8);
+    result.cef3UsagesInitial = nums3[0];
+    result.cep3UsagesInitial = nums3[1];
+  }
+
+  // ── Conso 5 usages (note: PDF has typo "ussges")
+  const conso5Idx = synSection.search(/Conso\s*\(5\s*us+ages?\)/i);
+  if (conso5Idx >= 0) {
+    const slice5 = synSection.slice(conso5Idx, conso5Idx + 600);
+    const nums5 = extractSeqNumbers(slice5, 8);
+    result.cef5UsagesInitial = nums5[0];
+    result.cep5UsagesInitial = nums5[1];
+  }
+
+  // ── GES (kgCO2/m².an) — first value is initial state
+  const gesIdx = synSection.search(/GES\s*\[kgCO2/i);
+  if (gesIdx >= 0) {
+    const sliceGes = synSection.slice(gesIdx, gesIdx + 300);
+    const gesNums = extractSeqNumbers(sliceGes, 4);
+    result.gesInitialKgCo2M2 = gesNums[0];
+  }
+
+  // ── Per-scenario values (3 values each for sc1, sc2, sc3)
+  const scResults: NonNullable<BaoMetadata["scenarios"]> = [];
+  for (let sc = 1; sc <= 4; sc++) {
+    scResults.push({ index: sc, travaux: [] });
+  }
+
+  // Gain économique [€]/an — 3 values (sc1, sc2, sc3)
+  const gainEcoIdx = synSection.search(/Gain\s*[eé]conomique/i);
+  if (gainEcoIdx >= 0) {
+    const sliceGE = synSection.slice(gainEcoIdx, gainEcoIdx + 400);
+    const geNums = extractSeqNumbers(sliceGE, 3);
+    for (let sc = 0; sc < 3; sc++) {
+      scResults[sc].gainEconomiqueEur = geNums[sc];
+    }
+  }
+
+  // Taux ENR & R — 3 percentage values
+  const enrIdx = synSection.search(/Taux\s+ENR/i);
+  if (enrIdx >= 0) {
+    const sliceEnr = synSection.slice(enrIdx, enrIdx + 300);
+    const enrNums = extractSeqNumbers(sliceEnr, 3);
+    for (let sc = 0; sc < 3; sc++) {
+      scResults[sc].tauxEnrRPct = enrNums[sc];
+    }
+  }
+
+  // Gain énergétique — 3 percentage values
+  const gainEnIdx = synSection.search(/Gain\s+[eé]nerg[eé]tique/i);
+  if (gainEnIdx >= 0) {
+    const sliceGEn = synSection.slice(gainEnIdx, gainEnIdx + 300);
+    const genNums = extractSeqNumbers(sliceGEn, 3);
+    for (let sc = 0; sc < 3; sc++) {
+      scResults[sc].gainEnergetiquePct = genNums[sc];
+    }
+  }
+
+  // Prime BAR-TH-145 [€] — 3 values
+  const primeEuroIdx = synSection.search(/Prime\s+BAR-TH-145(?!\s*\[KWh)/i);
+  if (primeEuroIdx >= 0) {
+    const slicePrime = synSection.slice(primeEuroIdx, primeEuroIdx + 500);
+    const primeNums = extractSeqNumbers(slicePrime, 4);
+    // Detect if 1st value or skip (if 0 it means that scenario has <50% ENR)
+    const nonZero = primeNums.filter((v) => v !== null && v > 0);
+    for (let sc = 0; sc < 3; sc++) {
+      scResults[sc].primeBarTh145Euros = nonZero[sc] ?? null;
+    }
+  }
+
+  // Prime BAR-TH-145 [KWhcumac] — pick lines with KWhcumac
+  const primeKwhIdx = synSection.search(/Prime\s+BAR-TH-145\s*\[KWhcumac\]/i);
+  if (primeKwhIdx >= 0) {
+    const slicePK = synSection.slice(primeKwhIdx, primeKwhIdx + 600);
+    const pkNums = extractSeqNumbers(slicePK, 3);
+    for (let sc = 0; sc < 3; sc++) {
+      if (pkNums[sc] !== null) scResults[sc].primeBarTh145KWhcumac = pkNums[sc];
+    }
+  }
+
+  // Totaux kWh EF/an pour la table usage (3 usages: chauffage + refroid + ECS)
+  const totalRowIdx = synSection.search(/^\s*Total\b/im);
+  if (totalRowIdx >= 0) {
+    const sliceTot = synSection.slice(totalRowIdx, totalRowIdx + 500);
+    const totNums = extractSeqNumbers(sliceTot, 4);
+    // Index 0 = initial, 1 = sc1, 2 = sc2, 3 = sc3
+    for (let sc = 0; sc < 3; sc++) {
+      scResults[sc].totalKwhEfAn = totNums[sc + 1];
+    }
+  }
+
+  // GES per scenario from the GES row (4 values: init, sc1, sc2, sc3)
+  if (gesIdx >= 0) {
+    const sliceGes2 = synSection.slice(gesIdx, gesIdx + 400);
+    const ges4 = extractSeqNumbers(sliceGes2, 4);
+    for (let sc = 0; sc < 3; sc++) {
+      scResults[sc].gesCo2KgM2 = ges4[sc + 1];
+    }
+  }
+
+  // Conso 3 usages CEF/CEP per scenario from the sequential numbers
+  if (conso3Idx >= 0) {
+    const slice3 = synSection.slice(conso3Idx, conso3Idx + 600);
+    const nums3 = extractSeqNumbers(slice3, 8);
+    for (let sc = 0; sc < 3; sc++) {
+      scResults[sc].cef3KwhEfM2 = nums3[(sc + 1) * 2];
+      scResults[sc].cep3KwhEpM2 = nums3[(sc + 1) * 2 + 1];
+    }
+  }
+
+  // Conso 5 usages CEF/CEP per scenario
+  if (conso5Idx >= 0) {
+    const slice5 = synSection.slice(conso5Idx, conso5Idx + 600);
+    const nums5 = extractSeqNumbers(slice5, 8);
+    for (let sc = 0; sc < 3; sc++) {
+      scResults[sc].cef5KwhEfM2 = nums5[(sc + 1) * 2];
+      scResults[sc].cep5KwhEpM2 = nums5[(sc + 1) * 2 + 1];
+    }
+  }
+
+  result.scenarios = scResults.filter((s) => s.index <= 4);
+  return result;
+}
+
+function parseFormattedScenarioPages(text: string): BaoMetadata["scenarios"] {
+  const results: NonNullable<BaoMetadata["scenarios"]> = [];
+
+  for (let scNum = 1; scNum <= 5; scNum++) {
+    const scPattern = new RegExp(
+      `SC[EÉ]NARIO\\s+${scNum}[^\\d][\\s\\S]{0,100}?(?=SC[EÉ]NARIO\\s+${scNum + 1}[^\\d]|CARACTERISTIQUES|IV\\.|PLAN|$)`,
+      "i"
+    );
+    const scMatch = text.match(scPattern);
+    if (!scMatch) break;
+    const scText = scMatch[0];
+
+    // Extract travaux bullet points
+    const travaux: string[] = [];
+    const travauxIdx = scText.search(/\bTRAVAUX\b/i);
+    if (travauxIdx >= 0) {
+      const travauxSection = scText.slice(travauxIdx, travauxIdx + 3000);
+      const bulletLines = travauxSection.split(/\n/).map((l) => l.trim());
+      for (const line of bulletLines) {
+        if (/^[▪•\-\*]\s*\S/.test(line)) {
+          const cleaned = line.replace(/^[▪•\-\*]\s*/, "").trim();
+          if (cleaned.length > 8) travaux.push(cleaned);
+        } else if (/^Les diff/.test(line) || /^Remplacement|^Mise en place|^Installation|^Isolation/i.test(line)) {
+          // Some PDFs drop the bullet char; capture work items directly
+          if (line.length > 10) travaux.push(line);
+        }
+      }
+    }
+
+    // Current state fields
+    const isolToitures = extractField(scText, "Isolation des toitures") ||
+      extractField(scText, "Isolations des toitures");
+    const isolMurs = extractField(scText, "Isolations des murs") ||
+      extractField(scText, "Isolation des murs");
+    const isolPlancher = extractField(scText, "Isolations du plancher bas") ||
+      extractField(scText, "Isolation du plancher bas");
+    const energieChauffage = extractField(scText, "Énergie de chauffage principal") ||
+      extractField(scText, "Energie de chauffage principal");
+
+    // DPE label per scenario from the scenario page summary table
+    const cepM = scText.match(/CEP\s*\[KWh\/m2\.an\]\s*:\s*([\d,]+)/i);
+    const cepVal = cepM ? parseNum(cepM[1]) : null;
+    const labelDpe = cepVal ? mapDpeLabel(cepVal) : null;
+
+    // Total dépense per scenario (from scenario consumption page)
+    const depPattern = /TOTAL\s+DEPENSE\s+ANNUEL[^\d]*([\d\s,]+)/i;
+    const depMatch = scText.match(depPattern);
+    const totalDepense = depMatch ? parseNum(depMatch[1]) : null;
+
+    results.push({
+      index: scNum,
+      travaux,
+      isolationToitures: isolToitures || null,
+      isolationMurs: isolMurs || null,
+      isolationPlancherBas: isolPlancher || null,
+      energieChauffagePrincipal: energieChauffage || null,
+      labelDpe,
+      totalDepenseAnnuelle: totalDepense,
+    });
+  }
+
+  return results;
+}
+
+function mergeSyntheseIntoScenarios(
+  synScenarios: NonNullable<BaoMetadata["scenarios"]>,
+  pageScenarios: NonNullable<BaoMetadata["scenarios"]>
+): NonNullable<BaoMetadata["scenarios"]> {
+  const maxIdx = Math.max(synScenarios.length, pageScenarios.length);
+  const merged: NonNullable<BaoMetadata["scenarios"]> = [];
+  for (let i = 0; i < maxIdx; i++) {
+    const syn = synScenarios[i] ?? { index: i + 1, travaux: [] };
+    const pg = pageScenarios[i] ?? { index: i + 1, travaux: [] };
+    merged.push({
+      ...syn,
+      ...pg,
+      travaux: pg.travaux.length > 0 ? pg.travaux : syn.travaux,
+      gainEconomiqueEur: syn.gainEconomiqueEur ?? null,
+      tauxEnrRPct: syn.tauxEnrRPct ?? null,
+      gainEnergetiquePct: syn.gainEnergetiquePct ?? null,
+      primeBarTh145Euros: syn.primeBarTh145Euros ?? null,
+      primeBarTh145KWhcumac: syn.primeBarTh145KWhcumac ?? null,
+      cef3KwhEfM2: syn.cef3KwhEfM2 ?? null,
+      cep3KwhEpM2: syn.cep3KwhEpM2 ?? null,
+      cef5KwhEfM2: syn.cef5KwhEfM2 ?? null,
+      cep5KwhEpM2: syn.cep5KwhEpM2 ?? null,
+      gesCo2KgM2: syn.gesCo2KgM2 ?? null,
+      totalKwhEfAn: syn.totalKwhEfAn ?? null,
+    });
+  }
+  return merged;
+}
+
 // ─── BAO Evolution SED specialized parser ───────────────────────────────────
 
 function extractField(text: string, fieldName: string): string | null {
@@ -627,6 +977,22 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
 
   // ── 11b. Ubat / Déperditions
   const ubat = parseUbatSection(text);
+
+  // ── 11c. BAO Metadata (bureau, synthèse table, travaux per scenario)
+  const bureauInfo = parseBureauInfo(text);
+  const syntheseData = parseSyntheseTable(text);
+  const formattedScPages = parseFormattedScenarioPages(text);
+  const synScenarios = syntheseData.scenarios ?? [];
+  const mergedScenarios = mergeSyntheseIntoScenarios(synScenarios, formattedScPages);
+  const metadata: BaoMetadata = {
+    ...bureauInfo,
+    cef3UsagesInitial: syntheseData.cef3UsagesInitial ?? null,
+    cep3UsagesInitial: syntheseData.cep3UsagesInitial ?? null,
+    cef5UsagesInitial: syntheseData.cef5UsagesInitial ?? null,
+    cep5UsagesInitial: syntheseData.cep5UsagesInitial ?? null,
+    gesInitialKgCo2M2: syntheseData.gesInitialKgCo2M2 ?? null,
+    scenarios: mergedScenarios.length > 0 ? mergedScenarios : undefined,
+  };
 
   // ── 12. Build rawFields for display
   const addField = (key: string, value: string | null | undefined, section: string) => {
@@ -826,6 +1192,7 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
 
     recommendations,
     rawFields,
+    metadata,
   };
 }
 

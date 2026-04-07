@@ -927,6 +927,7 @@ export function ReportDetail() {
         report={{
           ...report,
           sectionCharacteristics: (report as unknown as { sectionCharacteristics?: Record<string, string> }).sectionCharacteristics ?? {},
+          metadata: (report as unknown as { metadata?: Record<string, unknown> | null }).metadata ?? null,
         }}
       />
 
@@ -987,6 +988,7 @@ export function ReportDetail() {
               report={{
                 ...report,
                 sectionCharacteristics: (report as unknown as { sectionCharacteristics?: Record<string, string> }).sectionCharacteristics ?? {},
+                metadata: (report as unknown as { metadata?: Record<string, unknown> | null }).metadata ?? null,
               }}
             />
           </div>
