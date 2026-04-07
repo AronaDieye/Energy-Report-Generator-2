@@ -51,6 +51,86 @@ function getScVal(rawFields: RawField[], code: string, suffix: string): string |
   return rawFields.find((f) => f.key === `SCÉNARIO ${code} - ${suffix}`)?.value ?? null;
 }
 
+// ── Station coordinates lookup (subset, for static map in print) ──────────────
+const PRINT_STATION_COORDS: Record<string, { lat: number; lon: number }> = {
+  "NICE": { lat: 43.658, lon: 7.208 },
+  "NICE COTE D'AZUR": { lat: 43.658, lon: 7.208 },
+  "NICE-CÔTE D'AZUR": { lat: 43.658, lon: 7.208 },
+  "PARIS": { lat: 48.853, lon: 2.349 },
+  "PARIS-MONTSOURIS": { lat: 48.822, lon: 2.337 },
+  "LYON": { lat: 45.748, lon: 4.843 },
+  "LYON-BRON": { lat: 45.728, lon: 4.942 },
+  "MARSEILLE": { lat: 43.296, lon: 5.381 },
+  "MARSEILLE-MARIGNANE": { lat: 43.434, lon: 5.215 },
+  "BORDEAUX": { lat: 44.837, lon: -0.579 },
+  "BORDEAUX-MERIGNAC": { lat: 44.828, lon: -0.715 },
+  "TOULOUSE": { lat: 43.600, lon: 1.446 },
+  "TOULOUSE-BLAGNAC": { lat: 43.629, lon: 1.364 },
+  "STRASBOURG": { lat: 48.574, lon: 7.752 },
+  "STRASBOURG-ENTZHEIM": { lat: 48.538, lon: 7.628 },
+  "NANTES": { lat: 47.218, lon: -1.553 },
+  "NANTES-ATLANTIQUE": { lat: 47.153, lon: -1.608 },
+  "MONTPELLIER": { lat: 43.611, lon: 3.877 },
+  "MONTPELLIER-FREJORGUES": { lat: 43.576, lon: 3.963 },
+  "LILLE": { lat: 50.629, lon: 3.057 },
+  "LILLE-LESQUIN": { lat: 50.563, lon: 3.097 },
+  "RENNES": { lat: 48.114, lon: -1.680 },
+  "RENNES-SAINT-JACQUES": { lat: 48.069, lon: -1.732 },
+  "GRENOBLE": { lat: 45.188, lon: 5.724 },
+  "GRENOBLE-SAINT-GEOIRS": { lat: 45.363, lon: 5.329 },
+  "DIJON": { lat: 47.322, lon: 5.041 },
+  "DIJON-LONGVIC": { lat: 47.269, lon: 5.090 },
+  "CLERMONT-FERRAND": { lat: 45.777, lon: 3.087 },
+  "CLERMONT-FERRAND-AULNAT": { lat: 45.787, lon: 3.158 },
+  "NIMES": { lat: 43.835, lon: 4.361 },
+  "NIMES-COURBESSAC": { lat: 43.856, lon: 4.416 },
+  "PERPIGNAN": { lat: 42.699, lon: 2.895 },
+  "PERPIGNAN-RIVESALTES": { lat: 42.740, lon: 2.870 },
+  "METZ": { lat: 49.120, lon: 6.176 },
+  "NANCY": { lat: 48.692, lon: 6.184 },
+  "REIMS": { lat: 49.258, lon: 4.032 },
+  "AMIENS": { lat: 49.894, lon: 2.296 },
+  "CAEN": { lat: 49.184, lon: -0.363 },
+  "LE HAVRE": { lat: 49.493, lon: 0.108 },
+  "ROUEN": { lat: 49.443, lon: 1.099 },
+  "TOULON": { lat: 43.124, lon: 5.928 },
+  "TOULON-HYERES": { lat: 43.098, lon: 6.147 },
+  "AJACCIO": { lat: 41.919, lon: 8.738 },
+  "BASTIA": { lat: 42.708, lon: 9.452 },
+  "BREST": { lat: 48.390, lon: -4.486 },
+  "BREST-GUIPAVAS": { lat: 48.447, lon: -4.419 },
+  "POITIERS": { lat: 46.580, lon: 0.340 },
+  "LIMOGES": { lat: 45.833, lon: 1.262 },
+  "PAU": { lat: 43.299, lon: -0.369 },
+  "TARBES": { lat: 43.228, lon: 0.006 },
+  "BEZIERS": { lat: 43.345, lon: 3.215 },
+  "VALENCE": { lat: 44.933, lon: 4.889 },
+  "CHAMBERY": { lat: 45.571, lon: 5.880 },
+  "ANNECY": { lat: 45.900, lon: 6.117 },
+  "LA ROCHELLE": { lat: 46.160, lon: -1.151 },
+  "TOURS": { lat: 47.394, lon: 0.688 },
+  "ANGERS": { lat: 47.478, lon: -0.563 },
+  "LE MANS": { lat: 47.996, lon: 0.192 },
+  "LIEGE": { lat: 50.633, lon: 5.567 },
+  "BRUXELLES": { lat: 50.846, lon: 4.352 },
+  "BRUSSELS": { lat: 50.846, lon: 4.352 },
+  "CHARLEROI": { lat: 50.411, lon: 4.444 },
+  "NAMUR": { lat: 50.467, lon: 4.867 },
+};
+
+function resolveCoords(station: string | null): { lat: number; lon: number } | null {
+  if (!station) return null;
+  const upper = station.toUpperCase().trim();
+  for (const [key, val] of Object.entries(PRINT_STATION_COORDS)) {
+    if (upper === key || upper.startsWith(key) || key.startsWith(upper)) return val;
+  }
+  return null;
+}
+
+function staticMapUrl(lat: number, lon: number, zoom = 11): string {
+  return `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lon}&zoom=${zoom}&size=500x200&maptype=mapnik&markers=${lat},${lon},red-pushpin`;
+}
+
 // ── Section title ─────────────────────────────────────────────────────────────
 
 function SectionTitle({ num, title, subtitle }: { num: string; title: string; subtitle?: string }) {
@@ -788,26 +868,156 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           );
         })()}
 
-        {/* — Données climatiques — */}
+        {/* — Localisation & Données météorologiques — */}
         {(() => {
-          const climRows = [
-            { label: "Station météo", key: "Station météo" },
-            { label: "Zone climatique", key: "Zone climatique" },
-            { label: "Température extérieure de base", key: "Température extérieure de base" },
-            { label: "Degrés-jours (base 18°C)", key: "Degrés-jours base 18°C" },
-            { label: "Altitude", key: "Altitude" },
-          ].filter(r => getRaw(rawFields, r.key));
-          if (climRows.length === 0) return null;
+          const station   = getRaw(rawFields, "Station météo");
+          const dept      = getRaw(rawFields, "Département");
+          const zone      = getRaw(rawFields, "Zone climatique");
+          const tBase     = getRaw(rawFields, "Température extérieure de base");
+          const dju       = getRaw(rawFields, "Degrés-jours base 18°C");
+          const altitude  = getRaw(rawFields, "Altitude");
+          const bordure   = getRaw(rawFields, "Bordure de mer");
+          const coords    = resolveCoords(station);
+          const hasClim   = station || zone || tBase || dju || altitude;
+          if (!hasClim) return null;
+
+          const meteoRows = [
+            { icon: "📍", label: "Département", val: dept },
+            { icon: "🌡️", label: "Station météo", val: station },
+            { icon: "🗺️", label: "Zone climatique", val: zone },
+            { icon: "❄️", label: "Température extérieure de base", val: tBase },
+            { icon: "📊", label: "Degrés-jours unifiés (base 18°C)", val: dju ? `${dju} DJU` : null },
+            { icon: "⛰️", label: "Altitude", val: altitude },
+            { icon: "🌊", label: "Bordure de mer", val: bordure },
+          ].filter(r => r.val);
+
           return (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Données climatiques</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-                {climRows.map(({ label, key }) => (
-                  <div key={key} style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 5, padding: "6px 10px" }}>
-                    <div style={{ fontSize: 8, color: "#64748b", textTransform: "uppercase" }}>{label}</div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#1e3a5f", marginTop: 2 }}>{getRaw(rawFields, key)}</div>
+            <div style={{ marginBottom: 18 }}>
+              {/* Header */}
+              <div style={{
+                background: "#1d4ed8",
+                color: "#fff",
+                borderRadius: "6px 6px 0 0",
+                padding: "6px 12px",
+                fontSize: 10,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}>
+                <span>🌍</span>
+                <span>Localisation &amp; Données météorologiques</span>
+              </div>
+
+              {/* Body: map left + table right */}
+              <div style={{
+                border: "1px solid #bfdbfe",
+                borderTop: "none",
+                borderRadius: "0 0 6px 6px",
+                display: "flex",
+                gap: 0,
+                overflow: "hidden",
+              }}>
+                {/* Static map */}
+                {coords && (
+                  <div
+                    data-map-container="1"
+                    style={{
+                      width: 220,
+                      flexShrink: 0,
+                      position: "relative",
+                      borderRight: "1px solid #bfdbfe",
+                      background: "#dbeafe",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <img
+                      src={staticMapUrl(coords.lat, coords.lon, 11)}
+                      alt={`Carte localisation ${station ?? ""}`}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", position: "absolute", top: 0, left: 0 }}
+                      crossOrigin="anonymous"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                    {/* Coordinate badge (always visible under map or as fallback) */}
+                    <div style={{
+                      position: "relative",
+                      zIndex: 1,
+                      textAlign: "center",
+                      padding: 12,
+                    }}>
+                      <div style={{ fontSize: 28, marginBottom: 6 }}>📍</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "#1e3a5f" }}>
+                        {coords.lat.toFixed(4)}°N
+                      </div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "#1e3a5f" }}>
+                        {Math.abs(coords.lon).toFixed(4)}°{coords.lon >= 0 ? "E" : "O"}
+                      </div>
+                      {station && (
+                        <div style={{ fontSize: 8, color: "#475569", marginTop: 4, fontStyle: "italic" }}>
+                          {station}
+                        </div>
+                      )}
+                    </div>
+                    {/* Coordinates badge overlaid on map */}
+                    <div style={{
+                      position: "absolute",
+                      bottom: 4,
+                      left: 4,
+                      background: "rgba(30,58,95,0.85)",
+                      color: "#fff",
+                      borderRadius: 3,
+                      padding: "2px 5px",
+                      fontSize: 7,
+                      fontFamily: "monospace",
+                      zIndex: 2,
+                    }}>
+                      {coords.lat.toFixed(3)}°N {Math.abs(coords.lon).toFixed(3)}°{coords.lon >= 0 ? "E" : "O"}
+                    </div>
                   </div>
-                ))}
+                )}
+
+                {/* Meteorological data table */}
+                <div style={{ flex: 1 }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 9.5 }}>
+                    <tbody>
+                      {meteoRows.map(({ icon, label, val }, i) => (
+                        <tr key={label} style={i % 2 === 0
+                          ? { background: "#eff6ff" }
+                          : { background: "#fff" }
+                        }>
+                          <td style={{ padding: "5px 8px", color: "#64748b", fontWeight: 600, width: "55%", borderBottom: "1px solid #e2e8f0" }}>
+                            <span style={{ marginRight: 4 }}>{icon}</span>{label}
+                          </td>
+                          <td style={{ padding: "5px 8px", fontWeight: 700, color: "#1e3a5f", borderBottom: "1px solid #e2e8f0" }}>
+                            {val}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {/* DJU highlight */}
+                  {dju && (
+                    <div style={{
+                      background: "#1d4ed8",
+                      color: "#fff",
+                      padding: "6px 12px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      fontSize: 9,
+                    }}>
+                      <span style={{ textTransform: "uppercase", letterSpacing: 0.5 }}>Rigueur climatique (DJU base 18°C)</span>
+                      <span style={{ fontSize: 14, fontWeight: 800 }}>{dju} DJU</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           );
