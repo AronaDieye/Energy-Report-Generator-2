@@ -351,6 +351,12 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
   const scData = scenarioCodes.map((code, idx) => {
     const metaSc = meta?.scenarios?.[idx] ?? null;
+    // "Conseils" raw field: "TRAVAIL A / TRAVAIL B / TRAVAIL C" — used as fallback for travaux
+    const conseilsRaw = getScVal(rawFields, code, "Conseils") ?? "";
+    const conseilsTravaux = conseilsRaw.split(/\s*\/\s*/).map(t => t.trim()).filter(t => t.length > 2);
+    const metaTravaux = metaSc?.travaux ?? [];
+    // Merge: prefer metadata travaux (structured), fall back to Conseils field
+    const allTravaux = metaTravaux.length > 0 ? metaTravaux : conseilsTravaux;
     return {
       code,
       label: getScVal(rawFields, code, "Libellé") || code,
@@ -367,7 +373,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       gainEconomiqueEur: metaSc?.gainEconomiqueEur ?? null,
       tauxEnrRPct: metaSc?.tauxEnrRPct ?? null,
       primeBarTh145Euros: metaSc?.primeBarTh145Euros ?? null,
-      travaux: metaSc?.travaux ?? [],
+      travaux: allTravaux,
       isolationToitures: metaSc?.isolationToitures ?? null,
       isolationMurs: metaSc?.isolationMurs ?? null,
       isolationPlancherBas: metaSc?.isolationPlancherBas ?? null,
@@ -1431,7 +1437,9 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
               <div style={{ background: scColor, borderRadius: "6px 6px 0 0", padding: "14px 20px", marginBottom: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 8, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", marginBottom: 2 }}>Scénario de rénovation</div>
-                  <div style={{ color: "#fff", fontSize: 16, fontWeight: 800, letterSpacing: 0.5 }}>{sc.code} — {sc.label}</div>
+                  <div style={{ color: "#fff", fontSize: 16, fontWeight: 800, letterSpacing: 0.5 }}>
+                    {sc.code}{sc.label && sc.label !== sc.code ? ` — ${sc.label}` : ""}
+                  </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
                   {targetDpeLabel && (
