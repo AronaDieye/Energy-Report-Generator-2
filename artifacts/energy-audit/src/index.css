@@ -115,3 +115,97 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* ── Print layout ────────────────────────────────────────────────────── */
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  /* Page setup */
+  @page {
+    size: A4 portrait;
+    margin: 15mm 15mm 18mm 15mm;
+  }
+
+  /* Reset */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Hide all content via visibility trick (works even inside deeply nested parents) */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Show only the print view and all its descendants */
+  .print-only,
+  .print-only * {
+    visibility: visible;
+  }
+
+  /* Make the print view visible and at the top */
+  .print-only {
+    display: block !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #fff;
+  }
+
+  /* Page break helpers */
+  .print-page-break {
+    page-break-before: always;
+    break-before: page;
+    height: 0;
+    display: block;
+  }
+
+  .print-page {
+    position: relative;
+    min-height: 257mm;
+    padding-bottom: 20mm;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .print-page:last-child {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* Typography */
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 10pt;
+    color: #1e293b;
+    background: #fff;
+  }
+
+  /* Tables */
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+  }
+  thead {
+    display: table-header-group;
+  }
+
+  /* Images */
+  img {
+    max-width: 100%;
+    page-break-inside: avoid;
+  }
+
+  /* Links */
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+}

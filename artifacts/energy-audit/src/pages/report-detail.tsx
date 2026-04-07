@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { EnergyLabel } from "../components/energy-label";
 import { BatimentTab } from "../components/batiment-tab";
+import { PrintReport } from "../components/print-report";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
@@ -904,6 +905,14 @@ export function ReportDetail() {
           />
         </TabsContent>
       </Tabs>
+
+      {/* ── Vue impression (cachée à l'écran, affichée à l'impression) ─ */}
+      <PrintReport
+        report={{
+          ...report,
+          sectionCharacteristics: (report as unknown as { sectionCharacteristics?: Record<string, string> }).sectionCharacteristics ?? {},
+        }}
+      />
     </div>
   );
 }
