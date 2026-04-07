@@ -259,15 +259,30 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
     { label: "EER nominal", key: "EER nominal (PAC)" },
   ].filter((r) => getRaw(rawFields, r.key));
 
-  // Consumption rows
+  // Consumption rows — keys match fileExtractor output (title-case labels)
   const consumPostes = [
-    "CHAUFFAGE", "REFROIDISSEMENT", "ECS", "ECLAIRAGE", "AUXILIAIRES",
-  ].map((poste) => {
-    const kwhEP = parseVal(rawFields.find((f) => f.key === `${poste} - kWhEP/m²/an`)?.value);
-    const kwhAn = parseVal(rawFields.find((f) => f.key === `${poste} - kWh/an`)?.value);
-    const euros = parseVal(rawFields.find((f) => f.key === `${poste} - €/an`)?.value);
-    return { poste, kwhEP, kwhAn, euros };
-  }).filter((r) => r.kwhEP !== null || r.kwhAn !== null);
+    { poste: "CHAUFFAGE", prefix: "Chauffage" },
+    { poste: "REFROIDISSEMENT", prefix: "Refroidissement" },
+    { poste: "ECS", prefix: "ECS" },
+    { poste: "ECLAIRAGE", prefix: "Éclairage" },
+    { poste: "AUXILIAIRES", prefix: "Auxiliaires" },
+  ].map(({ poste, prefix }) => {
+    const source = rawFields.find((f) => f.key === `${prefix} - Source d'énergie`)?.value ?? null;
+    const finalRaw = rawFields.find((f) => f.key === `${prefix} - Énergie finale`)?.value ?? null;
+    const primRaw = rawFields.find((f) => f.key === `${prefix} - Énergie primaire`)?.value ?? null;
+    const kwhAn = parseVal(finalRaw);
+    const kwhEP = parseVal(primRaw);
+    return { poste, prefix, label: prefix, source, kwhAn, kwhEP, finalRaw, primRaw };
+  }).filter((r) => r.finalRaw !== null || r.primRaw !== null);
+
+  // UBAT rows
+  const ubatRows = [
+    { label: "Coefficient UBAT (W/m².°C)", key: "UBAT - Coefficient" },
+    { label: "HT — Déperditions enveloppe (W/°C)", key: "UBAT - HT enveloppe" },
+    { label: "AT — Surface déperditive (m²)", key: "UBAT - AT surface déperditive" },
+    { label: "GV — Total général (W/°C)", key: "UBAT - GV total" },
+    { label: "Déperditions totales (kW)", key: "UBAT - Déperditions totales" },
+  ].filter((r) => getRaw(rawFields, r.key));
 
   const containerStyle: React.CSSProperties = isPreview
     ? { fontFamily: "'Segoe UI', Arial, sans-serif", fontSize: 11, color: "#1e293b", padding: "32px 0" }
@@ -648,74 +663,91 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       </div>
 
       {/* ══ PAGE 3 — CONSOMMATIONS ═══════════════════════════════════════════ */}
-      {consumPostes.length > 0 && (
-        <>
-          {!isPreview && <div className="print-page-break" />}
-          <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
-            <SectionTitle num="3" title="Consommations énergétiques par usage" subtitle="État initial — répartition par poste" />
+      {!isPreview && <div className="print-page-break" />}
+      <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
+        <SectionTitle num="3" title="Consommations énergétiques par usage" subtitle="État initial — répartition par poste (méthode Th-C-E)" />
 
-            <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20, fontSize: 10 }}>
+        {consumPostes.length > 0 ? (
+          <>
+            <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16, fontSize: 10 }}>
               <thead>
                 <tr style={{ background: "#1e3a5f", color: "#fff" }}>
-                  <th style={{ ...thStyle, textAlign: "left", width: "30%" }}>Poste</th>
-                  <th style={thStyle}>kWh/an</th>
-                  <th style={thStyle}>kWhEP/m².an</th>
-                  <th style={thStyle}>€/an</th>
+                  <th style={{ ...thStyle, textAlign: "left", width: "22%" }}>Poste</th>
+                  <th style={{ ...thStyle, textAlign: "left", width: "18%" }}>Source d'énergie</th>
+                  <th style={thStyle}>Énergie finale</th>
+                  <th style={thStyle}>Énergie primaire</th>
                 </tr>
               </thead>
               <tbody>
                 {consumPostes.map((r, i) => (
                   <tr key={r.poste} style={i % 2 === 0 ? rowEven : rowOdd}>
-                    <td style={{ ...tdLeft, fontWeight: 600 }}>{POSTE_LABELS[r.poste] ?? r.poste}</td>
-                    <td style={td}>{fmtNum(r.kwhAn)}</td>
-                    <td style={td}>{fmtNum(r.kwhEP, 1)}</td>
-                    <td style={td}>{r.euros !== null ? `${fmtNum(r.euros)} €` : "—"}</td>
+                    <td style={{ ...tdLeft, fontWeight: 600 }}>{POSTE_LABELS[r.poste] ?? r.label}</td>
+                    <td style={{ ...tdLeft, color: "#64748b" }}>{r.source ?? "—"}</td>
+                    <td style={td}>{r.finalRaw ?? "—"}</td>
+                    <td style={td}>{r.primRaw ?? "—"}</td>
                   </tr>
                 ))}
-                {/* Total */}
-                {(() => {
-                  const totalKwh = consumPostes.reduce((s, r) => s + (r.kwhAn ?? 0), 0);
-                  const totalEp = consumPostes.reduce((s, r) => s + (r.kwhEP ?? 0), 0);
-                  const totalEur = consumPostes.reduce((s, r) => s + (r.euros ?? 0), 0);
-                  return (
-                    <tr style={{ background: "#1e3a5f", color: "#fff", fontWeight: 700 }}>
-                      <td style={{ ...tdLeft, color: "#fff" }}>TOTAL</td>
-                      <td style={{ ...td, color: "#fff" }}>{fmtNum(totalKwh)}</td>
-                      <td style={{ ...td, color: "#fff" }}>{fmtNum(totalEp, 1)}</td>
-                      <td style={{ ...td, color: "#fff" }}>{fmtNum(totalEur)} €</td>
-                    </tr>
-                  );
-                })()}
               </tbody>
             </table>
 
-            {/* Bar chart substitute: horizontal bars */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: "#64748b", marginBottom: 8 }}>Répartition graphique (kWhEP/m².an)</div>
-              {consumPostes.map((r) => {
-                const maxEp = Math.max(...consumPostes.map((p) => p.kwhEP ?? 0));
-                const pct = maxEp > 0 ? ((r.kwhEP ?? 0) / maxEp) * 100 : 0;
-                const color = POSTE_COLORS[r.poste] ?? "#6b7280";
-                return (
-                  <div key={r.poste} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
-                    <div style={{ width: 100, fontSize: 9, color: "#374151", textAlign: "right", flexShrink: 0 }}>
-                      {POSTE_LABELS[r.poste] ?? r.poste}
+            {/* Bar chart — energie primaire */}
+            {consumPostes.some((r) => r.kwhEP !== null) && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: "#64748b", marginBottom: 8 }}>Répartition graphique — Énergie primaire (kWhEP/m².an)</div>
+                {consumPostes.filter((r) => r.kwhEP !== null).map((r) => {
+                  const maxEp = Math.max(...consumPostes.map((p) => p.kwhEP ?? 0));
+                  const pct = maxEp > 0 ? ((r.kwhEP ?? 0) / maxEp) * 100 : 0;
+                  const color = POSTE_COLORS[r.poste] ?? "#6b7280";
+                  return (
+                    <div key={r.poste} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                      <div style={{ width: 110, fontSize: 9, color: "#374151", textAlign: "right", flexShrink: 0 }}>
+                        {POSTE_LABELS[r.poste] ?? r.label}
+                      </div>
+                      <div style={{ flex: 1, background: "#f1f5f9", borderRadius: 3, height: 16, overflow: "hidden" }}>
+                        <div style={{ width: `${pct}%`, background: color, height: "100%", borderRadius: 3 }} />
+                      </div>
+                      <div style={{ width: 90, fontSize: 9, color: "#64748b", textAlign: "right" }}>
+                        {r.primRaw ?? "—"}
+                      </div>
                     </div>
-                    <div style={{ flex: 1, background: "#f1f5f9", borderRadius: 3, height: 16, overflow: "hidden" }}>
-                      <div style={{ width: `${pct}%`, background: color, height: "100%", borderRadius: 3 }} />
-                    </div>
-                    <div style={{ width: 60, fontSize: 9, color: "#64748b" }}>
-                      {fmtNum(r.kwhEP, 1)} kWhEP
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <PrintFooter page={3} building={b.name} />
+                  );
+                })}
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ padding: "20px", textAlign: "center", color: "#94a3b8", fontSize: 10, border: "1px dashed #e2e8f0", borderRadius: 6, marginBottom: 16 }}>
+            Données de consommation par poste non disponibles dans ce fichier BAO.
           </div>
-        </>
-      )}
+        )}
+
+        {/* UBAT — bilan thermique */}
+        {ubatRows.length > 0 && (
+          <>
+            <SectionTitle num="3b" title="Bilan thermique — UBAT" subtitle="Déperditions de l'enveloppe — état initial" />
+            <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16, fontSize: 10 }}>
+              <thead>
+                <tr style={{ background: "#4338ca", color: "#fff" }}>
+                  <th style={{ ...thStyle, textAlign: "left", width: "60%" }}>Indicateur</th>
+                  <th style={{ ...thStyle, textAlign: "right" }}>Valeur</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ubatRows.map(({ label, key }, i) => (
+                  <tr key={key} style={i % 2 === 0 ? rowEven : rowOdd}>
+                    <td style={{ ...tdLeft, fontWeight: i === 0 ? 700 : 400, color: i === 0 ? "#4338ca" : "#374151" }}>{label}</td>
+                    <td style={{ ...td, fontWeight: i === 0 ? 700 : 600, color: i === 0 ? "#4338ca" : "#1e293b", textAlign: "right" }}>
+                      {getRaw(rawFields, key)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        <PrintFooter page={3} building={b.name} />
+      </div>
 
       {/* ══ PAGE 4 — ENVELOPPE & SYSTÈMES TECHNIQUES ════════════════════════ */}
       {!isPreview && <div className="print-page-break" />}
