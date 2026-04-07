@@ -160,7 +160,9 @@ function SyntheseGlobale({
     const gainEco = cost !== null && initialCost !== null ? initialCost - cost : null;
     const gainPct = thce !== null && thceInitial !== null && thceInitial > 0
       ? ((thceInitial - thce) / thceInitial) * 100 : null;
-    return { code, thce, cef, ges, cost, invest, tempsRetour, gainEco, gainPct, i };
+    const conseils = getScVal(rawFields, code, "Conseils") ?? "";
+    const travaux = conseils.split(/\s*\/\s*/).map(t => t.trim()).filter(t => t.length > 2);
+    return { code, thce, cef, ges, cost, invest, tempsRetour, gainEco, gainPct, travaux, i };
   });
 
   return (
@@ -286,7 +288,7 @@ function SyntheseGlobale({
                 </td>
               ))}
             </tr>
-            <tr>
+            <tr className="border-b">
               <td className="py-3 px-4 text-muted-foreground font-medium">Temps de retour</td>
               <td className="py-3 px-4 text-center text-muted-foreground bg-slate-50">—</td>
               {rows.map(({ code, tempsRetour, i }) => (
@@ -295,6 +297,28 @@ function SyntheseGlobale({
                 </td>
               ))}
             </tr>
+            {rows.some(r => r.travaux.length > 0) && (
+              <tr className="align-top">
+                <td className="py-3 px-4 text-muted-foreground font-medium whitespace-nowrap">Travaux préconisés</td>
+                <td className="py-3 px-4 bg-slate-50 text-center text-muted-foreground text-xs">—</td>
+                {rows.map(({ code, travaux, i }) => (
+                  <td key={code} className={`py-3 px-4 ${scColors[i] || ""}`}>
+                    {travaux.length > 0 ? (
+                      <ul className="space-y-1">
+                        {travaux.map((t, j) => (
+                          <li key={j} className={`flex items-start gap-1.5 text-xs ${scTextColors[i] || "text-slate-700"}`}>
+                            <span className="shrink-0 mt-0.5 font-bold">▸</span>
+                            <span className="font-medium">{t}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            )}
           </tbody>
         </table>
       </CardContent>
