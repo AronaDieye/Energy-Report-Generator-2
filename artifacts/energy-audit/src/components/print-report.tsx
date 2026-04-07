@@ -353,7 +353,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
     const metaSc = meta?.scenarios?.[idx] ?? null;
     // "Conseils" raw field: "TRAVAIL A / TRAVAIL B / TRAVAIL C" — used as fallback for travaux
     const conseilsRaw = getScVal(rawFields, code, "Conseils") ?? "";
-    const conseilsTravaux = conseilsRaw.split(/\s*\/\s*/).map(t => t.trim()).filter(t => t.length > 2);
+    const conseilsTravaux = conseilsRaw.split(/\s+\/\s*|\s*\/\s+/).map(t => t.trim().replace(/\s+/g, " ")).filter(t => t.length > 2);
     const metaTravaux = metaSc?.travaux ?? [];
     // Merge: prefer metadata travaux (structured), fall back to Conseils field
     const allTravaux = metaTravaux.length > 0 ? metaTravaux : conseilsTravaux;
