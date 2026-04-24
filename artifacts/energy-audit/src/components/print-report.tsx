@@ -936,7 +936,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       {/* ══ PAGE 4 — BÂTIMENT & DONNÉES TECHNIQUES ═══════════════════════════ */}
       {!isPreview && <div className="print-page-break" />}
       <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
-        <SectionTitle num="4" title="Données bâtiment" subtitle="Caractéristiques générales, climatiques et de l'enveloppe" />
+        <SectionTitle num="3" title="Données bâtiment" subtitle="Caractéristiques générales, climatiques et de l'enveloppe" />
 
         {/* — Données générales bâtiment — */}
         {(() => {
@@ -1254,7 +1254,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       {/* ══ PAGE 5 — SYSTÈMES TECHNIQUES ════════════════════════════════════════ */}
       {!isPreview && <div className="print-page-break" />}
       <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
-        <SectionTitle num="5" title="Systèmes techniques" subtitle="Chauffage, ECS, ventilation, climatisation — état initial" />
+        <SectionTitle num="4" title="Systèmes techniques" subtitle="Chauffage, ECS, ventilation, climatisation — état initial" />
 
         {systemRows.length > 0 ? (
           <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20, fontSize: 10 }}>
@@ -1375,7 +1375,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       {/* ══ PAGE 3 — CONSOMMATIONS ═══════════════════════════════════════════ */}
       {!isPreview && <div className="print-page-break" />}
       <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
-        <SectionTitle num="3" title="Consommations énergétiques par usage" subtitle="État initial — répartition par poste (méthode Th-C-E)" />
+        <SectionTitle num="5" title="Consommations énergétiques par usage" subtitle="État initial — répartition par poste (méthode Th-C-E)" />
 
         {consumPostes.length > 0 ? (
           <>
@@ -1434,7 +1434,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         {/* — Bilan thermique UBAT — tableau récapitulatif + tableau détaillé parois — */}
         {ubatRows.length > 0 && (
           <>
-            <SectionTitle num="3b" title="Bilan thermique — UBAT" subtitle="Déperditions de l'enveloppe — état initial" />
+            <SectionTitle num="5b" title="Bilan thermique — UBAT" subtitle="Déperditions de l'enveloppe — état initial" />
             {/* Summary KPI row */}
             <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
               {ubatRows.map(({ label, key }) => {
