@@ -399,37 +399,23 @@ function isEnergySource(s: string): boolean {
   return ENERGY_SOURCES.some((src) => norm.includes(normalizeStr(src)));
 }
 
-function parseEtatInitialSection(text: string): ConsumptionTable | null {
-  // Find the ETAT INITIAL section text (first occurrence) 
-  const match = text.match(/ETAT INITIAL\s[\s\S]*?(?=RELEVE de CONSOMMATION|REPARTITION des DEPERDITIONS|ETIQUETTE DPE|$)/);
-  if (!match) return null;
-  const section = match[0];
-
-  // Find "CHAUFFAGE" as entry point to consumption table
-  const chauffageIdx = section.indexOf("\nCHAUFFAGE\n");
-  if (chauffageIdx === -1) return null;
-
-  const tableText = section.substring(chauffageIdx);
+function parseConsumptionTableFromText(text: string): Record<string, ConsumptionPost> {
+  const chauffageIdx = text.indexOf("\nCHAUFFAGE\n");
+  if (chauffageIdx === -1) return {};
+  const tableText = text.substring(chauffageIdx);
   const lines = tableText.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
-
   const result: Record<string, ConsumptionPost> = {};
   let i = 0;
-
   while (i < lines.length) {
     const line = lines[i].toUpperCase();
     const postKey = ENERGY_POSTS.find((p) => line === p);
-
     if (postKey) {
       i++;
       let energySource: string | null = null;
-
-      // Check if next line is an energy source (non-numeric text)
       if (i < lines.length && isEnergySource(lines[i]) && !ENERGY_POSTS.includes(lines[i].toUpperCase())) {
         energySource = lines[i];
         i++;
       }
-
-      // Collect up to 3 numeric values
       const nums: number[] = [];
       while (i < lines.length && nums.length < 3 && !ENERGY_POSTS.includes(lines[i].toUpperCase())) {
         if (isNumericValue(lines[i])) {
@@ -437,42 +423,33 @@ function parseEtatInitialSection(text: string): ConsumptionTable | null {
           if (n !== null) nums.push(n);
           i++;
         } else if (isEnergySource(lines[i])) {
-          // Second energy source (e.g. Granulés bois for chauffage after Gaz)
           i++;
         } else {
           break;
         }
       }
-
-      result[postKey] = {
-        finalKwhAn: nums[0] ?? null,
-        primaryKwhEpM2: nums[1] ?? null,
-        costEuros: nums[2] ?? null,
-        energySource,
-      };
+      result[postKey] = { finalKwhAn: nums[0] ?? null, primaryKwhEpM2: nums[1] ?? null, costEuros: nums[2] ?? null, energySource };
     } else {
-      // Stop parsing if we hit ABONNEMENTS or other non-post content
-      if (
-        line.includes("ABONNEMENT") ||
-        line.includes("ENTRETIEN") ||
-        line.includes("BILAN") ||
-        line.includes("CALCUL")
-      ) {
-        break;
-      }
+      if (line.includes("ABONNEMENT") || line.includes("ENTRETIEN") || line.includes("BILAN") || line.includes("CALCUL")) break;
       i++;
     }
   }
+  return result;
+}
 
+function parseEtatInitialSection(text: string): ConsumptionTable | null {
+  const match = text.match(/ETAT INITIAL\s[\s\S]*?(?=RELEVE de CONSOMMATION|REPARTITION des DEPERDITIONS|ETIQUETTE DPE|$)/);
+  if (!match) return null;
+  const result = parseConsumptionTableFromText(match[0]);
   if (!result["CHAUFFAGE"]) return null;
-
+  const empty = { finalKwhAn: null, primaryKwhEpM2: null, costEuros: null, energySource: null };
   return {
-    CHAUFFAGE: result["CHAUFFAGE"] || { finalKwhAn: null, primaryKwhEpM2: null, costEuros: null, energySource: null },
-    REFROIDISSEMENT: result["REFROIDISSEMENT"] || { finalKwhAn: null, primaryKwhEpM2: null, costEuros: null, energySource: null },
-    ECS: result["ECS"] || { finalKwhAn: null, primaryKwhEpM2: null, costEuros: null, energySource: null },
-    ECLAIRAGE: result["ECLAIRAGE"] || { finalKwhAn: null, primaryKwhEpM2: null, costEuros: null, energySource: null },
-    AUXILIAIRES: result["AUXILIAIRES"] || { finalKwhAn: null, primaryKwhEpM2: null, costEuros: null, energySource: null },
-    TOTAL: result["TOTAL"] || { finalKwhAn: null, primaryKwhEpM2: null, costEuros: null, energySource: null },
+    CHAUFFAGE: result["CHAUFFAGE"] || empty,
+    REFROIDISSEMENT: result["REFROIDISSEMENT"] || empty,
+    ECS: result["ECS"] || empty,
+    ECLAIRAGE: result["ECLAIRAGE"] || empty,
+    AUXILIAIRES: result["AUXILIAIRES"] || empty,
+    TOTAL: result["TOTAL"] || empty,
   };
 }
 
@@ -491,6 +468,7 @@ interface ScenarioResult {
   thceCepM2: number | null;
   thceGesKgM2: number | null;
   cefKwhAn: number | null;
+  usageConsumption: Record<string, ConsumptionPost>;
 }
 
 function parseScenarios(text: string): ScenarioResult[] {
@@ -572,6 +550,7 @@ function parseScenarios(text: string): ScenarioResult[] {
         thceCepM2: null,
         thceGesKgM2: null,
         cefKwhAn: null,
+        usageConsumption: {},
       });
     }
   }
@@ -608,6 +587,11 @@ function parseScenarios(text: string): ScenarioResult[] {
       const depM = beforeBlock.match(/TOTAL DEPENSE ANNUEL[\s\n]+([0-9\s,]+)/);
       if (depM && scenarios[i].totalDepenseAnnuelle === null) {
         scenarios[i].totalDepenseAnnuelle = parseNum(depM[1]);
+      }
+      // Parse per-usage consumption table from the beforeBlock
+      const usageParsed = parseConsumptionTableFromText(beforeBlock);
+      if (Object.keys(usageParsed).length > 0) {
+        scenarios[i].usageConsumption = usageParsed;
       }
     }
   }
@@ -1164,6 +1148,20 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
       if (surfHabSc !== null && surfHabSc > 0) {
         const cefM2Sc = sc.cefKwhAn / surfHabSc;
         addField(`${scSection} - CEF Th-C-E après`, cefM2Sc.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " kWhef/m².an", scSection);
+      }
+    }
+    // Per-usage consumption after renovation for this scenario
+    const USAGE_LABELS: Record<string, string> = {
+      CHAUFFAGE: "Chauffage",
+      ECS: "ECS",
+      REFROIDISSEMENT: "Refroidissement",
+      ECLAIRAGE: "Éclairage",
+      AUXILIAIRES: "Auxiliaires",
+    };
+    for (const [postKey, label] of Object.entries(USAGE_LABELS)) {
+      const post = sc.usageConsumption[postKey];
+      if (post && post.finalKwhAn !== null) {
+        addField(`${scSection} - ${label} - Énergie finale`, post.finalKwhAn.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " kWh/an", scSection);
       }
     }
   }

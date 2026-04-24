@@ -907,9 +907,15 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                         <td style={{ ...tdVal, fontWeight: 700, color: "#1e293b", background: "#f1f5f9" }}>
                           {p.kwhAn !== null ? p.kwhAn.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) : "—"}
                         </td>
-                        {scData.map((sc, i) => (
-                          <td key={sc.code} style={{ ...tdVal, color: scColors2[i] ?? "#374151", background: idx % 2 === 0 ? `${scColors2[i]}08` : "#fff" }}>—</td>
-                        ))}
+                        {scData.map((sc, i) => {
+                          const scFinale = getScVal(rawFields, sc.code, `${p.prefix} - Énergie finale`);
+                          const scVal = parseVal(scFinale);
+                          return (
+                            <td key={sc.code} style={{ ...tdVal, fontWeight: scVal !== null ? 700 : 400, color: scColors2[i] ?? "#374151", background: idx % 2 === 0 ? `${scColors2[i]}08` : "#fff" }}>
+                              {scVal !== null ? scVal.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " kWh" : "—"}
+                            </td>
+                          );
+                        })}
                       </tr>
                       {p.source && (
                         <tr style={{ background: idx % 2 === 0 ? "#f8fafc" : "#fff" }}>

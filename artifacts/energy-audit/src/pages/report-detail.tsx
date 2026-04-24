@@ -411,9 +411,17 @@ function SyntheseGlobale({
                         <td className="py-2 px-4 text-center font-mono font-bold text-slate-800 bg-slate-50">
                           {finale ? parseVal(finale)?.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " kWh" : "—"}
                         </td>
-                        {Array.from({ length: rows.length }, (_, i) => (
-                          <td key={i} className={`py-2 px-4 text-center text-muted-foreground text-xs ${scColors[i] || ""}`}>—</td>
-                        ))}
+                        {rows.map(({ code, i: ri }) => {
+                          const scFinale = getF(`SCÉNARIO ${code} - ${key} - Énergie finale`);
+                          const scVal = scFinale ? parseVal(scFinale) : null;
+                          return (
+                            <td key={code} className={`py-2 px-4 text-center font-mono text-xs ${scColors[ri] || ""}`}>
+                              {scVal !== null ? (
+                                <span className={scTextColors[ri] || ""}>{scVal.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh</span>
+                              ) : <span className="text-muted-foreground">—</span>}
+                            </td>
+                          );
+                        })}
                       </tr>
                     );
                   })}
