@@ -840,78 +840,73 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           </tbody>
         </table>
 
-        {/* Scenario cards */}
+        {/* Scenario rows */}
         {scData.length > 0 && (
           <>
             <SectionTitle num="2" title="Détail des scénarios de travaux" />
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(scData.length, 3)}, 1fr)`, gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {scData.map((sc, i) => {
                 const palette = ["#16a34a", "#2563eb", "#7c3aed", "#dc2626", "#ea580c"][i] ?? "#374151";
-                const descKey = `SCÉNARIO ${sc.code} - Description`;
-                const desc = rawFields.find((f) => f.key === descKey)?.value
-                  || rawFields.find((f) => f.key.startsWith(`SCÉNARIO ${sc.code}`) && f.key.includes("Description"))?.value;
+                const metrics = [
+                  { l: "Investissement TTC", v: sc.invest !== null ? `${fmtNum(sc.invest)} €` : null },
+                  { l: "Temps de retour simple", v: sc.payback !== null ? `${fmtNum(sc.payback, 1)} ans` : null },
+                  { l: "Dépense annuelle", v: sc.cost !== null ? `${fmtNum(sc.cost)} €/an` : null },
+                  { l: "CEP 5 usages (kWhEP/m².an)", v: sc.thce !== null ? fmtNum(sc.thce, 1) : null },
+                  { l: "CEP 3 usages (kWhEP/m².an)", v: sc.cep3 !== null ? fmtNum(sc.cep3, 1) : null },
+                  { l: "GES (kgCO₂/m².an)", v: sc.ges !== null ? fmtNum(sc.ges, 1) : null },
+                  { l: "Gain énergétique", v: sc.gainPct !== null ? `${fmtNum(sc.gainPct, 1)} %` : null },
+                  { l: "Gain économique", v: sc.gainEconomiqueEur !== null ? `${fmtNum(sc.gainEconomiqueEur)} €/an` : null },
+                  { l: "Taux ENR&R", v: sc.tauxEnrRPct !== null ? `${fmtNum(sc.tauxEnrRPct, 2)} %` : null },
+                  { l: "Prime BAR-TH-145", v: sc.primeBarTh145Euros !== null ? `${fmtNum(sc.primeBarTh145Euros)} €` : null },
+                ].filter((r) => r.v !== null);
                 return (
-                  <div key={sc.code} style={{ border: `2px solid ${palette}`, borderRadius: 6, padding: 12, pageBreakInside: "avoid" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                      <span style={{ fontWeight: 800, color: palette, fontSize: 13 }}>{sc.code}</span>
+                  <div key={sc.code} style={{ display: "flex", border: `1.5px solid ${palette}`, borderRadius: 6, overflow: "hidden", pageBreakInside: "avoid" }}>
+                    {/* Left: color band + code */}
+                    <div style={{ background: palette, minWidth: 42, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px 6px" }}>
+                      <span style={{ fontWeight: 900, color: "#fff", fontSize: 12, letterSpacing: 0.5 }}>{sc.code}</span>
                       {sc.dpeLabel && <DpeLabel label={sc.dpeLabel} />}
                     </div>
-                    {sc.label && sc.label !== sc.code && (
-                      <div style={{ fontSize: 10, fontWeight: 600, marginBottom: 4, color: "#374151" }}>{sc.label}</div>
-                    )}
-                    {desc && (
-                      <div style={{ fontSize: 9, color: "#64748b", marginBottom: 6, lineHeight: 1.4 }}>{desc}</div>
-                    )}
 
-                    {/* Travaux list from BAO metadata */}
-                    {sc.travaux.length > 0 && (
-                      <div style={{ marginBottom: 8 }}>
-                        <div style={{ fontSize: 8, fontWeight: 700, color: palette, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>Travaux préconisés</div>
-                        <ul style={{ margin: 0, paddingLeft: 14, fontSize: 8.5, color: "#374151", lineHeight: 1.5 }}>
-                          {sc.travaux.map((t, ti) => <li key={ti}>{t}</li>)}
-                        </ul>
-                      </div>
-                    )}
+                    {/* Middle: travaux */}
+                    <div style={{ flex: 1, padding: "8px 12px", borderRight: `1px solid ${palette}22` }}>
+                      {sc.label && sc.label !== sc.code && (
+                        <div style={{ fontSize: 9, fontWeight: 700, color: "#374151", marginBottom: 4 }}>{sc.label}</div>
+                      )}
+                      {sc.travaux.length > 0 && (
+                        <>
+                          <div style={{ fontSize: 7.5, fontWeight: 700, color: palette, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 3 }}>Travaux préconisés</div>
+                          <ul style={{ margin: 0, paddingLeft: 12, fontSize: 8, color: "#374151", lineHeight: 1.55 }}>
+                            {sc.travaux.map((t, ti) => <li key={ti}>{t}</li>)}
+                          </ul>
+                        </>
+                      )}
+                      {(sc.isolationToitures || sc.isolationMurs || sc.isolationPlancherBas || sc.energieChauffagePrincipal) && (
+                        <div style={{ marginTop: 5, background: "#f8fafc", borderRadius: 3, padding: "3px 5px" }}>
+                          <div style={{ fontSize: 7, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", marginBottom: 2 }}>État après travaux</div>
+                          {[
+                            { l: "Isolation toitures", v: sc.isolationToitures },
+                            { l: "Isolation murs", v: sc.isolationMurs },
+                            { l: "Isolation plancher bas", v: sc.isolationPlancherBas },
+                            { l: "Énergie principale", v: sc.energieChauffagePrincipal },
+                          ].filter((r) => r.v).map(({ l, v }) => (
+                            <div key={l} style={{ display: "flex", gap: 4, fontSize: 7.5 }}>
+                              <span style={{ color: "#94a3b8", minWidth: 110 }}>{l} :</span>
+                              <span style={{ fontWeight: 600 }}>{v}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
-                    {/* Isolation / CVC states */}
-                    {(sc.isolationToitures || sc.isolationMurs || sc.isolationPlancherBas || sc.energieChauffagePrincipal) && (
-                      <div style={{ marginBottom: 8, background: "#f8fafc", borderRadius: 4, padding: "4px 6px" }}>
-                        <div style={{ fontSize: 8, fontWeight: 700, color: "#64748b", marginBottom: 3 }}>ÉTAT APRÈS TRAVAUX</div>
-                        {[
-                          { l: "Isolation toitures", v: sc.isolationToitures },
-                          { l: "Isolation murs", v: sc.isolationMurs },
-                          { l: "Isolation plancher bas", v: sc.isolationPlancherBas },
-                          { l: "Énergie principale", v: sc.energieChauffagePrincipal },
-                        ].filter((r) => r.v).map(({ l, v }) => (
-                          <div key={l} style={{ display: "flex", gap: 4, fontSize: 8, marginBottom: 1 }}>
-                            <span style={{ color: "#94a3b8", minWidth: 100 }}>{l} :</span>
-                            <span style={{ fontWeight: 600 }}>{v}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <table style={{ width: "100%", fontSize: 9, borderCollapse: "collapse" }}>
-                      <tbody>
-                        {[
-                          { l: "Investissement TTC", v: sc.invest !== null ? `${fmtNum(sc.invest)} €` : null },
-                          { l: "Temps de retour simple", v: sc.payback !== null ? `${fmtNum(sc.payback, 1)} ans` : null },
-                          { l: "Gain énergétique", v: sc.gainPct !== null ? `${fmtNum(sc.gainPct, 1)} %` : null },
-                          { l: "Gain économique", v: sc.gainEconomiqueEur !== null ? `${fmtNum(sc.gainEconomiqueEur)} €/an` : null },
-                          { l: "Dépense annuelle", v: sc.cost !== null ? `${fmtNum(sc.cost)} €/an` : null },
-                          { l: "CEP 5 usages (kWhEP/m².an)", v: sc.thce !== null ? fmtNum(sc.thce, 1) : null },
-                          { l: "CEP 3 usages (kWhEP/m².an)", v: sc.cep3 !== null ? fmtNum(sc.cep3, 1) : null },
-                          { l: "GES (kgCO₂/m².an)", v: sc.ges !== null ? fmtNum(sc.ges, 1) : null },
-                          { l: "Taux ENR&R", v: sc.tauxEnrRPct !== null ? `${fmtNum(sc.tauxEnrRPct, 2)} %` : null },
-                          { l: "Prime BAR-TH-145", v: sc.primeBarTh145Euros !== null ? `${fmtNum(sc.primeBarTh145Euros)} €` : null },
-                        ].filter((r) => r.v !== null).map(({ l, v }) => (
-                          <tr key={l}>
-                            <td style={{ padding: "2px 4px", color: "#64748b", borderBottom: "1px solid #f1f5f9" }}>{l}</td>
-                            <td style={{ padding: "2px 4px", fontWeight: 600, textAlign: "right", borderBottom: "1px solid #f1f5f9" }}>{v}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    {/* Right: metrics grid */}
+                    <div style={{ minWidth: 220, padding: "8px 10px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                      {metrics.map(({ l, v }) => (
+                        <div key={l} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "1px solid #f1f5f9", padding: "1.5px 0" }}>
+                          <span style={{ fontSize: 7.5, color: "#64748b" }}>{l}</span>
+                          <span style={{ fontSize: 8.5, fontWeight: 700, color: "#1e293b", marginLeft: 8 }}>{v}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 );
               })}
