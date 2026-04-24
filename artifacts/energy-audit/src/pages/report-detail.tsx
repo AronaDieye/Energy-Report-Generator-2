@@ -267,22 +267,6 @@ function SyntheseGlobale({
                 </td>
               ))}
             </tr>
-            <tr className="border-b">
-              <td className="py-3 px-4 text-muted-foreground">
-                <div className="font-medium">Gain énergétique</div>
-                <div className="text-xs text-muted-foreground/70">% CEP Th-C-E</div>
-              </td>
-              <td className="py-3 px-4 text-center text-muted-foreground bg-slate-50">—</td>
-              {rows.map(({ code, gainPct, i }) => (
-                <td key={code} className={`py-3 px-4 text-center ${scColors[i] || ""}`}>
-                  {gainPct !== null ? (
-                    <span className={`font-bold text-base ${scTextColors[i] || ""}`}>
-                      {gainPct.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %
-                    </span>
-                  ) : "—"}
-                </td>
-              ))}
-            </tr>
             {rows.some(r => r.gainCep !== null) && (
               <tr className="border-b">
                 <td className="py-3 px-4 text-muted-foreground">
@@ -295,6 +279,24 @@ function SyntheseGlobale({
                     {gainCep !== null ? (
                       <span className={`font-bold text-base ${scTextColors[i] || ""}`}>
                         {gainCep.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kWhEP/m².an
+                      </span>
+                    ) : "—"}
+                  </td>
+                ))}
+              </tr>
+            )}
+            {rows.some(r => r.gainPct !== null) && (
+              <tr className="border-b">
+                <td className="py-3 px-4 text-muted-foreground">
+                  <div className="font-medium">Gain en CEP (%)</div>
+                  <div className="text-xs text-muted-foreground/70">% de réduction du CEP Th-C-E</div>
+                </td>
+                <td className="py-3 px-4 text-center text-muted-foreground bg-slate-50">—</td>
+                {rows.map(({ code, gainPct, i }) => (
+                  <td key={code} className={`py-3 px-4 text-center ${scColors[i] || ""}`}>
+                    {gainPct !== null ? (
+                      <span className={`font-bold text-base ${scTextColors[i] || ""}`}>
+                        {gainPct.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %
                       </span>
                     ) : "—"}
                   </td>

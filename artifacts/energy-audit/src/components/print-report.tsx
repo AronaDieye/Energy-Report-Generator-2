@@ -822,7 +822,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
             {/* Gain énergétique % */}
             {scData.some((sc) => sc.gainPct !== null) && (
               <tr style={rowEven}>
-                <td style={tdLeft}>Gain énergétique (%)</td>
+                <td style={tdLeft}>Gain en CEP (%)<br /><span style={{ color: "#94a3b8", fontSize: 9 }}>% de réduction du CEP Th-C-E</span></td>
                 <td style={td}>—</td>
                 {scData.map((sc) => (
                   <td key={sc.code} style={{ ...td, color: "#16a34a", fontWeight: 700 }}>
