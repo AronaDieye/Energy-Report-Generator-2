@@ -1350,43 +1350,92 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           </div>
         )}
 
-        {/* — Répartition des déperditions — */}
+        {/* — Répartition des déperditions (bar chart) — */}
         {(() => {
-          const deperdRows = [
-            { label: "Murs extérieurs", key: "Déperditions murs" },
-            { label: "Planchers bas", key: "Déperditions planchers" },
-            { label: "Toitures / plafonds", key: "Déperditions toitures" },
-            { label: "Menuiseries", key: "Déperditions menuiseries" },
-            { label: "Renouvellement d'air", key: "Déperditions renouvellement air" },
-            { label: "Ponts thermiques", key: "Déperditions ponts thermiques" },
-          ].filter(r => getRaw(rawFields, r.key));
+          const pv = (v: string | null | undefined) => {
+            if (!v) return null;
+            const n = parseFloat(v.replace(/\s/g, "").replace(",", ".").replace(/[^\d.-]/g, ""));
+            return isNaN(n) ? null : n;
+          };
+          const gv = pv(getRaw(rawFields, "UBAT - GV total"));
 
-          // Try getting all RÉPARTITION DÉPERDITIONS section fields dynamically
-          const depSection = rawFields.filter(f => f.section === "RÉPARTITION DÉPERDITIONS");
+          const categories: {
+            key: string; label: string; color: string;
+            subItems: { key: string; label: string; color: string }[];
+          }[] = [
+            {
+              key: "Déperditions - HD parois ext.", label: "Parois extérieures (HD)", color: "#f97316",
+              subItems: [
+                { key: "Ubat - Murs extérieurs (total)", label: "Murs extérieurs", color: "#fdba74" },
+                { key: "Ubat - Vitrages (total)", label: "Vitrages / baies", color: "#fcd34d" },
+                { key: "Ubat - Ponts thermiques (total)", label: "Ponts thermiques", color: "#fef08a" },
+                { key: "Ubat - Portes (total)", label: "Portes", color: "#fed7aa" },
+                { key: "Ubat - Autres parois (total)", label: "Autres parois", color: "#ffedd5" },
+              ],
+            },
+            { key: "Déperditions - HU parois int.", label: "Parois intérieures (HU)", color: "#60a5fa", subItems: [] },
+            { key: "Déperditions - HS sol", label: "Sol (HS)", color: "#a8a29e", subItems: [] },
+            { key: "Déperditions - Ventilation", label: "Ventilation", color: "#38bdf8", subItems: [] },
+            { key: "Déperditions - Infiltrations", label: "Infiltrations", color: "#2dd4bf", subItems: [] },
+          ];
 
-          if (depSection.length === 0 && deperdRows.length === 0) return null;
+          const hasData = gv && categories.some(c => pv(getRaw(rawFields, c.key)) !== null);
+          if (!hasData || !gv) return null;
 
-          const rows = depSection.length > 0 ? depSection : deperdRows.map(r => ({ key: r.label, value: getRaw(rawFields, r.key) ?? "—" }));
+          const fmtV = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
+          const fmtP = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(n);
 
           return (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Répartition des déperditions</div>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
-                <thead>
-                  <tr style={{ background: "#7c3aed", color: "#fff" }}>
-                    <th style={{ ...thStyle, textAlign: "left", width: "55%" }}>Poste</th>
-                    <th style={{ ...thStyle, textAlign: "right" }}>Valeur</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r, i) => (
-                    <tr key={r.key} style={i % 2 === 0 ? rowEven : rowOdd}>
-                      <td style={tdLeft}>{r.key}</td>
-                      <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{r.value}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+                Répartition des déperditions — État initial (W/°C)
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {categories.map(({ key, label, color, subItems }) => {
+                  const val = pv(getRaw(rawFields, key));
+                  if (val === null) return null;
+                  const pct = gv > 0 ? (val / gv) * 100 : 0;
+                  return (
+                    <div key={key}>
+                      {/* Main category row */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                        <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
+                        <span style={{ fontSize: 9, fontWeight: 600, color, flex: 1 }}>{label}</span>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: "#1e293b", width: 70, textAlign: "right" }}>{fmtV(val)} W/°C</span>
+                        <span style={{ fontSize: 8, color: "#94a3b8", width: 36, textAlign: "right" }}>{fmtP(pct)} %</span>
+                      </div>
+                      {/* Progress bar */}
+                      <div style={{ marginLeft: 16, height: 6, background: "#f1f5f9", borderRadius: 3, overflow: "hidden", marginBottom: 3 }}>
+                        <div style={{ height: "100%", background: color, borderRadius: 3, width: `${Math.min(pct, 100)}%` }} />
+                      </div>
+                      {/* Sub-items */}
+                      {subItems.map(({ key: sk, label: sl, color: sc }) => {
+                        const sv = pv(getRaw(rawFields, sk));
+                        if (!sv) return null;
+                        const sp = gv > 0 ? (sv / gv) * 100 : 0;
+                        return (
+                          <div key={sk} style={{ marginLeft: 24, marginBottom: 2 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <div style={{ width: 7, height: 7, borderRadius: 1, background: sc, flexShrink: 0 }} />
+                              <span style={{ fontSize: 8, color: "#64748b", flex: 1 }}>{sl}</span>
+                              <span style={{ fontSize: 8, color: "#64748b", width: 70, textAlign: "right" }}>{fmtV(sv)} W/°C</span>
+                              <span style={{ fontSize: 7.5, color: "#cbd5e1", width: 36, textAlign: "right" }}>{fmtP(sp)} %</span>
+                            </div>
+                            <div style={{ marginLeft: 13, height: 3, background: "#f1f5f9", borderRadius: 2, overflow: "hidden", marginTop: 1 }}>
+                              <div style={{ height: "100%", background: sc, borderRadius: 2, width: `${Math.min(sp, 100)}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+                {/* Total */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1.5px solid #e2e8f0", paddingTop: 6, marginTop: 2 }}>
+                  <span style={{ fontSize: 9, fontWeight: 700 }}>Total GV</span>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "#1e293b" }}>{fmtV(gv)} W/°C</span>
+                </div>
+              </div>
             </div>
           );
         })()}
