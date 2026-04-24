@@ -406,31 +406,86 @@ function parseConsumptionTableFromText(text: string): Record<string, Consumption
   const lines = tableText.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
   const result: Record<string, ConsumptionPost> = {};
   let i = 0;
+
+  const isStopLine = (s: string) => {
+    const u = s.toUpperCase();
+    return u.startsWith("ABONNEMENT") || u.startsWith("ENTRETIEN") || u.includes("BILAN") || u.includes("CALCUL") || u.startsWith("TOTAL DEPENSE");
+  };
+
   while (i < lines.length) {
-    const line = lines[i].toUpperCase();
-    const postKey = ENERGY_POSTS.find((p) => line === p);
+    const lineRaw = lines[i];
+    const lineUpper = lineRaw.toUpperCase();
+    const postKey = ENERGY_POSTS.find((p) => lineUpper === p);
+
     if (postKey) {
       i++;
-      let energySource: string | null = null;
-      if (i < lines.length && isEnergySource(lines[i]) && !ENERGY_POSTS.includes(lines[i].toUpperCase())) {
-        energySource = lines[i];
-        i++;
-      }
-      const nums: number[] = [];
-      while (i < lines.length && nums.length < 3 && !ENERGY_POSTS.includes(lines[i].toUpperCase())) {
-        if (isNumericValue(lines[i])) {
-          const n = parseNum(lines[i]);
-          if (n !== null) nums.push(n);
+      const sources: string[] = [];
+      let totalFinalKwhAn = 0;
+      let hasFinal = false;
+      let firstPrimaryKwhEpM2: number | null = null;
+      let totalCost = 0;
+
+      // Collect all sub-content for this post (handles multiple energy sources)
+      while (i < lines.length) {
+        const curRaw = lines[i];
+        const curUpper = curRaw.toUpperCase();
+
+        // Stop at next energy post
+        if (ENERGY_POSTS.find((p) => curUpper === p)) break;
+        if (isStopLine(curRaw)) break;
+
+        // Skip "Total de X" summary sub-rows (they repeat the sum we already accumulated)
+        if (curUpper.startsWith("TOTAL DE ") || curUpper.startsWith("TOTAL DU ")) {
           i++;
-        } else if (isEnergySource(lines[i])) {
+          // Also skip the numeric value that follows the summary label
+          if (i < lines.length && isNumericValue(lines[i])) i++;
+          continue;
+        }
+
+        if (isEnergySource(curRaw)) {
+          sources.push(curRaw);
+          i++;
+          // Collect up to 3 numeric values for this source
+          let srcNums: number[] = [];
+          while (i < lines.length && srcNums.length < 3) {
+            const nl = lines[i];
+            const nu = nl.toUpperCase();
+            if (ENERGY_POSTS.find((p) => nu === p)) break;
+            if (isEnergySource(nl)) break; // next source starts
+            if (nu.startsWith("TOTAL DE ") || nu.startsWith("TOTAL DU ")) break;
+            if (isStopLine(nl)) break;
+            if (isNumericValue(nl)) {
+              const n = parseNum(nl);
+              if (n !== null) srcNums.push(n);
+              i++;
+            } else {
+              break;
+            }
+          }
+          if (srcNums.length > 0) { totalFinalKwhAn += srcNums[0]; hasFinal = true; }
+          if (srcNums.length > 1 && firstPrimaryKwhEpM2 === null) firstPrimaryKwhEpM2 = srcNums[1];
+          if (srcNums.length > 2) totalCost += srcNums[2];
+
+        } else if (isNumericValue(curRaw)) {
+          // Direct numeric with no preceding source (e.g. ÉCLAIRAGE, AUXILIAIRES)
+          if (!hasFinal) {
+            const n = parseNum(curRaw);
+            if (n !== null) { totalFinalKwhAn = n; hasFinal = true; }
+          }
           i++;
         } else {
-          break;
+          i++;
         }
       }
-      result[postKey] = { finalKwhAn: nums[0] ?? null, primaryKwhEpM2: nums[1] ?? null, costEuros: nums[2] ?? null, energySource };
+
+      result[postKey] = {
+        finalKwhAn: hasFinal ? totalFinalKwhAn : null,
+        primaryKwhEpM2: firstPrimaryKwhEpM2,
+        costEuros: totalCost > 0 ? totalCost : null,
+        energySource: sources.length > 0 ? sources.join(", ") : null,
+      };
     } else {
-      if (line.includes("ABONNEMENT") || line.includes("ENTRETIEN") || line.includes("BILAN") || line.includes("CALCUL")) break;
+      if (isStopLine(lineRaw)) break;
       i++;
     }
   }
