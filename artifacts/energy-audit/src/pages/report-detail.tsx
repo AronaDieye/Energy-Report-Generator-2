@@ -363,6 +363,80 @@ function SyntheseGlobale({
             )}
           </tbody>
         </table>
+
+        {/* ── Tableau détail consommations par usage ── */}
+        {(() => {
+          const postes = [
+            { key: "Chauffage", label: "CHAUFFAGE" },
+            { key: "ECS", label: "ECS" },
+            { key: "Refroidissement", label: "REFROIDISSEMENT" },
+            { key: "Éclairage", label: "ÉCLAIRAGE" },
+            { key: "Auxiliaires", label: "AUXILIAIRES" },
+          ];
+          const getF = (k: string) => rawFields.find((f) => f.key === k)?.value ?? null;
+          const hasAny = postes.some((p) => getF(`${p.key} - Énergie finale`) !== null);
+          if (!hasAny) return null;
+
+          const totalFinale = postes.reduce((sum, p) => {
+            const v = parseVal(getF(`${p.key} - Énergie finale`));
+            return v !== null ? sum + v : sum;
+          }, 0);
+
+          return (
+            <div className="border-t mt-0">
+              <div className="bg-slate-800 text-white px-4 py-2 text-sm font-semibold flex items-center gap-2">
+                <span>⚡</span> Détail des consommations par usage — Énergie finale (kWh/an)
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/20">
+                    <th className="text-left py-2 px-4 font-medium text-muted-foreground min-w-[180px]">Poste / Source d'énergie</th>
+                    <th className="py-2 px-4 text-center font-semibold bg-slate-700 text-white min-w-[130px]">État initial</th>
+                    {rows.map(({ code, i }) => (
+                      <th key={code} className={`py-2 px-4 text-center font-semibold text-white min-w-[120px] ${scHeaderColors[i] || "bg-slate-600"}`}>{code}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {postes.map(({ key, label }) => {
+                    const finale = getF(`${key} - Énergie finale`);
+                    const source = getF(`${key} - Source d'énergie`);
+                    if (finale === null && source === null) return null;
+                    return (
+                      <tr key={key} className="border-b hover:bg-muted/10">
+                        <td className="py-2 px-4">
+                          <div className="font-semibold text-slate-800 text-xs uppercase tracking-wide">{label}</div>
+                          {source && <div className="text-xs text-muted-foreground mt-0.5 pl-1">↳ {source}</div>}
+                        </td>
+                        <td className="py-2 px-4 text-center font-mono font-bold text-slate-800 bg-slate-50">
+                          {finale ? parseVal(finale)?.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " kWh" : "—"}
+                        </td>
+                        {Array.from({ length: rows.length }, (_, i) => (
+                          <td key={i} className={`py-2 px-4 text-center text-muted-foreground text-xs ${scColors[i] || ""}`}>—</td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                  {totalFinale > 0 && (
+                    <tr className="bg-slate-100 font-bold border-t-2 border-slate-300">
+                      <td className="py-2 px-4 text-slate-900 uppercase text-xs tracking-wide">TOTAL</td>
+                      <td className="py-2 px-4 text-center font-mono text-slate-900">
+                        {totalFinale.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh
+                      </td>
+                      {rows.map(({ code, cef, i }) => (
+                        <td key={code} className={`py-2 px-4 text-center font-mono text-xs ${scColors[i] || ""}`}>
+                          {cef !== null ? (
+                            <span className={scTextColors[i] || ""}>{cef.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWhEF/m².an</span>
+                          ) : "—"}
+                        </td>
+                      ))}
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       </CardContent>
     </Card>
   );

@@ -875,6 +875,70 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           </tbody>
         </table>
 
+        {/* ── Détail consommations par usage ── */}
+        {consumPostes.length > 0 && (() => {
+          const totalFinale = consumPostes.reduce((sum, p) => sum + (p.kwhAn ?? 0), 0);
+          const scColors2 = ["#16a34a", "#2563eb", "#7c3aed", "#dc2626", "#ea580c"];
+          const thSc: React.CSSProperties = { padding: "4px 8px", textAlign: "center", fontWeight: 700, fontSize: 10, color: "#fff", borderBottom: "1px solid #e2e8f0" };
+          const tdCat: React.CSSProperties = { padding: "5px 8px", fontWeight: 700, fontSize: 9, color: "#1e3a5f", textTransform: "uppercase" as const, letterSpacing: 0.5 };
+          const tdSrc: React.CSSProperties = { padding: "2px 8px 5px 20px", fontSize: 9, color: "#64748b" };
+          const tdVal: React.CSSProperties = { padding: "4px 8px", textAlign: "center" as const, fontSize: 9, fontFamily: "monospace" };
+          const tdTotal: React.CSSProperties = { padding: "5px 8px", fontWeight: 700, fontSize: 9, textTransform: "uppercase" as const, color: "#0f172a" };
+          return (
+            <div style={{ marginTop: 16, border: "1px solid #e2e8f0", borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ background: "#1e3a5f", color: "#fff", padding: "6px 12px", fontSize: 10, fontWeight: 700 }}>
+                ⚡ Détail des consommations par usage — Énergie finale (kWh/an)
+              </div>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "#f1f5f9" }}>
+                    <th style={{ ...thSc, textAlign: "left", color: "#475569", background: "#f1f5f9" }}>Poste / Source d'énergie</th>
+                    <th style={{ ...thSc, background: "#374151" }}>État initial</th>
+                    {scData.map((sc, i) => (
+                      <th key={sc.code} style={{ ...thSc, background: scColors2[i] ?? "#374151" }}>{sc.code}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {consumPostes.map((p, idx) => (
+                    <React.Fragment key={p.poste}>
+                      <tr style={{ background: idx % 2 === 0 ? "#f8fafc" : "#fff" }}>
+                        <td style={tdCat}>{p.poste}</td>
+                        <td style={{ ...tdVal, fontWeight: 700, color: "#1e293b", background: "#f1f5f9" }}>
+                          {p.kwhAn !== null ? p.kwhAn.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) : "—"}
+                        </td>
+                        {scData.map((sc, i) => (
+                          <td key={sc.code} style={{ ...tdVal, color: scColors2[i] ?? "#374151", background: idx % 2 === 0 ? `${scColors2[i]}08` : "#fff" }}>—</td>
+                        ))}
+                      </tr>
+                      {p.source && (
+                        <tr style={{ background: idx % 2 === 0 ? "#f8fafc" : "#fff" }}>
+                          <td style={tdSrc}>↳ {p.source}</td>
+                          <td style={{ ...tdVal, fontSize: 8, color: "#64748b", background: "#f1f5f9" }}></td>
+                          {scData.map((sc) => <td key={sc.code} style={{ ...tdVal }}></td>)}
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))}
+                  {totalFinale > 0 && (
+                    <tr style={{ background: "#e2e8f0", borderTop: "2px solid #94a3b8" }}>
+                      <td style={tdTotal}>TOTAL</td>
+                      <td style={{ ...tdVal, fontWeight: 700, color: "#0f172a", background: "#cbd5e1" }}>
+                        {totalFinale.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh
+                      </td>
+                      {scData.map((sc, i) => (
+                        <td key={sc.code} style={{ ...tdVal, fontWeight: 700, color: scColors2[i] ?? "#374151", fontSize: 8 }}>
+                          {sc.cef !== null ? `${fmtNum(sc.cef, 0)} kWhEF/m².an` : "—"}
+                        </td>
+                      ))}
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
+
         {/* Scenario rows */}
         {scData.length > 0 && (
           <>
