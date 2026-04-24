@@ -1265,6 +1265,7 @@ export function ReportDetail() {
             report={{
               ...report,
               sectionCharacteristics: (report as unknown as { sectionCharacteristics?: Record<string, string> }).sectionCharacteristics ?? {},
+              visitReportData: (report as unknown as { visitReportData?: Record<string, unknown> | null }).visitReportData ?? null,
             }}
             rawFields={rawFields}
           />

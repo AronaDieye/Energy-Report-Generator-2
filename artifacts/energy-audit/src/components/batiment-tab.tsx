@@ -755,6 +755,214 @@ function IdentiteBatiment({
   );
 }
 
+// ── Visit Report Section ──────────────────────────────────────────────────────
+
+interface VisitReportDataType {
+  source?: string | null;
+  score?: string | null;
+  preconisation?: string | null;
+  preparePar?: string | null;
+  telephone?: string | null;
+  nombreLocataires?: number | null;
+  formeBatiment?: string | null;
+  orientationFacade?: string | null;
+  nombreAppartements?: string | null;
+  anneeGenerateur?: string | null;
+  epaisseurMurs?: string | null;
+  typeToiture?: string | null;
+  surfaceToiture?: string | null;
+  compositionMurNord?: string | null;
+  isolationMurNord?: string | null;
+  compositionMurSud?: string | null;
+  isolationMurSud?: string | null;
+  compositionMurEst?: string | null;
+  isolationMurEst?: string | null;
+  compositionMurOuest?: string | null;
+  isolationMurOuest?: string | null;
+  compositionPlancherBas?: string | null;
+  isolationPlancherBas?: string | null;
+  positionGenerateur?: string | null;
+  dimensionsPieceGenerateur?: string | null;
+  typeEcs?: string | null;
+  apartments?: Array<{
+    numero: number;
+    etage: number | null;
+    typologie: string | null;
+    surface: number | null;
+    chauffage: string | null;
+    ecs: string | null;
+    ventilation: string | null;
+    hauteur: string | null;
+  }>;
+}
+
+function InfoRow({ label, value }: { label: string; value?: string | number | null }) {
+  if (!value && value !== 0) return null;
+  return (
+    <div className="flex flex-col gap-0.5 p-3 rounded-lg bg-muted/40">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm font-semibold">{String(value)}</span>
+    </div>
+  );
+}
+
+function VisiteReportSection({ vr }: { vr: VisitReportDataType }) {
+  const walls = [
+    { dir: "Nord", comp: vr.compositionMurNord, iso: vr.isolationMurNord },
+    { dir: "Sud", comp: vr.compositionMurSud, iso: vr.isolationMurSud },
+    { dir: "Est", comp: vr.compositionMurEst, iso: vr.isolationMurEst },
+    { dir: "Ouest", comp: vr.compositionMurOuest, iso: vr.isolationMurOuest },
+  ].filter((w) => w.comp || w.iso);
+
+  return (
+    <div className="space-y-4">
+      {/* Header info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Info className="h-5 w-5 text-primary" />
+            Rapport de visite de site
+            {vr.score && (
+              <Badge variant="secondary" className="ml-auto font-normal text-xs">
+                Score : {vr.score}
+              </Badge>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <InfoRow label="Préparé par" value={vr.preparePar} />
+            <InfoRow label="Téléphone / Email" value={vr.telephone} />
+            <InfoRow label="Préconisation" value={vr.preconisation} />
+            <InfoRow label="Nombre de locataires" value={vr.nombreLocataires} />
+            <InfoRow label="Nombre d'appartements" value={vr.nombreAppartements} />
+            <InfoRow label="Forme du bâtiment" value={vr.formeBatiment} />
+            <InfoRow label="Orientation façade principale" value={vr.orientationFacade} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Envelope */}
+      {(vr.epaisseurMurs || walls.length > 0 || vr.compositionPlancherBas || vr.typeToiture) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Fence className="h-5 w-5 text-primary" />
+              Enveloppe du bâtiment
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {vr.epaisseurMurs && (
+              <div className="p-3 rounded-lg bg-muted/40">
+                <span className="text-xs text-muted-foreground">Épaisseur des murs</span>
+                <p className="text-sm font-semibold">{vr.epaisseurMurs}</p>
+              </div>
+            )}
+            {walls.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-2 font-medium">Façades</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {walls.map((w) => (
+                    <div key={w.dir} className="p-3 rounded-lg bg-muted/40 space-y-1">
+                      <p className="text-xs font-semibold text-muted-foreground">Mur {w.dir}</p>
+                      {w.comp && <p className="text-sm">Composition : <span className="font-medium">{w.comp}</span></p>}
+                      {w.iso && <p className="text-sm">Isolation : <span className="font-medium">{w.iso}</span></p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {(vr.compositionPlancherBas || vr.isolationPlancherBas) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {vr.compositionPlancherBas && (
+                  <div className="p-3 rounded-lg bg-muted/40">
+                    <span className="text-xs text-muted-foreground">Composition plancher bas</span>
+                    <p className="text-sm font-semibold">{vr.compositionPlancherBas}</p>
+                  </div>
+                )}
+                {vr.isolationPlancherBas && (
+                  <div className="p-3 rounded-lg bg-muted/40">
+                    <span className="text-xs text-muted-foreground">Isolation plancher bas</span>
+                    <p className="text-sm font-semibold">{vr.isolationPlancherBas}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            {(vr.typeToiture || vr.surfaceToiture) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <InfoRow label="Type de toiture" value={vr.typeToiture} />
+                <InfoRow label="Surface toiture" value={vr.surfaceToiture} />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* HVAC */}
+      {(vr.anneeGenerateur || vr.positionGenerateur || vr.dimensionsPieceGenerateur || vr.typeEcs) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FlameKindling className="h-5 w-5 text-primary" />
+              Générateur & ECS
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <InfoRow label="Année du générateur" value={vr.anneeGenerateur} />
+              <InfoRow label="Position du générateur" value={vr.positionGenerateur} />
+              <InfoRow label="Dimensions chaufferie" value={vr.dimensionsPieceGenerateur} />
+              <InfoRow label="Type ECS" value={vr.typeEcs} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Apartments table */}
+      {vr.apartments && vr.apartments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Home className="h-5 w-5 text-primary" />
+              Appartements visités ({vr.apartments.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-muted-foreground text-xs">
+                    <th className="text-left py-2 pr-4">N°</th>
+                    <th className="text-left py-2 pr-4">Étage</th>
+                    <th className="text-left py-2 pr-4">Type</th>
+                    <th className="text-left py-2 pr-4">Surface</th>
+                    <th className="text-left py-2 pr-4">Chauffage</th>
+                    <th className="text-left py-2 pr-4">ECS</th>
+                    <th className="text-left py-2">Ventilation</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vr.apartments.map((apt) => (
+                    <tr key={apt.numero} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                      <td className="py-2 pr-4 font-medium">{apt.numero}</td>
+                      <td className="py-2 pr-4">{apt.etage ?? "—"}</td>
+                      <td className="py-2 pr-4">{apt.typologie ?? "—"}</td>
+                      <td className="py-2 pr-4">{apt.surface ? `${apt.surface} m²` : "—"}</td>
+                      <td className="py-2 pr-4">{apt.chauffage ?? "—"}</td>
+                      <td className="py-2 pr-4">{apt.ecs ?? "—"}</td>
+                      <td className="py-2">{apt.ventilation ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 // ── Main BatimentTab export ───────────────────────────────────────────────────
 
 export function BatimentTab({
@@ -764,6 +972,7 @@ export function BatimentTab({
   report: {
     id: number;
     sectionCharacteristics?: Record<string, string> | null;
+    visitReportData?: VisitReportDataType | null;
     buildingInfo: {
       name?: string | null;
       address?: string | null;
@@ -781,6 +990,9 @@ export function BatimentTab({
   return (
     <div className="space-y-6">
       <IdentiteBatiment report={report} rawFields={rawFields} />
+      {report.visitReportData && (
+        <VisiteReportSection vr={report.visitReportData} />
+      )}
       <LocalisationMap rawFields={rawFields} />
       <WeatherAnalysis rawFields={rawFields} />
       <PhotoGallery reportId={report.id} report={report} />

@@ -99,6 +99,45 @@ export const auditReportsTable = pgTable("audit_reports", {
     eclairage?: string;
   }>(),
 
+  visitReportData: jsonb("visit_report_data").$type<{
+    source?: string | null;
+    score?: string | null;
+    preconisation?: string | null;
+    preparePar?: string | null;
+    telephone?: string | null;
+    nombreLocataires?: number | null;
+    formeBatiment?: string | null;
+    orientationFacade?: string | null;
+    nombreAppartements?: string | null;
+    anneeGenerateur?: string | null;
+    epaisseurMurs?: string | null;
+    typeToiture?: string | null;
+    surfaceToiture?: string | null;
+    compositionMurNord?: string | null;
+    isolationMurNord?: string | null;
+    compositionMurSud?: string | null;
+    isolationMurSud?: string | null;
+    compositionMurEst?: string | null;
+    isolationMurEst?: string | null;
+    compositionMurOuest?: string | null;
+    isolationMurOuest?: string | null;
+    compositionPlancherBas?: string | null;
+    isolationPlancherBas?: string | null;
+    positionGenerateur?: string | null;
+    dimensionsPieceGenerateur?: string | null;
+    typeEcs?: string | null;
+    apartments?: Array<{
+      numero: number;
+      etage: number | null;
+      typologie: string | null;
+      surface: number | null;
+      chauffage: string | null;
+      ecs: string | null;
+      ventilation: string | null;
+      hauteur: string | null;
+    }>;
+  }>(),
+
   metadata: jsonb("metadata").$type<{
     bureauEtudes?: string | null;
     bureauAdresse?: string | null;

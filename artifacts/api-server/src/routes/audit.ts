@@ -3,6 +3,7 @@ import multer from "multer";
 import { db, auditReportsTable, reportPhotosTable } from "@workspace/db";
 import { eq, desc, sql } from "drizzle-orm";
 import { extractFromDocx, extractFromCsv } from "../lib/fileExtractor.js";
+import { extractFromVisitReportPdf } from "../lib/visitReportExtractor.js";
 import { logger } from "../lib/logger.js";
 
 const router: IRouter = Router();
@@ -18,17 +19,19 @@ const upload = multer({
       "text/csv",
       "application/csv",
       "text/plain",
+      "application/pdf",
     ];
     const ext = file.originalname.toLowerCase();
     if (
       allowed.includes(file.mimetype) ||
       ext.endsWith(".docx") ||
       ext.endsWith(".doc") ||
-      ext.endsWith(".csv")
+      ext.endsWith(".csv") ||
+      ext.endsWith(".pdf")
     ) {
       cb(null, true);
     } else {
-      cb(new Error("Seuls les fichiers DOCX et CSV sont acceptés"));
+      cb(new Error("Seuls les fichiers DOCX, CSV et PDF sont acceptés"));
     }
   },
 });
@@ -51,18 +54,32 @@ router.post(
       file.mimetype.includes("csv") ||
       file.mimetype.includes("text") ||
       file.originalname.toLowerCase().endsWith(".csv");
+    const isPdf =
+      file.mimetype === "application/pdf" ||
+      file.originalname.toLowerCase().endsWith(".pdf");
 
-    if (!isDocx && !isCsv) {
-      res.status(400).json({ error: "Format de fichier non supporté. Utilisez DOCX ou CSV." });
+    if (!isDocx && !isCsv && !isPdf) {
+      res.status(400).json({ error: "Format de fichier non supporté. Utilisez DOCX, CSV ou PDF." });
       return;
     }
 
     try {
-      const extracted = isDocx
-        ? await extractFromDocx(file.buffer)
-        : await extractFromCsv(file.buffer);
+      let extracted: Awaited<ReturnType<typeof extractFromVisitReportPdf>> | Awaited<ReturnType<typeof extractFromDocx>>;
+      let fileType: string;
 
-      const fileType = isDocx ? "docx" : "csv";
+      if (isPdf) {
+        extracted = await extractFromVisitReportPdf(file.buffer);
+        fileType = "pdf";
+      } else if (isDocx) {
+        extracted = await extractFromDocx(file.buffer);
+        fileType = "docx";
+      } else {
+        extracted = await extractFromCsv(file.buffer);
+        fileType = "csv";
+      }
+
+      const visitReportData = (extracted as { visitReportData?: unknown }).visitReportData ?? null;
+      const sectionCharacteristics = (extracted as { sectionCharacteristics?: unknown }).sectionCharacteristics ?? null;
 
       const [inserted] = await db
         .insert(auditReportsTable)
@@ -115,6 +132,8 @@ router.post(
           recommendations: extracted.recommendations,
           rawFields: extracted.rawFields,
           metadata: extracted.metadata ?? null,
+          sectionCharacteristics: sectionCharacteristics as typeof auditReportsTable.$inferInsert["sectionCharacteristics"],
+          visitReportData: visitReportData as typeof auditReportsTable.$inferInsert["visitReportData"],
         })
         .returning();
 
@@ -305,6 +324,7 @@ function mapToApiReport(r: typeof auditReportsTable.$inferSelect) {
     rawFields: r.rawFields ?? [],
     sectionCharacteristics: r.sectionCharacteristics ?? {},
     metadata: r.metadata ?? null,
+    visitReportData: r.visitReportData ?? null,
   };
 }
 

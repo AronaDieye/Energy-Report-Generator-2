@@ -27,10 +27,11 @@ export function UploadZone() {
   }, []);
 
   const processFile = async (file: File) => {
-    if (!file.name.endsWith(".docx") && !file.name.endsWith(".csv")) {
+    const name = file.name.toLowerCase();
+    if (!name.endsWith(".docx") && !name.endsWith(".csv") && !name.endsWith(".pdf")) {
       toast({
         title: "Format non supporté",
-        description: "Veuillez importer un fichier DOCX ou CSV.",
+        description: "Veuillez importer un fichier DOCX, CSV ou PDF.",
         variant: "destructive",
       });
       return;
@@ -108,6 +109,7 @@ export function UploadZone() {
             <div className="flex items-center gap-4 text-sm text-muted-foreground bg-muted px-4 py-2 rounded-md">
               <span className="flex items-center"><File className="h-4 w-4 mr-2" /> DOCX</span>
               <span className="flex items-center"><File className="h-4 w-4 mr-2" /> CSV</span>
+              <span className="flex items-center"><File className="h-4 w-4 mr-2" /> PDF</span>
             </div>
           </>
         )}
@@ -116,7 +118,7 @@ export function UploadZone() {
         id="file-upload"
         type="file"
         className="hidden"
-        accept=".docx,.csv"
+        accept=".docx,.csv,.pdf"
         onChange={handleFileInput}
       />
     </Card>

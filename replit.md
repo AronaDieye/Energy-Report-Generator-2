@@ -13,15 +13,16 @@ Application web pour générer automatiquement des rapports d'audit énergétiqu
 - **Frontend**: React + Vite + Tailwind CSS + shadcn/ui (`artifacts/energy-audit`, port from `$PORT`)
 - **API framework**: Express 5 (`artifacts/api-server`, port 8080)
 - **Database**: PostgreSQL + Drizzle ORM
-- **File parsing**: mammoth (DOCX → raw text), csv-parse (CSV), multer (upload)
+- **File parsing**: mammoth (DOCX → raw text), csv-parse (CSV), pdf-parse@1.1.1 (SafetyCulture PDF), multer (upload)
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec at `lib/api-spec/openapi.yaml`)
 - **Build**: esbuild (CJS bundle)
 
 ## Features
 
-- Upload de fichiers DOCX ou CSV (glisser-déposer ou clic)
+- Upload de fichiers DOCX, CSV ou **PDF SafetyCulture** (glisser-déposer ou clic)
 - Extraction automatique depuis BAO Evolution SED : nom bâtiment, type, surfaces, DPE 3CL-2021, consommations par poste, coûts, CO2, enveloppe, CVC, 3 scénarios de travaux
+- **Rapport de visite SafetyCulture** : extraction depuis PDF (score, préconisation, préparateur, locataires, forme, orientation, enveloppe, générateur, ECS, appartements visités) — affiché dans l'onglet Bâtiment via `visitReportData` (jsonb en DB)
 - **CEF** (énergie finale) extrait depuis le bloc TOTAL avant chaque Bilan Énergétique — initial + par scénario, en kWhef/m²/an
 - **3 onglets** dans la page rapport : Synthèse / Consommations / Bâtiment
   - **Synthèse** : tableau comparatif (DPE, CEP, CEF, GES, coût) + cartes scénarios
