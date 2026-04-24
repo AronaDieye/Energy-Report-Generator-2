@@ -135,9 +135,11 @@ function getScVal(rawFields: RawField[], code: string, suffix: string): string |
 function SyntheseGlobale({
   rawFields,
   initialCost,
+  scenarios,
 }: {
   rawFields: RawField[];
   initialCost: number | null;
+  scenarios?: Array<{ tauxEnrRPct?: number | null }>;
 }) {
   const scenarioCodes = useScenarioCodes(rawFields);
   if (scenarioCodes.length === 0) return null;
@@ -160,9 +162,11 @@ function SyntheseGlobale({
     const gainEco = cost !== null && initialCost !== null ? initialCost - cost : null;
     const gainPct = thce !== null && thceInitial !== null && thceInitial > 0
       ? ((thceInitial - thce) / thceInitial) * 100 : null;
+    const gainCep = thce !== null && thceInitial !== null ? thceInitial - thce : null;
+    const tauxEnrR = scenarios?.[i]?.tauxEnrRPct ?? null;
     const conseils = getScVal(rawFields, code, "Conseils") ?? "";
     const travaux = conseils.split(/\s*\/\s*/).map(t => t.trim()).filter(t => t.length > 2);
-    return { code, thce, cef, ges, cost, invest, tempsRetour, gainEco, gainPct, travaux, i };
+    return { code, thce, cef, ges, cost, invest, tempsRetour, gainEco, gainPct, gainCep, tauxEnrR, travaux, i };
   });
 
   return (
@@ -279,6 +283,42 @@ function SyntheseGlobale({
                 </td>
               ))}
             </tr>
+            {rows.some(r => r.gainCep !== null) && (
+              <tr className="border-b">
+                <td className="py-3 px-4 text-muted-foreground">
+                  <div className="font-medium">Gains en CEP</div>
+                  <div className="text-xs text-muted-foreground/70">kWhEP/m².an économisés</div>
+                </td>
+                <td className="py-3 px-4 text-center text-muted-foreground bg-slate-50">—</td>
+                {rows.map(({ code, gainCep, i }) => (
+                  <td key={code} className={`py-3 px-4 text-center ${scColors[i] || ""}`}>
+                    {gainCep !== null ? (
+                      <span className={`font-bold text-base ${scTextColors[i] || ""}`}>
+                        {gainCep.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kWhEP/m².an
+                      </span>
+                    ) : "—"}
+                  </td>
+                ))}
+              </tr>
+            )}
+            {rows.some(r => r.tauxEnrR !== null) && (
+              <tr className="border-b">
+                <td className="py-3 px-4 text-muted-foreground">
+                  <div className="font-medium">Taux ENR &amp; R</div>
+                  <div className="text-xs text-muted-foreground/70">Énergies renouvelables et récupération</div>
+                </td>
+                <td className="py-3 px-4 text-center text-muted-foreground bg-slate-50">—</td>
+                {rows.map(({ code, tauxEnrR, i }) => (
+                  <td key={code} className={`py-3 px-4 text-center ${scColors[i] || ""}`}>
+                    {tauxEnrR !== null ? (
+                      <span className={`font-bold text-base ${scTextColors[i] || ""}`}>
+                        {tauxEnrR.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} %
+                      </span>
+                    ) : "—"}
+                  </td>
+                ))}
+              </tr>
+            )}
             <tr className="border-b">
               <td className="py-3 px-4 text-muted-foreground font-medium">Investissement</td>
               <td className="py-3 px-4 text-center text-muted-foreground bg-slate-50">—</td>
@@ -1246,7 +1286,7 @@ export function ReportDetail() {
 
         {/* ── Onglet Synthèse ───────────────────────────────────────────── */}
         <TabsContent value="synthese" className="space-y-6 mt-0">
-          <SyntheseGlobale rawFields={rawFields} initialCost={initialCost ?? null} />
+          <SyntheseGlobale rawFields={rawFields} initialCost={initialCost ?? null} scenarios={(report as unknown as { metadata?: { scenarios?: Array<{ tauxEnrRPct?: number | null }> } }).metadata?.scenarios} />
           <ScenarioCards rawFields={rawFields} initialCost={initialCost ?? null} />
         </TabsContent>
 

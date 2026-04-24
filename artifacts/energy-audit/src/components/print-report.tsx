@@ -805,9 +805,23 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 ))}
               </tr>
             )}
-            {/* Gain */}
-            {scData.some((sc) => sc.gainPct !== null) && (
+            {/* Gain énergétique CEP (absolu) */}
+            {scData.some((sc) => sc.thce !== null) && thceInitial !== null && (
               <tr style={rowOdd}>
+                <td style={tdLeft}>Gains en CEP<br /><span style={{ color: "#94a3b8", fontSize: 9 }}>kWhEP/m².an économisés</span></td>
+                <td style={td}>—</td>
+                {scData.map((sc) => (
+                  <td key={sc.code} style={{ ...td, color: "#16a34a", fontWeight: 700 }}>
+                    {sc.thce !== null && thceInitial !== null
+                      ? `${fmtNum(thceInitial - sc.thce, 1)} kWhEP/m².an`
+                      : "—"}
+                  </td>
+                ))}
+              </tr>
+            )}
+            {/* Gain énergétique % */}
+            {scData.some((sc) => sc.gainPct !== null) && (
+              <tr style={rowEven}>
                 <td style={tdLeft}>Gain énergétique (%)</td>
                 <td style={td}>—</td>
                 {scData.map((sc) => (
