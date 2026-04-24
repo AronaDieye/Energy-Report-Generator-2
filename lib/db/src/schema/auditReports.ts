@@ -99,6 +99,21 @@ export const auditReportsTable = pgTable("audit_reports", {
     eclairage?: string;
   }>(),
 
+  ubatParoisData: jsonb("ubat_parois_data").$type<Array<{
+    designation: string;
+    code: string | null;
+    nb: string | null;
+    u: string | null;
+    psi: string | null;
+    b: string | null;
+    surface: string | null;
+    longueur: string | null;
+    orie: string | null;
+    deperd: string | null;
+    ref: string | null;
+    kind: "mur_ext" | "vitrage" | "porte" | "pont_thermique" | "autre";
+  }>>(),
+
   visitReportData: jsonb("visit_report_data").$type<{
     source?: string | null;
     score?: string | null;

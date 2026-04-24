@@ -173,6 +173,21 @@ function isSectionHeader(line: string): boolean {
 
 // ─── BAO Evolution SED: Ubat / Déperditions parser ──────────────────────────
 
+export interface UbatParoisRow {
+  designation: string;
+  code: string | null;
+  nb: string | null;
+  u: string | null;       // standard rows: U (W/m².°C)
+  psi: string | null;     // PT rows: ψ (W/m.K)
+  b: string | null;
+  surface: string | null; // standard rows: surface m²
+  longueur: string | null;// PT rows: longueur m
+  orie: string | null;
+  deperd: string | null;  // W/°C
+  ref: string | null;
+  kind: "mur_ext" | "vitrage" | "porte" | "pont_thermique" | "autre";
+}
+
 interface UbatData {
   coefficient: number | null;
   ht: number | null;
@@ -190,6 +205,8 @@ interface UbatData {
   portes: number | null;
   pontsThermiques: number | null;
   autresParois: number | null;
+  // Individual rows for detailed table
+  paroisRows: UbatParoisRow[];
 }
 
 const ORIENTATIONS = new Set(["Nord", "Sud", "Est", "Oue", "Int.", "Hori."]);
@@ -230,9 +247,10 @@ function parseUbatSection(text: string): UbatData {
     gv:          gvM   ? parseNum(gvM[1])   : null,
     deperditionsTotalesKw: depTM ? parseNum(depTM[1]) : null,
     mursExt: null, vitrages: null, portes: null, pontsThermiques: null, autresParois: null,
+    paroisRows: [],
   };
 
-  // ── Row-level totals by element type ──
+  // ── Row-level parsing (totals + individual rows) ──
   const lines = section.split("\n").map(l => l.trim()).filter(l => l.length > 0);
 
   // Find where table data starts (after header row "Désignation")
@@ -241,6 +259,8 @@ function parseUbatSection(text: string): UbatData {
 
   let mursExt = 0, vitrages = 0, portes = 0, pontsTh = 0, autresParois = 0;
   let gotMurs = false, gotVitrages = false, gotPortes = false, gotPT = false, gotAutres = false;
+
+  const paroisRows: UbatParoisRow[] = [];
 
   let i = headerIdx + 1;
   while (i < lines.length) {
@@ -256,6 +276,7 @@ function parseUbatSection(text: string): UbatData {
     const isAutre     = /^(mur\s+int|plafond|plancher|dalle|paroi)/i.test(line);
 
     if (isMurExt || isVitrage || isPorte || isPT || isAutre) {
+      const designation = line;
       // Collect block until next element or stop
       i++;
       const block: string[] = [];
@@ -267,25 +288,58 @@ function parseUbatSection(text: string): UbatData {
         i++;
       }
 
-      let deperd: number | null = null;
-      if (isPT) {
-        // PT row: code, ψ, b, longueur, [gap?], déperd — take last decimal number
-        const nums = block.filter(v => /^[\d\s]+[,.]?\d*$/.test(v) && v.replace(/\s/g, "").length > 0);
-        if (nums.length >= 2) deperd = parseNum(nums[nums.length - 1]);
-      } else {
-        // Standard row: find orientation keyword, next value is déperd
-        const orieIdx = block.findIndex(v => ORIENTATIONS.has(v));
-        if (orieIdx >= 0 && orieIdx + 1 < block.length) {
-          deperd = parseNum(block[orieIdx + 1]);
+      // ── Build structured row ──
+      const kind: UbatParoisRow["kind"] =
+        isMurExt  ? "mur_ext"          :
+        isVitrage ? "vitrage"          :
+        isPorte   ? "porte"            :
+        isPT      ? "pont_thermique"   : "autre";
+
+      const row: UbatParoisRow = {
+        designation, code: null, nb: null, u: null, psi: null,
+        b: null, surface: null, longueur: null, orie: null, deperd: null, ref: null, kind,
+      };
+
+      if (block.length > 0) {
+        row.code = block[0];
+        if (isPT) {
+          // PT: code, ψ, b, longueur, deperd, [ref]
+          if (block.length > 1) row.psi = block[1];
+          if (block.length > 2) row.b = block[2];
+          if (block.length > 3) row.longueur = block[3];
+          if (block.length > 4) row.deperd = block[4];
+          if (block.length > 5 && /^[A-Z]/i.test(block[5])) row.ref = block[5];
+        } else {
+          // Standard: code, [Nb(int)], U, b, surface, Orie, deperd, [ref]
+          let offset = 1;
+          if (block.length > 1 && /^\d+$/.test(block[1])) {
+            row.nb = block[1];
+            offset = 2;
+          }
+          if (block.length > offset)     row.u       = block[offset];
+          if (block.length > offset + 1) row.b       = block[offset + 1];
+          if (block.length > offset + 2) row.surface = block[offset + 2];
+          const orieIdx = block.findIndex(v => ORIENTATIONS.has(v));
+          if (orieIdx >= 0) {
+            row.orie = block[orieIdx];
+            if (orieIdx + 1 < block.length) row.deperd = block[orieIdx + 1];
+            if (orieIdx + 2 < block.length && /^[A-Za-z]/.test(block[orieIdx + 2])) {
+              row.ref = block[orieIdx + 2];
+            }
+          }
         }
       }
 
-      if (deperd !== null) {
-        if (isMurExt)  { mursExt    += deperd; gotMurs     = true; }
-        if (isVitrage) { vitrages   += deperd; gotVitrages = true; }
-        if (isPorte)   { portes     += deperd; gotPortes   = true; }
-        if (isPT)      { pontsTh    += deperd; gotPT       = true; }
-        if (isAutre)   { autresParois += deperd; gotAutres = true; }
+      paroisRows.push(row);
+
+      // ── Accumulate totals ──
+      const deperdNum = row.deperd ? parseNum(row.deperd) : null;
+      if (deperdNum !== null) {
+        if (isMurExt)  { mursExt      += deperdNum; gotMurs     = true; }
+        if (isVitrage) { vitrages     += deperdNum; gotVitrages = true; }
+        if (isPorte)   { portes       += deperdNum; gotPortes   = true; }
+        if (isPT)      { pontsTh      += deperdNum; gotPT       = true; }
+        if (isAutre)   { autresParois += deperdNum; gotAutres   = true; }
       }
     } else {
       i++;
@@ -298,6 +352,7 @@ function parseUbatSection(text: string): UbatData {
   if (gotPortes)   result.portes          = rnd(portes);
   if (gotPT)       result.pontsThermiques = rnd(pontsTh);
   if (gotAutres)   result.autresParois    = rnd(autresParois);
+  result.paroisRows = paroisRows;
 
   return result;
 }
@@ -1193,6 +1248,7 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
     recommendations,
     rawFields,
     metadata,
+    ubatParoisData: ubat.paroisRows.length > 0 ? ubat.paroisRows : null,
   };
 }
 

@@ -80,6 +80,7 @@ router.post(
 
       const visitReportData = (extracted as { visitReportData?: unknown }).visitReportData ?? null;
       const sectionCharacteristics = (extracted as { sectionCharacteristics?: unknown }).sectionCharacteristics ?? null;
+      const ubatParoisData = (extracted as { ubatParoisData?: unknown }).ubatParoisData ?? null;
 
       const [inserted] = await db
         .insert(auditReportsTable)
@@ -134,6 +135,7 @@ router.post(
           metadata: extracted.metadata ?? null,
           sectionCharacteristics: sectionCharacteristics as typeof auditReportsTable.$inferInsert["sectionCharacteristics"],
           visitReportData: visitReportData as typeof auditReportsTable.$inferInsert["visitReportData"],
+          ubatParoisData: ubatParoisData as typeof auditReportsTable.$inferInsert["ubatParoisData"],
         })
         .returning();
 
@@ -325,6 +327,7 @@ function mapToApiReport(r: typeof auditReportsTable.$inferSelect) {
     sectionCharacteristics: r.sectionCharacteristics ?? {},
     metadata: r.metadata ?? null,
     visitReportData: r.visitReportData ?? null,
+    ubatParoisData: r.ubatParoisData ?? null,
   };
 }
 

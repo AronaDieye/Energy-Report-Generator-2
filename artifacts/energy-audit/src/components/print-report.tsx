@@ -228,6 +228,21 @@ interface BaoMetadata {
   scenarios?: BaoScenarioMeta[];
 }
 
+interface UbatParoisRow {
+  designation: string;
+  code: string | null;
+  nb: string | null;
+  u: string | null;
+  psi: string | null;
+  b: string | null;
+  surface: string | null;
+  longueur: string | null;
+  orie: string | null;
+  deperd: string | null;
+  ref: string | null;
+  kind: "mur_ext" | "vitrage" | "porte" | "pont_thermique" | "autre";
+}
+
 interface ReportData {
   id: number;
   fileName: string;
@@ -253,6 +268,7 @@ interface ReportData {
   rawFields: RawField[];
   sectionCharacteristics?: Record<string, string> | null;
   metadata?: BaoMetadata | null;
+  ubatParoisData?: UbatParoisRow[] | null;
 }
 
 export function PrintReport({ report, mode = "print" }: { report: ReportData; mode?: "print" | "preview" }) {
@@ -976,28 +992,103 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           </div>
         )}
 
-        {/* UBAT — bilan thermique */}
+        {/* — Bilan thermique UBAT — tableau récapitulatif + tableau détaillé parois — */}
         {ubatRows.length > 0 && (
           <>
             <SectionTitle num="3b" title="Bilan thermique — UBAT" subtitle="Déperditions de l'enveloppe — état initial" />
-            <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16, fontSize: 10 }}>
-              <thead>
-                <tr style={{ background: "#4338ca", color: "#fff" }}>
-                  <th style={{ ...thStyle, textAlign: "left", width: "60%" }}>Indicateur</th>
-                  <th style={{ ...thStyle, textAlign: "right" }}>Valeur</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ubatRows.map(({ label, key }, i) => (
-                  <tr key={key} style={i % 2 === 0 ? rowEven : rowOdd}>
-                    <td style={{ ...tdLeft, fontWeight: i === 0 ? 700 : 400, color: i === 0 ? "#4338ca" : "#374151" }}>{label}</td>
-                    <td style={{ ...td, fontWeight: i === 0 ? 700 : 600, color: i === 0 ? "#4338ca" : "#1e293b", textAlign: "right" }}>
-                      {getRaw(rawFields, key)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {/* Summary KPI row */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+              {ubatRows.map(({ label, key }) => {
+                const val = getRaw(rawFields, key);
+                if (!val) return null;
+                return (
+                  <div key={key} style={{
+                    flex: "1 1 120px", background: "#f0f4ff", border: "1px solid #c7d2fe",
+                    borderRadius: 6, padding: "5px 8px", textAlign: "center",
+                  }}>
+                    <div style={{ fontSize: 7.5, color: "#6366f1", fontWeight: 600, marginBottom: 2 }}>{label}</div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: "#1e293b" }}>{val}</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Detailed parois table */}
+            {report.ubatParoisData && report.ubatParoisData.length > 0 && (() => {
+              const rows = report.ubatParoisData!;
+              const kindColor: Record<string, string> = {
+                mur_ext: "#1e40af", vitrage: "#0891b2", porte: "#7c3aed",
+                pont_thermique: "#b45309", autre: "#047857",
+              };
+              const isSubItem = (r: UbatParoisRow) => r.kind === "vitrage" || r.kind === "porte";
+
+              // Calculate HT total from rows
+              const htTotal = rows.reduce((acc, r) => {
+                const n = r.deperd ? parseFloat(r.deperd.replace(/\s/g, "").replace(",", ".")) : 0;
+                return acc + (isNaN(n) ? 0 : n);
+              }, 0);
+
+              return (
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 8, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+                    Détail des parois — Calcul UBAT
+                  </div>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 8 }}>
+                    <thead>
+                      <tr style={{ background: "#1e293b", color: "#fff" }}>
+                        <th style={{ padding: "3px 4px", textAlign: "left", fontWeight: 700 }}>Désignation</th>
+                        <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 44 }}>Code</th>
+                        <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 20 }}>Nb</th>
+                        <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 42 }}>U / ψ</th>
+                        <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 28 }}>b</th>
+                        <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 46 }}>Surf./Long.</th>
+                        <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 28 }}>Orie</th>
+                        <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 54 }}>Déperd. W/°C</th>
+                        <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 26 }}>Réf.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r, idx) => {
+                        const sub = isSubItem(r);
+                        const color = kindColor[r.kind] ?? "#374151";
+                        const bg = idx % 2 === 0 ? "#f8fafc" : "#fff";
+                        return (
+                          <tr key={idx} style={{ background: sub ? "#fafafa" : bg }}>
+                            <td style={{
+                              padding: "2px 4px", paddingLeft: sub ? 14 : 4,
+                              fontWeight: sub ? 400 : 600,
+                              color: sub ? "#64748b" : color,
+                              borderLeft: sub ? `2px solid ${color}33` : `3px solid ${color}`,
+                            }}>
+                              {r.designation}
+                            </td>
+                            <td style={{ padding: "2px 4px", textAlign: "center", color: "#374151", fontFamily: "monospace" }}>{r.code ?? ""}</td>
+                            <td style={{ padding: "2px 4px", textAlign: "center", color: "#64748b" }}>{r.nb ?? ""}</td>
+                            <td style={{ padding: "2px 4px", textAlign: "right", color: "#374151" }}>
+                              {r.kind === "pont_thermique" ? (r.psi ?? "") : (r.u ?? "")}
+                            </td>
+                            <td style={{ padding: "2px 4px", textAlign: "right", color: "#64748b" }}>{r.b ?? ""}</td>
+                            <td style={{ padding: "2px 4px", textAlign: "right", color: "#374151" }}>
+                              {r.kind === "pont_thermique" ? (r.longueur ?? "") : (r.surface ?? "")}
+                            </td>
+                            <td style={{ padding: "2px 4px", textAlign: "center", color: "#64748b", fontStyle: "italic" }}>{r.orie ?? ""}</td>
+                            <td style={{ padding: "2px 4px", textAlign: "right", fontWeight: 700, color: "#1e293b" }}>{r.deperd ?? ""}</td>
+                            <td style={{ padding: "2px 4px", textAlign: "center", color: "#94a3b8", fontSize: 7 }}>{r.ref ?? ""}</td>
+                          </tr>
+                        );
+                      })}
+                      {/* HT total row */}
+                      <tr style={{ background: "#1e293b", color: "#fff" }}>
+                        <td colSpan={6} style={{ padding: "3px 4px", fontWeight: 700, textAlign: "right", fontSize: 9 }}>HT =</td>
+                        <td colSpan={3} style={{ padding: "3px 4px", fontWeight: 800, textAlign: "right", fontSize: 10 }}>
+                          {htTotal.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} W/°C
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
           </>
         )}
 
