@@ -429,7 +429,12 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
     const primRaw = rawFields.find((f) => f.key === `${prefix} - Énergie primaire`)?.value ?? null;
     const kwhAn = parseVal(finalRaw);
     const kwhEP = parseVal(primRaw);
-    return { poste, prefix, label: prefix, source, kwhAn, kwhEP, finalRaw, primRaw };
+    const srcNames = source ? source.split(", ").filter(Boolean) : [];
+    const sourceBreakdown = srcNames.map(s => ({
+      name: s,
+      kwhAn: parseVal(rawFields.find(f => f.key === `${prefix} - ${s} - Énergie finale`)?.value ?? null),
+    }));
+    return { poste, prefix, label: prefix, source, kwhAn, kwhEP, finalRaw, primRaw, sourceBreakdown };
   }).filter((r) => r.finalRaw !== null || r.primRaw !== null);
 
   // UBAT rows
@@ -879,11 +884,24 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         {consumPostes.length > 0 && (() => {
           const totalFinale = consumPostes.reduce((sum, p) => sum + (p.kwhAn ?? 0), 0);
           const scColors2 = ["#16a34a", "#2563eb", "#7c3aed", "#dc2626", "#ea580c"];
-          const thSc: React.CSSProperties = { padding: "4px 8px", textAlign: "center", fontWeight: 700, fontSize: 10, color: "#fff", borderBottom: "1px solid #e2e8f0" };
-          const tdCat: React.CSSProperties = { padding: "5px 8px", fontWeight: 700, fontSize: 9, color: "#1e3a5f", textTransform: "uppercase" as const, letterSpacing: 0.5 };
-          const tdSrc: React.CSSProperties = { padding: "2px 8px 5px 20px", fontSize: 9, color: "#64748b" };
-          const tdVal: React.CSSProperties = { padding: "4px 8px", textAlign: "center" as const, fontSize: 9, fontFamily: "monospace" };
-          const tdTotal: React.CSSProperties = { padding: "5px 8px", fontWeight: 700, fontSize: 9, textTransform: "uppercase" as const, color: "#0f172a" };
+
+          type ScSrcEntry = { name: string | null; kwhAn: number | null };
+          const getScEntries = (code: string, prefix: string): ScSrcEntry[] => {
+            const srcRaw = getScVal(rawFields, code, `${prefix} - Source d'énergie`);
+            const totalVal = parseVal(getScVal(rawFields, code, `${prefix} - Énergie finale`));
+            if (srcRaw) {
+              const srcs = srcRaw.split(", ").filter(Boolean);
+              const entries = srcs.map(s => ({ name: s, kwhAn: parseVal(getScVal(rawFields, code, `${prefix} - ${s} - Énergie finale`)) }));
+              if (entries.some(e => e.kwhAn !== null)) return entries;
+              return [{ name: srcRaw, kwhAn: totalVal }];
+            }
+            if (totalVal !== null) return [{ name: null, kwhAn: totalVal }];
+            return [];
+          };
+
+          const thBase: React.CSSProperties = { padding: "4px 6px", textAlign: "center" as const, fontWeight: 700, fontSize: 9, color: "#fff", border: "1px solid #cbd5e1" };
+          const tdBase: React.CSSProperties = { padding: "3px 6px", fontSize: 9, border: "1px solid #e2e8f0", verticalAlign: "middle" as const };
+
           return (
             <div style={{ marginTop: 16, border: "1px solid #e2e8f0", borderRadius: 4, overflow: "hidden" }}>
               <div style={{ background: "#1e3a5f", color: "#fff", padding: "6px 12px", fontSize: 10, fontWeight: 700 }}>
@@ -891,57 +909,74 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
               </div>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ background: "#f1f5f9" }}>
-                    <th style={{ ...thSc, textAlign: "left", color: "#475569", background: "#f1f5f9" }}>Poste / Source d'énergie</th>
-                    <th style={{ ...thSc, background: "#374151" }}>État initial</th>
+                  <tr>
+                    <th style={{ ...thBase, textAlign: "left" as const, color: "#475569", background: "#e2e8f0" }} rowSpan={2}>Usage</th>
+                    <th style={{ ...thBase, background: "#374151" }} colSpan={2}>État initial</th>
                     {scData.map((sc, i) => (
-                      <th key={sc.code} style={{ ...thSc, background: scColors2[i] ?? "#374151" }}>{sc.code}</th>
+                      <th key={sc.code} style={{ ...thBase, background: scColors2[i] ?? "#374151" }} colSpan={2}>{sc.code}</th>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th style={{ ...thBase, background: "#4b5563", fontWeight: 400 }}>Énergie</th>
+                    <th style={{ ...thBase, background: "#6b7280", fontWeight: 400 }}>Conso. [kWh/an]</th>
+                    {scData.map((sc, i) => (
+                      <React.Fragment key={sc.code}>
+                        <th style={{ ...thBase, background: scColors2[i] ?? "#374151", fontWeight: 400, opacity: 0.9 }}>Énergie</th>
+                        <th style={{ ...thBase, background: scColors2[i] ?? "#374151", fontWeight: 400, opacity: 0.75 }}>Conso. [kWh/an]</th>
+                      </React.Fragment>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {consumPostes.map((p, idx) => (
-                    <React.Fragment key={p.poste}>
-                      <tr style={{ background: idx % 2 === 0 ? "#f8fafc" : "#fff" }}>
-                        <td style={tdCat}>{p.poste}</td>
-                        <td style={{ ...tdVal, fontWeight: 700, color: "#1e293b", background: "#f1f5f9" }}>
-                          {p.kwhAn !== null ? p.kwhAn.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) : "—"}
+                  {consumPostes.map((p, pIdx) => {
+                    const initEntries: ScSrcEntry[] = p.sourceBreakdown.some(s => s.kwhAn !== null)
+                      ? p.sourceBreakdown
+                      : p.kwhAn !== null ? [{ name: p.source, kwhAn: p.kwhAn }] : [];
+                    const scEntriesArr = scData.map(sc => getScEntries(sc.code, p.prefix));
+                    const maxR = Math.max(initEntries.length, ...scEntriesArr.map(e => e.length), 1);
+                    const rowBg = pIdx % 2 === 0 ? "#f8fafc" : "#fff";
+                    return Array.from({ length: maxR }, (_, rIdx) => (
+                      <tr key={`${p.poste}-${rIdx}`} style={{ background: rowBg }}>
+                        {rIdx === 0 && (
+                          <td style={{ ...tdBase, fontWeight: 700, fontSize: 9, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: 0.5, background: "#f1f5f9" }} rowSpan={maxR}>
+                            {p.poste}
+                          </td>
+                        )}
+                        <td style={{ ...tdBase, fontStyle: "italic", color: "#475569" }}>{initEntries[rIdx]?.name ?? ""}</td>
+                        <td style={{ ...tdBase, textAlign: "center", fontWeight: 700, fontFamily: "monospace", color: "#1e293b", background: "#f1f5f9" }}>
+                          {initEntries[rIdx]?.kwhAn != null ? initEntries[rIdx].kwhAn!.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) : (rIdx === 0 && initEntries.length === 0 ? "—" : "")}
                         </td>
-                        {scData.map((sc, i) => {
-                          const scFinale = getScVal(rawFields, sc.code, `${p.prefix} - Énergie finale`);
-                          const scVal = parseVal(scFinale);
-                          return (
-                            <td key={sc.code} style={{ ...tdVal, fontWeight: scVal !== null ? 700 : 400, color: scColors2[i] ?? "#374151", background: idx % 2 === 0 ? `${scColors2[i]}08` : "#fff" }}>
-                              {scVal !== null ? scVal.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " kWh" : "—"}
+                        {scData.map((sc, sIdx) => (
+                          <React.Fragment key={sc.code}>
+                            <td style={{ ...tdBase, fontStyle: "italic", color: scColors2[sIdx] ?? "#374151", background: rIdx % 2 === 0 ? `${scColors2[sIdx]}08` : "#fff" }}>
+                              {scEntriesArr[sIdx]?.[rIdx]?.name ?? ""}
                             </td>
-                          );
-                        })}
+                            <td style={{ ...tdBase, textAlign: "center", fontWeight: 700, fontFamily: "monospace", color: scColors2[sIdx] ?? "#374151", background: rIdx % 2 === 0 ? `${scColors2[sIdx]}08` : "#fff" }}>
+                              {scEntriesArr[sIdx]?.[rIdx]?.kwhAn != null ? scEntriesArr[sIdx][rIdx].kwhAn!.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) : (rIdx === 0 && (scEntriesArr[sIdx]?.length ?? 0) === 0 ? "—" : "")}
+                            </td>
+                          </React.Fragment>
+                        ))}
                       </tr>
-                      {p.source && (
-                        <tr style={{ background: idx % 2 === 0 ? "#f8fafc" : "#fff" }}>
-                          <td style={tdSrc}>↳ {p.source}</td>
-                          <td style={{ ...tdVal, fontSize: 8, color: "#64748b", background: "#f1f5f9" }}></td>
-                          {scData.map((sc) => <td key={sc.code} style={{ ...tdVal }}></td>)}
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
+                    ));
+                  })}
                   {totalFinale > 0 && (
                     <tr style={{ background: "#e2e8f0", borderTop: "2px solid #94a3b8" }}>
-                      <td style={tdTotal}>TOTAL</td>
-                      <td style={{ ...tdVal, fontWeight: 700, color: "#0f172a", background: "#cbd5e1" }}>
+                      <td style={{ ...tdBase, fontWeight: 700, fontSize: 9, textTransform: "uppercase" as const, color: "#0f172a", background: "#cbd5e1" }}>TOTAL</td>
+                      <td style={{ ...tdBase, background: "#cbd5e1" }}></td>
+                      <td style={{ ...tdBase, textAlign: "center", fontWeight: 700, fontFamily: "monospace", color: "#0f172a", background: "#cbd5e1" }}>
                         {totalFinale.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh
                       </td>
                       {scData.map((sc, i) => {
                         const scCefKwhAn = parseVal(getScVal(rawFields, sc.code, "CEF kWh/an"));
                         return (
-                          <td key={sc.code} style={{ ...tdVal, fontWeight: 700, color: scColors2[i] ?? "#374151", fontSize: 8 }}>
-                            {scCefKwhAn !== null
-                              ? `${scCefKwhAn.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh`
-                              : sc.cef !== null
-                              ? `${fmtNum(sc.cef, 1)} kWhEF/m².an`
-                              : "—"}
-                          </td>
+                          <React.Fragment key={sc.code}>
+                            <td style={{ ...tdBase, background: "#e2e8f0" }}></td>
+                            <td style={{ ...tdBase, textAlign: "center", fontWeight: 700, fontFamily: "monospace", color: scColors2[i] ?? "#374151", fontSize: 8 }}>
+                              {scCefKwhAn !== null
+                                ? `${scCefKwhAn.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh`
+                                : sc.cef !== null ? `${fmtNum(sc.cef, 1)} kWhEF/m².an` : "—"}
+                            </td>
+                          </React.Fragment>
                         );
                       })}
                     </tr>

@@ -364,6 +364,7 @@ interface ConsumptionPost {
   primaryKwhEpM2: number | null;
   costEuros: number | null;
   energySource: string | null;
+  sourceBreakdown: Array<{ name: string; finalKwhAn: number }>;
 }
 
 interface ConsumptionTable {
@@ -420,6 +421,7 @@ function parseConsumptionTableFromText(text: string): Record<string, Consumption
     if (postKey) {
       i++;
       const sources: string[] = [];
+      const sourceBreakdown: Array<{ name: string; finalKwhAn: number }> = [];
       let totalFinalKwhAn = 0;
       let hasFinal = false;
       let firstPrimaryKwhEpM2: number | null = null;
@@ -462,7 +464,11 @@ function parseConsumptionTableFromText(text: string): Record<string, Consumption
               break;
             }
           }
-          if (srcNums.length > 0) { totalFinalKwhAn += srcNums[0]; hasFinal = true; }
+          if (srcNums.length > 0) {
+            totalFinalKwhAn += srcNums[0];
+            hasFinal = true;
+            sourceBreakdown.push({ name: curRaw, finalKwhAn: srcNums[0] });
+          }
           if (srcNums.length > 1 && firstPrimaryKwhEpM2 === null) firstPrimaryKwhEpM2 = srcNums[1];
           if (srcNums.length > 2) totalCost += srcNums[2];
 
@@ -483,6 +489,7 @@ function parseConsumptionTableFromText(text: string): Record<string, Consumption
         primaryKwhEpM2: firstPrimaryKwhEpM2,
         costEuros: totalCost > 0 ? totalCost : null,
         energySource: sources.length > 0 ? sources.join(", ") : null,
+        sourceBreakdown,
       };
     } else {
       if (isStopLine(lineRaw)) break;
@@ -497,7 +504,7 @@ function parseEtatInitialSection(text: string): ConsumptionTable | null {
   if (!match) return null;
   const result = parseConsumptionTableFromText(match[0]);
   if (!result["CHAUFFAGE"]) return null;
-  const empty = { finalKwhAn: null, primaryKwhEpM2: null, costEuros: null, energySource: null };
+  const empty: ConsumptionPost = { finalKwhAn: null, primaryKwhEpM2: null, costEuros: null, energySource: null, sourceBreakdown: [] };
   return {
     CHAUFFAGE: result["CHAUFFAGE"] || empty,
     REFROIDISSEMENT: result["REFROIDISSEMENT"] || empty,
@@ -1135,6 +1142,10 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
       if (post.finalKwhAn !== null) addField(`${label} - Énergie finale`, post.finalKwhAn.toLocaleString("fr-FR") + " kWh/an", "CONSOMMATIONS");
       if (post.primaryKwhEpM2 !== null) addField(`${label} - Énergie primaire`, post.primaryKwhEpM2.toLocaleString("fr-FR") + " kWhEP/m²/an", "CONSOMMATIONS");
       if (post.costEuros !== null) addField(`${label} - Coût`, post.costEuros.toLocaleString("fr-FR") + " €/an", "CONSOMMATIONS");
+      // Per-source breakdown for initial state
+      for (const src of post.sourceBreakdown) {
+        addField(`${label} - ${src.name} - Énergie finale`, src.finalKwhAn.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " kWh/an", "CONSOMMATIONS");
+      }
     }
   }
 
@@ -1218,6 +1229,10 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
       const post = sc.usageConsumption[postKey];
       if (post && post.finalKwhAn !== null) {
         addField(`${scSection} - ${label} - Énergie finale`, post.finalKwhAn.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " kWh/an", scSection);
+        if (post.energySource) addField(`${scSection} - ${label} - Source d'énergie`, post.energySource, scSection);
+        for (const src of post.sourceBreakdown) {
+          addField(`${scSection} - ${label} - ${src.name} - Énergie finale`, src.finalKwhAn.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " kWh/an", scSection);
+        }
       }
     }
   }

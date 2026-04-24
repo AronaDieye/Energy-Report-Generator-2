@@ -375,76 +375,122 @@ function SyntheseGlobale({
             { key: "Auxiliaires", label: "AUXILIAIRES" },
           ];
           const getF = (k: string) => rawFields.find((f) => f.key === k)?.value ?? null;
-          const hasAny = postes.some((p) => getF(`${p.key} - Énergie finale`) !== null);
-          if (!hasAny) return null;
 
-          const totalFinale = postes.reduce((sum, p) => {
+          type SrcEntry = { name: string | null; value: number | null };
+          const getStateEntries = (prefix: string, scCode?: string): SrcEntry[] => {
+            const pfx = scCode ? `SCÉNARIO ${scCode} - ${prefix}` : prefix;
+            const srcRaw = getF(`${pfx} - Source d'énergie`);
+            const totalVal = parseVal(getF(`${pfx} - Énergie finale`));
+            if (srcRaw) {
+              const srcs = srcRaw.split(", ").filter(Boolean);
+              const entries = srcs.map(s => ({ name: s, value: parseVal(getF(`${pfx} - ${s} - Énergie finale`)) }));
+              if (entries.some(e => e.value !== null)) return entries;
+              return [{ name: srcRaw, value: totalVal }];
+            }
+            if (totalVal !== null) return [{ name: null, value: totalVal }];
+            return [];
+          };
+
+          const posteData = postes.map(({ key, label }) => {
+            const initEntries = getStateEntries(key);
+            const scEntries = rows.map(({ code }) => getStateEntries(key, code));
+            const hasAny = initEntries.length > 0 || scEntries.some(e => e.length > 0);
+            const maxRows = Math.max(initEntries.length, ...scEntries.map(e => e.length), 1);
+            return { key, label, initEntries, scEntries, hasAny, maxRows };
+          }).filter(p => p.hasAny);
+
+          if (posteData.length === 0) return null;
+
+          const totalFinale = posteData.reduce((sum, p) => {
             const v = parseVal(getF(`${p.key} - Énergie finale`));
             return v !== null ? sum + v : sum;
           }, 0);
+
+          const th = "py-1 px-2 text-center text-xs font-semibold border border-slate-300";
+          const td = "py-1.5 px-2 text-xs border border-slate-200";
 
           return (
             <div className="border-t mt-0">
               <div className="bg-slate-800 text-white px-4 py-2 text-sm font-semibold flex items-center gap-2">
                 <span>⚡</span> Détail des consommations par usage — Énergie finale (kWh/an)
               </div>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/20">
-                    <th className="text-left py-2 px-4 font-medium text-muted-foreground min-w-[180px]">Poste / Source d'énergie</th>
-                    <th className="py-2 px-4 text-center font-semibold bg-slate-700 text-white min-w-[130px]">État initial</th>
-                    {rows.map(({ code, i }) => (
-                      <th key={code} className={`py-2 px-4 text-center font-semibold text-white min-w-[120px] ${scHeaderColors[i] || "bg-slate-600"}`}>{code}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {postes.map(({ key, label }) => {
-                    const finale = getF(`${key} - Énergie finale`);
-                    const source = getF(`${key} - Source d'énergie`);
-                    if (finale === null && source === null) return null;
-                    return (
-                      <tr key={key} className="border-b hover:bg-muted/10">
-                        <td className="py-2 px-4">
-                          <div className="font-semibold text-slate-800 text-xs uppercase tracking-wide">{label}</div>
-                          {source && <div className="text-xs text-muted-foreground mt-0.5 pl-1">↳ {source}</div>}
-                        </td>
-                        <td className="py-2 px-4 text-center font-mono font-bold text-slate-800 bg-slate-50">
-                          {finale ? parseVal(finale)?.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " kWh" : "—"}
-                        </td>
-                        {rows.map(({ code, i: ri }) => {
-                          const scFinale = getF(`SCÉNARIO ${code} - ${key} - Énergie finale`);
-                          const scVal = scFinale ? parseVal(scFinale) : null;
-                          return (
-                            <td key={code} className={`py-2 px-4 text-center font-mono text-xs ${scColors[ri] || ""}`}>
-                              {scVal !== null ? (
-                                <span className={scTextColors[ri] || ""}>{scVal.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh</span>
-                              ) : <span className="text-muted-foreground">—</span>}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                  {totalFinale > 0 && (
-                    <tr className="bg-slate-100 font-bold border-t-2 border-slate-300">
-                      <td className="py-2 px-4 text-slate-900 uppercase text-xs tracking-wide">TOTAL</td>
-                      <td className="py-2 px-4 text-center font-mono text-slate-900">
-                        {totalFinale.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh
-                      </td>
-                      {rows.map(({ code, cef, cefKwhAn, i }) => (
-                        <td key={code} className={`py-2 px-4 text-center font-mono text-xs ${scColors[i] || ""}`}>
-                          {cefKwhAn !== null ? (
-                            <span className={scTextColors[i] || ""}>{cefKwhAn.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh</span>
-                          ) : cef !== null ? (
-                            <span className={scTextColors[i] || ""}>{cef.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kWhEF/m².an</span>
-                          ) : "—"}
-                        </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr>
+                      <th className={`${th} text-left bg-slate-200 text-slate-700`} rowSpan={2}>Usage</th>
+                      <th className={`${th} bg-slate-700 text-white`} colSpan={2}>État initial</th>
+                      {rows.map(({ code, i: ri }) => (
+                        <th key={code} className={`${th} text-white ${scHeaderColors[ri] || "bg-slate-600"}`} colSpan={2}>{code}</th>
                       ))}
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                    <tr>
+                      <th className={`${th} bg-slate-600 text-white font-normal text-[10px]`}>Énergie</th>
+                      <th className={`${th} bg-slate-500 text-white font-normal text-[10px]`}>Consommation [kWh/an]</th>
+                      {rows.map(({ code, i: ri }) => (
+                        <React.Fragment key={code}>
+                          <th className={`${th} text-white font-normal text-[10px] opacity-90 ${scHeaderColors[ri] || "bg-slate-600"}`}>Énergie</th>
+                          <th className={`${th} text-white font-normal text-[10px] opacity-75 ${scHeaderColors[ri] || "bg-slate-600"}`}>Consommation [kWh/an]</th>
+                        </React.Fragment>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {posteData.map(({ key, label, initEntries, scEntries, maxRows }, pIdx) =>
+                      Array.from({ length: maxRows }, (_, rowIdx) => (
+                        <tr key={`${key}-${rowIdx}`} className={pIdx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
+                          {rowIdx === 0 && (
+                            <td className={`${td} font-bold uppercase tracking-wide text-slate-800 bg-slate-100`} rowSpan={maxRows}>
+                              {label}
+                            </td>
+                          )}
+                          <td className={`${td} text-slate-600 italic`}>{initEntries[rowIdx]?.name ?? ""}</td>
+                          <td className={`${td} text-center font-mono font-bold text-slate-800 bg-slate-50`}>
+                            {initEntries[rowIdx]?.value != null
+                              ? initEntries[rowIdx].value!.toLocaleString("fr-FR", { maximumFractionDigits: 0 })
+                              : rowIdx === 0 && initEntries.length === 0 ? "—" : ""}
+                          </td>
+                          {rows.map(({ code, i: ri }, sIdx) => (
+                            <React.Fragment key={code}>
+                              <td className={`${td} italic ${scColors[ri] || ""}`}>
+                                {scEntries[sIdx]?.[rowIdx]?.name ?? ""}
+                              </td>
+                              <td className={`${td} text-center font-mono font-bold ${scColors[ri] || ""}`}>
+                                <span className={scTextColors[ri] || ""}>
+                                  {scEntries[sIdx]?.[rowIdx]?.value != null
+                                    ? scEntries[sIdx][rowIdx].value!.toLocaleString("fr-FR", { maximumFractionDigits: 0 })
+                                    : rowIdx === 0 && (scEntries[sIdx]?.length ?? 0) === 0 ? "—" : ""}
+                                </span>
+                              </td>
+                            </React.Fragment>
+                          ))}
+                        </tr>
+                      ))
+                    )}
+                    {totalFinale > 0 && (
+                      <tr className="bg-slate-200 font-bold border-t-2 border-slate-400">
+                        <td className={`${td} text-slate-900 uppercase tracking-wide font-bold bg-slate-200`}>TOTAL</td>
+                        <td className={`${td} bg-slate-200`}></td>
+                        <td className={`${td} text-center font-mono text-slate-900 bg-slate-200`}>
+                          {totalFinale.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh
+                        </td>
+                        {rows.map(({ code, cef, cefKwhAn, i: ri }) => (
+                          <React.Fragment key={code}>
+                            <td className={`${td} ${scColors[ri] || ""} bg-opacity-50`}></td>
+                            <td className={`${td} text-center font-mono ${scColors[ri] || ""}`}>
+                              {cefKwhAn !== null ? (
+                                <span className={scTextColors[ri] || ""}>{cefKwhAn.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh</span>
+                              ) : cef !== null ? (
+                                <span className={scTextColors[ri] || ""}>{cef.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kWhEF/m².an</span>
+                              ) : "—"}
+                            </td>
+                          </React.Fragment>
+                        ))}
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           );
         })()}
