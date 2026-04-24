@@ -270,7 +270,7 @@ function SyntheseGlobale({
             {rows.some(r => r.gainCep !== null) && (
               <tr className="border-b">
                 <td className="py-3 px-4 text-muted-foreground">
-                  <div className="font-medium">Gains en CEP</div>
+                  <div className="font-medium">Gain Énergétique</div>
                   <div className="text-xs text-muted-foreground/70">kWhEP/m².an économisés</div>
                 </td>
                 <td className="py-3 px-4 text-center text-muted-foreground bg-slate-50">—</td>
@@ -288,7 +288,7 @@ function SyntheseGlobale({
             {rows.some(r => r.gainPct !== null) && (
               <tr className="border-b">
                 <td className="py-3 px-4 text-muted-foreground">
-                  <div className="font-medium">Gain en CEP (%)</div>
+                  <div className="font-medium">Gain Énergétique (%)</div>
                   <div className="text-xs text-muted-foreground/70">% de réduction du CEP Th-C-E</div>
                 </td>
                 <td className="py-3 px-4 text-center text-muted-foreground bg-slate-50">—</td>

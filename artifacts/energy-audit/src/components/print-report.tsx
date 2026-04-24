@@ -808,7 +808,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
             {/* Gain énergétique CEP (absolu) */}
             {scData.some((sc) => sc.thce !== null) && thceInitial !== null && (
               <tr style={rowOdd}>
-                <td style={tdLeft}>Gains en CEP<br /><span style={{ color: "#94a3b8", fontSize: 9 }}>kWhEP/m².an économisés</span></td>
+                <td style={tdLeft}>Gain Énergétique<br /><span style={{ color: "#94a3b8", fontSize: 9 }}>kWhEP/m².an économisés</span></td>
                 <td style={td}>—</td>
                 {scData.map((sc) => (
                   <td key={sc.code} style={{ ...td, color: "#16a34a", fontWeight: 700 }}>
@@ -822,7 +822,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
             {/* Gain en CEP % */}
             {scData.some((sc) => sc.thce !== null) && thceInitial !== null && (
               <tr style={rowEven}>
-                <td style={tdLeft}>Gain en CEP (%)<br /><span style={{ color: "#94a3b8", fontSize: 9 }}>% de réduction du CEP Th-C-E</span></td>
+                <td style={tdLeft}>Gain Énergétique (%)<br /><span style={{ color: "#94a3b8", fontSize: 9 }}>% de réduction du CEP Th-C-E</span></td>
                 <td style={td}>—</td>
                 {scData.map((sc) => {
                   const pct = sc.thce !== null && thceInitial !== null && thceInitial > 0
