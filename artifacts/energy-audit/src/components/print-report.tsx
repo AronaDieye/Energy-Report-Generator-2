@@ -932,11 +932,18 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                       <td style={{ ...tdVal, fontWeight: 700, color: "#0f172a", background: "#cbd5e1" }}>
                         {totalFinale.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh
                       </td>
-                      {scData.map((sc, i) => (
-                        <td key={sc.code} style={{ ...tdVal, fontWeight: 700, color: scColors2[i] ?? "#374151", fontSize: 8 }}>
-                          {sc.cef !== null ? `${fmtNum(sc.cef, 0)} kWhEF/m².an` : "—"}
-                        </td>
-                      ))}
+                      {scData.map((sc, i) => {
+                        const scCefKwhAn = parseVal(getScVal(rawFields, sc.code, "CEF kWh/an"));
+                        return (
+                          <td key={sc.code} style={{ ...tdVal, fontWeight: 700, color: scColors2[i] ?? "#374151", fontSize: 8 }}>
+                            {scCefKwhAn !== null
+                              ? `${scCefKwhAn.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh`
+                              : sc.cef !== null
+                              ? `${fmtNum(sc.cef, 1)} kWhEF/m².an`
+                              : "—"}
+                          </td>
+                        );
+                      })}
                     </tr>
                   )}
                 </tbody>

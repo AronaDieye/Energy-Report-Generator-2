@@ -1199,6 +1199,7 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
     if (sc.thceGesKgM2 !== null) addField(`${scSection} - GES Th-C-E après`, sc.thceGesKgM2.toLocaleString("fr-FR") + " kgCO2/m².an", scSection);
     // CEF par scénario: total finale kWh/an ÷ surface habitable
     if (sc.cefKwhAn !== null) {
+      addField(`${scSection} - CEF kWh/an`, sc.cefKwhAn.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " kWh/an", scSection);
       const surfHabSc = surfaceHabitableMatch ? parseNum(surfaceHabitableMatch[1]) : null;
       if (surfHabSc !== null && surfHabSc > 0) {
         const cefM2Sc = sc.cefKwhAn / surfHabSc;

@@ -155,6 +155,7 @@ function SyntheseGlobale({
   const rows = scenarioCodes.map((code, i) => {
     const thce = parseVal(getScVal(rawFields, code, "CEP Th-C-E après"));
     const cef = parseVal(getScVal(rawFields, code, "CEF Th-C-E après"));
+    const cefKwhAn = parseVal(getScVal(rawFields, code, "CEF kWh/an"));
     const ges = parseVal(getScVal(rawFields, code, "GES Th-C-E après"));
     const cost = parseVal(getScVal(rawFields, code, "Dépense annuelle après"));
     const invest = parseVal(getScVal(rawFields, code, "Investissement"));
@@ -166,7 +167,7 @@ function SyntheseGlobale({
     const tauxEnrR = scenarios?.[i]?.tauxEnrRPct ?? null;
     const conseils = getScVal(rawFields, code, "Conseils") ?? "";
     const travaux = conseils.split(/\s*\/\s*/).map(t => t.trim()).filter(t => t.length > 2);
-    return { code, thce, cef, ges, cost, invest, tempsRetour, gainEco, gainPct, gainCep, tauxEnrR, travaux, i };
+    return { code, thce, cef, cefKwhAn, ges, cost, invest, tempsRetour, gainEco, gainPct, gainCep, tauxEnrR, travaux, i };
   });
 
   return (
@@ -431,10 +432,12 @@ function SyntheseGlobale({
                       <td className="py-2 px-4 text-center font-mono text-slate-900">
                         {totalFinale.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh
                       </td>
-                      {rows.map(({ code, cef, i }) => (
+                      {rows.map(({ code, cef, cefKwhAn, i }) => (
                         <td key={code} className={`py-2 px-4 text-center font-mono text-xs ${scColors[i] || ""}`}>
-                          {cef !== null ? (
-                            <span className={scTextColors[i] || ""}>{cef.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWhEF/m².an</span>
+                          {cefKwhAn !== null ? (
+                            <span className={scTextColors[i] || ""}>{cefKwhAn.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh</span>
+                          ) : cef !== null ? (
+                            <span className={scTextColors[i] || ""}>{cef.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kWhEF/m².an</span>
                           ) : "—"}
                         </td>
                       ))}
