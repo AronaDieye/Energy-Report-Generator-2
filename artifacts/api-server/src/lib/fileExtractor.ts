@@ -376,7 +376,18 @@ interface ConsumptionTable {
 }
 
 const ENERGY_POSTS = ["CHAUFFAGE", "REFROIDISSEMENT", "ECS", "ECLAIRAGE", "AUXILIAIRES", "VENTILATEURS", "AUTRES USAGES", "TOTAL"];
-const ENERGY_SOURCES = ["Propane", "Gaz de réseau", "Electrique", "Bois", "Granulés bois", "Fioul", "Réseau de chaleur", "Butane"];
+const ENERGY_SOURCES = [
+  "Propane", "Gaz de réseau", "Gaz naturel", "Gaz",
+  "Electrique", "Electricite", "Electricité",
+  "Bois", "Granulés bois", "Granules bois",
+  "Fioul", "Fuel",
+  "Réseau de chaleur", "Reseau de chaleur",
+  "Butane", "GPL",
+];
+
+function normalizeStr(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
 
 function isNumericValue(s: string): boolean {
   // A line that looks like a number (possibly with spaces as thousands separators)
@@ -384,7 +395,8 @@ function isNumericValue(s: string): boolean {
 }
 
 function isEnergySource(s: string): boolean {
-  return ENERGY_SOURCES.some((src) => s.toLowerCase().includes(src.toLowerCase()));
+  const norm = normalizeStr(s);
+  return ENERGY_SOURCES.some((src) => norm.includes(normalizeStr(src)));
 }
 
 function parseEtatInitialSection(text: string): ConsumptionTable | null {
