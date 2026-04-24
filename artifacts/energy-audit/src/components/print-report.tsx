@@ -933,168 +933,6 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         <PrintFooter page={2} building={b.name} />
       </div>
 
-      {/* ══ PAGE 3 — CONSOMMATIONS ═══════════════════════════════════════════ */}
-      {!isPreview && <div className="print-page-break" />}
-      <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
-        <SectionTitle num="3" title="Consommations énergétiques par usage" subtitle="État initial — répartition par poste (méthode Th-C-E)" />
-
-        {consumPostes.length > 0 ? (
-          <>
-            <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16, fontSize: 10 }}>
-              <thead>
-                <tr style={{ background: "#1e3a5f", color: "#fff" }}>
-                  <th style={{ ...thStyle, textAlign: "left", width: "22%" }}>Poste</th>
-                  <th style={{ ...thStyle, textAlign: "left", width: "18%" }}>Source d'énergie</th>
-                  <th style={thStyle}>Énergie finale</th>
-                  <th style={thStyle}>Énergie primaire</th>
-                </tr>
-              </thead>
-              <tbody>
-                {consumPostes.map((r, i) => (
-                  <tr key={r.poste} style={i % 2 === 0 ? rowEven : rowOdd}>
-                    <td style={{ ...tdLeft, fontWeight: 600 }}>{POSTE_LABELS[r.poste] ?? r.label}</td>
-                    <td style={{ ...tdLeft, color: "#64748b" }}>{r.source ?? "—"}</td>
-                    <td style={td}>{r.finalRaw ?? "—"}</td>
-                    <td style={td}>{r.primRaw ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Bar chart — energie primaire */}
-            {consumPostes.some((r) => r.kwhEP !== null) && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 10, fontWeight: 600, color: "#64748b", marginBottom: 8 }}>Répartition graphique — Énergie primaire (kWhEP/m².an)</div>
-                {consumPostes.filter((r) => r.kwhEP !== null).map((r) => {
-                  const maxEp = Math.max(...consumPostes.map((p) => p.kwhEP ?? 0));
-                  const pct = maxEp > 0 ? ((r.kwhEP ?? 0) / maxEp) * 100 : 0;
-                  const color = POSTE_COLORS[r.poste] ?? "#6b7280";
-                  return (
-                    <div key={r.poste} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
-                      <div style={{ width: 110, fontSize: 9, color: "#374151", textAlign: "right", flexShrink: 0 }}>
-                        {POSTE_LABELS[r.poste] ?? r.label}
-                      </div>
-                      <div style={{ flex: 1, background: "#f1f5f9", borderRadius: 3, height: 16, overflow: "hidden" }}>
-                        <div style={{ width: `${pct}%`, background: color, height: "100%", borderRadius: 3 }} />
-                      </div>
-                      <div style={{ width: 90, fontSize: 9, color: "#64748b", textAlign: "right" }}>
-                        {r.primRaw ?? "—"}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        ) : (
-          <div style={{ padding: "20px", textAlign: "center", color: "#94a3b8", fontSize: 10, border: "1px dashed #e2e8f0", borderRadius: 6, marginBottom: 16 }}>
-            Données de consommation par poste non disponibles dans ce fichier BAO.
-          </div>
-        )}
-
-        {/* — Bilan thermique UBAT — tableau récapitulatif + tableau détaillé parois — */}
-        {ubatRows.length > 0 && (
-          <>
-            <SectionTitle num="3b" title="Bilan thermique — UBAT" subtitle="Déperditions de l'enveloppe — état initial" />
-            {/* Summary KPI row */}
-            <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
-              {ubatRows.map(({ label, key }) => {
-                const val = getRaw(rawFields, key);
-                if (!val) return null;
-                return (
-                  <div key={key} style={{
-                    flex: "1 1 120px", background: "#f0f4ff", border: "1px solid #c7d2fe",
-                    borderRadius: 6, padding: "5px 8px", textAlign: "center",
-                  }}>
-                    <div style={{ fontSize: 7.5, color: "#6366f1", fontWeight: 600, marginBottom: 2 }}>{label}</div>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: "#1e293b" }}>{val}</div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Detailed parois table */}
-            {report.ubatParoisData && report.ubatParoisData.length > 0 && (() => {
-              const rows = report.ubatParoisData!;
-              const kindColor: Record<string, string> = {
-                mur_ext: "#1e40af", vitrage: "#0891b2", porte: "#7c3aed",
-                pont_thermique: "#b45309", autre: "#047857",
-              };
-              const isSubItem = (r: UbatParoisRow) => r.kind === "vitrage" || r.kind === "porte";
-
-              // Calculate HT total from rows
-              const htTotal = rows.reduce((acc, r) => {
-                const n = r.deperd ? parseFloat(r.deperd.replace(/\s/g, "").replace(",", ".")) : 0;
-                return acc + (isNaN(n) ? 0 : n);
-              }, 0);
-
-              return (
-                <div style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 8, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
-                    Détail des parois — Calcul UBAT
-                  </div>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 8 }}>
-                    <thead>
-                      <tr style={{ background: "#1e293b", color: "#fff" }}>
-                        <th style={{ padding: "3px 4px", textAlign: "left", fontWeight: 700 }}>Désignation</th>
-                        <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 44 }}>Code</th>
-                        <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 20 }}>Nb</th>
-                        <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 42 }}>U / ψ</th>
-                        <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 28 }}>b</th>
-                        <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 46 }}>Surf./Long.</th>
-                        <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 28 }}>Orie</th>
-                        <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 54 }}>Déperd. W/°C</th>
-                        <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 26 }}>Réf.</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((r, idx) => {
-                        const sub = isSubItem(r);
-                        const color = kindColor[r.kind] ?? "#374151";
-                        const bg = idx % 2 === 0 ? "#f8fafc" : "#fff";
-                        return (
-                          <tr key={idx} style={{ background: sub ? "#fafafa" : bg }}>
-                            <td style={{
-                              padding: "2px 4px", paddingLeft: sub ? 14 : 4,
-                              fontWeight: sub ? 400 : 600,
-                              color: sub ? "#64748b" : color,
-                              borderLeft: sub ? `2px solid ${color}33` : `3px solid ${color}`,
-                            }}>
-                              {r.designation}
-                            </td>
-                            <td style={{ padding: "2px 4px", textAlign: "center", color: "#374151", fontFamily: "monospace" }}>{r.code ?? ""}</td>
-                            <td style={{ padding: "2px 4px", textAlign: "center", color: "#64748b" }}>{r.nb ?? ""}</td>
-                            <td style={{ padding: "2px 4px", textAlign: "right", color: "#374151" }}>
-                              {r.kind === "pont_thermique" ? (r.psi ?? "") : (r.u ?? "")}
-                            </td>
-                            <td style={{ padding: "2px 4px", textAlign: "right", color: "#64748b" }}>{r.b ?? ""}</td>
-                            <td style={{ padding: "2px 4px", textAlign: "right", color: "#374151" }}>
-                              {r.kind === "pont_thermique" ? (r.longueur ?? "") : (r.surface ?? "")}
-                            </td>
-                            <td style={{ padding: "2px 4px", textAlign: "center", color: "#64748b", fontStyle: "italic" }}>{r.orie ?? ""}</td>
-                            <td style={{ padding: "2px 4px", textAlign: "right", fontWeight: 700, color: "#1e293b" }}>{r.deperd ?? ""}</td>
-                            <td style={{ padding: "2px 4px", textAlign: "center", color: "#94a3b8", fontSize: 7 }}>{r.ref ?? ""}</td>
-                          </tr>
-                        );
-                      })}
-                      {/* HT total row */}
-                      <tr style={{ background: "#1e293b", color: "#fff" }}>
-                        <td colSpan={6} style={{ padding: "3px 4px", fontWeight: 700, textAlign: "right", fontSize: 9 }}>HT =</td>
-                        <td colSpan={3} style={{ padding: "3px 4px", fontWeight: 800, textAlign: "right", fontSize: 10 }}>
-                          {htTotal.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} W/°C
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              );
-            })()}
-          </>
-        )}
-
-        <PrintFooter page={3} building={b.name} />
-      </div>
-
       {/* ══ PAGE 4 — BÂTIMENT & DONNÉES TECHNIQUES ═══════════════════════════ */}
       {!isPreview && <div className="print-page-break" />}
       <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
@@ -1410,7 +1248,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           </div>
         )}
 
-        <PrintFooter page={4} building={b.name} />
+        <PrintFooter page={3} building={b.name} />
       </div>
 
       {/* ══ PAGE 5 — SYSTÈMES TECHNIQUES ════════════════════════════════════════ */}
@@ -1530,6 +1368,168 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
             </div>
           );
         })()}
+
+        <PrintFooter page={4} building={b.name} />
+      </div>
+
+      {/* ══ PAGE 3 — CONSOMMATIONS ═══════════════════════════════════════════ */}
+      {!isPreview && <div className="print-page-break" />}
+      <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
+        <SectionTitle num="3" title="Consommations énergétiques par usage" subtitle="État initial — répartition par poste (méthode Th-C-E)" />
+
+        {consumPostes.length > 0 ? (
+          <>
+            <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16, fontSize: 10 }}>
+              <thead>
+                <tr style={{ background: "#1e3a5f", color: "#fff" }}>
+                  <th style={{ ...thStyle, textAlign: "left", width: "22%" }}>Poste</th>
+                  <th style={{ ...thStyle, textAlign: "left", width: "18%" }}>Source d'énergie</th>
+                  <th style={thStyle}>Énergie finale</th>
+                  <th style={thStyle}>Énergie primaire</th>
+                </tr>
+              </thead>
+              <tbody>
+                {consumPostes.map((r, i) => (
+                  <tr key={r.poste} style={i % 2 === 0 ? rowEven : rowOdd}>
+                    <td style={{ ...tdLeft, fontWeight: 600 }}>{POSTE_LABELS[r.poste] ?? r.label}</td>
+                    <td style={{ ...tdLeft, color: "#64748b" }}>{r.source ?? "—"}</td>
+                    <td style={td}>{r.finalRaw ?? "—"}</td>
+                    <td style={td}>{r.primRaw ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Bar chart — energie primaire */}
+            {consumPostes.some((r) => r.kwhEP !== null) && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: "#64748b", marginBottom: 8 }}>Répartition graphique — Énergie primaire (kWhEP/m².an)</div>
+                {consumPostes.filter((r) => r.kwhEP !== null).map((r) => {
+                  const maxEp = Math.max(...consumPostes.map((p) => p.kwhEP ?? 0));
+                  const pct = maxEp > 0 ? ((r.kwhEP ?? 0) / maxEp) * 100 : 0;
+                  const color = POSTE_COLORS[r.poste] ?? "#6b7280";
+                  return (
+                    <div key={r.poste} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                      <div style={{ width: 110, fontSize: 9, color: "#374151", textAlign: "right", flexShrink: 0 }}>
+                        {POSTE_LABELS[r.poste] ?? r.label}
+                      </div>
+                      <div style={{ flex: 1, background: "#f1f5f9", borderRadius: 3, height: 16, overflow: "hidden" }}>
+                        <div style={{ width: `${pct}%`, background: color, height: "100%", borderRadius: 3 }} />
+                      </div>
+                      <div style={{ width: 90, fontSize: 9, color: "#64748b", textAlign: "right" }}>
+                        {r.primRaw ?? "—"}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ padding: "20px", textAlign: "center", color: "#94a3b8", fontSize: 10, border: "1px dashed #e2e8f0", borderRadius: 6, marginBottom: 16 }}>
+            Données de consommation par poste non disponibles dans ce fichier BAO.
+          </div>
+        )}
+
+        {/* — Bilan thermique UBAT — tableau récapitulatif + tableau détaillé parois — */}
+        {ubatRows.length > 0 && (
+          <>
+            <SectionTitle num="3b" title="Bilan thermique — UBAT" subtitle="Déperditions de l'enveloppe — état initial" />
+            {/* Summary KPI row */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+              {ubatRows.map(({ label, key }) => {
+                const val = getRaw(rawFields, key);
+                if (!val) return null;
+                return (
+                  <div key={key} style={{
+                    flex: "1 1 120px", background: "#f0f4ff", border: "1px solid #c7d2fe",
+                    borderRadius: 6, padding: "5px 8px", textAlign: "center",
+                  }}>
+                    <div style={{ fontSize: 7.5, color: "#6366f1", fontWeight: 600, marginBottom: 2 }}>{label}</div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: "#1e293b" }}>{val}</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Detailed parois table */}
+            {report.ubatParoisData && report.ubatParoisData.length > 0 && (() => {
+              const rows = report.ubatParoisData!;
+              const kindColor: Record<string, string> = {
+                mur_ext: "#1e40af", vitrage: "#0891b2", porte: "#7c3aed",
+                pont_thermique: "#b45309", autre: "#047857",
+              };
+              const isSubItem = (r: UbatParoisRow) => r.kind === "vitrage" || r.kind === "porte";
+
+              // Calculate HT total from rows
+              const htTotal = rows.reduce((acc, r) => {
+                const n = r.deperd ? parseFloat(r.deperd.replace(/\s/g, "").replace(",", ".")) : 0;
+                return acc + (isNaN(n) ? 0 : n);
+              }, 0);
+
+              return (
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 8, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+                    Détail des parois — Calcul UBAT
+                  </div>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 8 }}>
+                    <thead>
+                      <tr style={{ background: "#1e293b", color: "#fff" }}>
+                        <th style={{ padding: "3px 4px", textAlign: "left", fontWeight: 700 }}>Désignation</th>
+                        <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 44 }}>Code</th>
+                        <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 20 }}>Nb</th>
+                        <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 42 }}>U / ψ</th>
+                        <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 28 }}>b</th>
+                        <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 46 }}>Surf./Long.</th>
+                        <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 28 }}>Orie</th>
+                        <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 54 }}>Déperd. W/°C</th>
+                        <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 26 }}>Réf.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r, idx) => {
+                        const sub = isSubItem(r);
+                        const color = kindColor[r.kind] ?? "#374151";
+                        const bg = idx % 2 === 0 ? "#f8fafc" : "#fff";
+                        return (
+                          <tr key={idx} style={{ background: sub ? "#fafafa" : bg }}>
+                            <td style={{
+                              padding: "2px 4px", paddingLeft: sub ? 14 : 4,
+                              fontWeight: sub ? 400 : 600,
+                              color: sub ? "#64748b" : color,
+                              borderLeft: sub ? `2px solid ${color}33` : `3px solid ${color}`,
+                            }}>
+                              {r.designation}
+                            </td>
+                            <td style={{ padding: "2px 4px", textAlign: "center", color: "#374151", fontFamily: "monospace" }}>{r.code ?? ""}</td>
+                            <td style={{ padding: "2px 4px", textAlign: "center", color: "#64748b" }}>{r.nb ?? ""}</td>
+                            <td style={{ padding: "2px 4px", textAlign: "right", color: "#374151" }}>
+                              {r.kind === "pont_thermique" ? (r.psi ?? "") : (r.u ?? "")}
+                            </td>
+                            <td style={{ padding: "2px 4px", textAlign: "right", color: "#64748b" }}>{r.b ?? ""}</td>
+                            <td style={{ padding: "2px 4px", textAlign: "right", color: "#374151" }}>
+                              {r.kind === "pont_thermique" ? (r.longueur ?? "") : (r.surface ?? "")}
+                            </td>
+                            <td style={{ padding: "2px 4px", textAlign: "center", color: "#64748b", fontStyle: "italic" }}>{r.orie ?? ""}</td>
+                            <td style={{ padding: "2px 4px", textAlign: "right", fontWeight: 700, color: "#1e293b" }}>{r.deperd ?? ""}</td>
+                            <td style={{ padding: "2px 4px", textAlign: "center", color: "#94a3b8", fontSize: 7 }}>{r.ref ?? ""}</td>
+                          </tr>
+                        );
+                      })}
+                      {/* HT total row */}
+                      <tr style={{ background: "#1e293b", color: "#fff" }}>
+                        <td colSpan={6} style={{ padding: "3px 4px", fontWeight: 700, textAlign: "right", fontSize: 9 }}>HT =</td>
+                        <td colSpan={3} style={{ padding: "3px 4px", fontWeight: 800, textAlign: "right", fontSize: 10 }}>
+                          {htTotal.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} W/°C
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+          </>
+        )}
 
         <PrintFooter page={5} building={b.name} />
       </div>
