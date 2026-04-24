@@ -51,8 +51,8 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PORT=26038 BASE_PATH=/ pnpm --filter @workspace/energy-audit run dev"
-waitForPort = 26038
+args = "PORT=5173 BASE_PATH=/ pnpm --filter @workspace/energy-audit run dev"
+waitForPort = 5173
 
 [agent]
 stack = "PNPM_WORKSPACE"
