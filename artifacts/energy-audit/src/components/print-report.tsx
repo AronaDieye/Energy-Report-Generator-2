@@ -48,6 +48,33 @@ function getGesClass(ges: number): string {
   return "G";
 }
 
+function get3CLEpClass(ep: number): string {
+  if (ep <= 70)  return "A";
+  if (ep <= 110) return "B";
+  if (ep <= 180) return "C";
+  if (ep <= 250) return "D";
+  if (ep <= 330) return "E";
+  if (ep <= 420) return "F";
+  return "G";
+}
+
+function get3CLGesClass(ges: number): string {
+  if (ges <= 6)   return "A";
+  if (ges <= 11)  return "B";
+  if (ges <= 30)  return "C";
+  if (ges <= 50)  return "D";
+  if (ges <= 70)  return "E";
+  if (ges <= 100) return "F";
+  return "G";
+}
+
+const CLASS_ORDER = ["A", "B", "C", "D", "E", "F", "G"] as const;
+function worstDpeClass(a: string | null, b: string | null): string | null {
+  if (!a) return b;
+  if (!b) return a;
+  return CLASS_ORDER[Math.max(CLASS_ORDER.indexOf(a as typeof CLASS_ORDER[number]), CLASS_ORDER.indexOf(b as typeof CLASS_ORDER[number]))];
+}
+
 function ThceDpePyramid({
   epInitial, gesInitial, epAfter, gesAfter, scColor, scCode, annotWidth = 90,
 }: {
@@ -146,9 +173,9 @@ function ThceDpePyramid({
 }
 
 function Dpe3CLLabel({
-  ep, ges, dpeClass,
+  ep, ges, dpeClass, gesClassOverride,
 }: {
-  ep: number | null; ges: number | null; dpeClass: string | null;
+  ep: number | null; ges: number | null; dpeClass: string | null; gesClassOverride?: string | null;
 }) {
   const classes = ["A", "B", "C", "D", "E", "F", "G"];
   const EP_COLORS: Record<string, string> = {
@@ -158,9 +185,9 @@ function Dpe3CLLabel({
   const GES_COLORS: Record<string, string> = {
     A: "#e0f0fc", B: "#b3d5ee", C: "#7eb3d8", D: "#4a8fbe", E: "#2a6599", F: "#1a4070", G: "#0d1f40",
   };
-  const gesClass = ges != null
-    ? (ges <= 6 ? "A" : ges <= 11 ? "B" : ges <= 30 ? "C" : ges <= 50 ? "D" : ges <= 70 ? "E" : ges <= 100 ? "F" : "G")
-    : null;
+  const gesClass = gesClassOverride !== undefined
+    ? gesClassOverride
+    : (ges != null ? get3CLGesClass(ges) : null);
   const ROW_H = 14;
   const ARROW_TIP = 7;
   const darkText = (cls: string) => cls === "A" || cls === "B" || cls === "C" || cls === "D";
@@ -613,16 +640,24 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
     const metaTravaux = metaSc?.travaux ?? [];
     // Merge: prefer metadata travaux (structured), fall back to Conseils field
     const allTravaux = metaTravaux.length > 0 ? metaTravaux : conseilsTravaux;
+    const cep3Val = parseVal(getScVal(rawFields, code, "kWhEP/m².an après")) ?? metaSc?.cep3KwhEpM2 ?? null;
+    const ges3clVal = parseVal(getScVal(rawFields, code, "kgCO2/m² après")) ?? null;
+    const explicitDpeLabel = getScVal(rawFields, code, "Étiquette DPE après") ?? metaSc?.labelDpe ?? null;
+    const computedDpeLabel = explicitDpeLabel ?? worstDpeClass(
+      cep3Val != null ? get3CLEpClass(cep3Val) : null,
+      ges3clVal != null ? get3CLGesClass(ges3clVal) : null,
+    );
     return {
       code,
       label: getScVal(rawFields, code, "Libellé") || code,
       thce: parseVal(getScVal(rawFields, code, "CEP Th-C-E après")) ?? metaSc?.cep5KwhEpM2 ?? null,
       cef: parseVal(getScVal(rawFields, code, "CEF Th-C-E après")) ?? metaSc?.cef5KwhEfM2 ?? null,
-      cep3: metaSc?.cep3KwhEpM2 ?? null,
+      cep3: cep3Val,
       cef3: metaSc?.cef3KwhEfM2 ?? null,
+      ges3cl: ges3clVal,
       ges: parseVal(getScVal(rawFields, code, "GES Th-C-E après")) ?? metaSc?.gesCo2KgM2 ?? null,
       cost: parseVal(getScVal(rawFields, code, "Dépense annuelle après")) ?? metaSc?.totalDepenseAnnuelle ?? null,
-      dpeLabel: getScVal(rawFields, code, "Étiquette DPE après") ?? metaSc?.labelDpe ?? null,
+      dpeLabel: computedDpeLabel,
       invest: parseVal(getScVal(rawFields, code, "Investissement")) ?? null,
       payback: parseVal(getScVal(rawFields, code, "Temps de retour")) ?? null,
       gainPct: parseVal(getScVal(rawFields, code, "Gain sur CEP")) ?? metaSc?.gainEnergetiquePct ?? null,
@@ -2428,16 +2463,32 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 );
               })()}
 
-              {/* ── DPE pyramid ── */}
-              {(thceInitial != null || sc.thce != null || gesInitial != null || sc.ges != null) && (
-                <ThceDpePyramid
-                  epInitial={thceInitial}
-                  gesInitial={gesInitial}
-                  epAfter={sc.thce}
-                  gesAfter={sc.ges}
-                  scColor={scColor}
-                  scCode={sc.code}
-                />
+              {/* ── Étiquettes DPE scénario (Th-C-E + 3CL 2021) ── */}
+              {(thceInitial != null || sc.thce != null || gesInitial != null || sc.ges != null || sc.cep3 != null || sc.dpeLabel != null) && (
+                <div style={{ display: "flex", gap: 12, marginTop: 14 }}>
+                  {(thceInitial != null || sc.thce != null || gesInitial != null || sc.ges != null) && (
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <ThceDpePyramid
+                        epInitial={thceInitial}
+                        gesInitial={gesInitial}
+                        epAfter={sc.thce}
+                        gesAfter={sc.ges}
+                        scColor={scColor}
+                        scCode={sc.code}
+                        annotWidth={60}
+                      />
+                    </div>
+                  )}
+                  {(sc.cep3 != null || sc.dpeLabel != null) && (
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <Dpe3CLLabel
+                        ep={sc.cep3}
+                        ges={sc.ges3cl}
+                        dpeClass={sc.dpeLabel}
+                      />
+                    </div>
+                  )}
+                </div>
               )}
 
               <PrintFooter page={pageNum} building={b.name} />
