@@ -28,6 +28,123 @@ const DPE_COLORS: Record<string, string> = {
   D: "#fbaf08", E: "#f97316", F: "#dc2626", G: "#7f1d1d",
 };
 
+function getDpeClassEP(ep: number): string {
+  if (ep <= 50) return "A";
+  if (ep <= 90) return "B";
+  if (ep <= 150) return "C";
+  if (ep <= 230) return "D";
+  if (ep <= 330) return "E";
+  if (ep <= 450) return "F";
+  return "G";
+}
+
+function getGesClass(ges: number): string {
+  if (ges <= 5) return "A";
+  if (ges <= 10) return "B";
+  if (ges <= 20) return "C";
+  if (ges <= 35) return "D";
+  if (ges <= 55) return "E";
+  if (ges <= 80) return "F";
+  return "G";
+}
+
+function ThceDpePyramid({
+  epInitial, gesInitial, epAfter, gesAfter, scColor, scCode,
+}: {
+  epInitial: number | null; gesInitial: number | null;
+  epAfter: number | null; gesAfter: number | null;
+  scColor: string; scCode: string;
+}) {
+  const CLASSES = ["G", "F", "E", "D", "C", "B", "A"] as const;
+  const WIDTHS: Record<string, number> = { G: 100, F: 84, E: 68, D: 52, C: 38, B: 25, A: 14 };
+  const COLORS: Record<string, string> = DPE_COLORS;
+
+  const dpeEpInit  = epInitial  != null ? getDpeClassEP(epInitial)  : null;
+  const dpeEpAfter = epAfter    != null ? getDpeClassEP(epAfter)    : null;
+  const dpeGesInit  = gesInitial != null ? getGesClass(gesInitial)  : null;
+  const dpeGesAfter = gesAfter   != null ? getGesClass(gesAfter)    : null;
+  const ROW_H = 18;
+
+  return (
+    <div style={{ marginTop: 14, breakInside: "avoid" }}>
+      <div style={{ fontSize: 8, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 5 }}>
+        Étiquette DPE — Méthode Th-C-E
+      </div>
+      <div style={{ display: "flex", fontSize: 7, marginBottom: 2 }}>
+        <div style={{ width: 90, textAlign: "right", paddingRight: 6, color: "#475569", fontWeight: 600 }}>kWhEP/m².an</div>
+        <div style={{ flex: 1 }} />
+        <div style={{ width: 90, paddingLeft: 6, color: "#475569", fontWeight: 600 }}>kgCO₂éq/m².an</div>
+      </div>
+      {CLASSES.map((cls) => {
+        const isEpInit  = cls === dpeEpInit;
+        const isEpAfter = cls === dpeEpAfter;
+        const isGesInit  = cls === dpeGesInit;
+        const isGesAfter = cls === dpeGesAfter;
+        const w  = WIDTHS[cls];
+        const bg = COLORS[cls];
+
+        const epAnnotation =
+          isEpInit && isEpAfter && epInitial != null && epAfter != null
+            ? `${fmtNum(epInitial, 0)} / ${fmtNum(epAfter, 0)} →`
+            : isEpInit  && epInitial != null ? `${fmtNum(epInitial, 0)} →`
+            : isEpAfter && epAfter   != null ? `${fmtNum(epAfter, 0)} →`
+            : null;
+        const epAnnotColor = (isEpAfter && !isEpInit) ? scColor : "#1e293b";
+
+        const gesAnnotation =
+          isGesInit && isGesAfter && gesInitial != null && gesAfter != null
+            ? `← ${fmtNum(gesInitial, 0)} / ${fmtNum(gesAfter, 0)}`
+            : isGesInit  && gesInitial != null ? `← ${fmtNum(gesInitial, 0)}`
+            : isGesAfter && gesAfter   != null ? `← ${fmtNum(gesAfter, 0)}`
+            : null;
+        const gesAnnotColor = (isGesAfter && !isGesInit) ? scColor : "#1e293b";
+
+        const leftOutline  = isEpAfter  ? `2.5px solid ${scColor}` : isEpInit  ? "2.5px solid #1e293b" : "none";
+        const rightOutline = isGesAfter ? `2.5px solid ${scColor}` : isGesInit ? "2.5px solid #1e293b" : "none";
+
+        return (
+          <div key={cls} style={{ display: "flex", alignItems: "center", marginBottom: 2, height: ROW_H }}>
+            <div style={{ width: 90, textAlign: "right", paddingRight: 5, fontSize: 7, fontWeight: 700, color: epAnnotColor }}>
+              {epAnnotation}
+            </div>
+            <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", height: ROW_H }}>
+              <div style={{ width: `${w}%`, height: ROW_H, background: bg, display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 5, boxSizing: "border-box", outline: leftOutline, outlineOffset: -2 }}>
+                <span style={{ fontSize: 9, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{cls}</span>
+              </div>
+            </div>
+            <div style={{ width: 2, height: ROW_H, background: "#374151", flexShrink: 0 }} />
+            <div style={{ flex: 1, display: "flex", justifyContent: "flex-start", height: ROW_H }}>
+              <div style={{ width: `${w}%`, height: ROW_H, background: bg, display: "flex", alignItems: "center", justifyContent: "flex-start", paddingLeft: 5, boxSizing: "border-box", outline: rightOutline, outlineOffset: -2 }}>
+                <span style={{ fontSize: 9, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{cls}</span>
+              </div>
+            </div>
+            <div style={{ width: 90, paddingLeft: 5, fontSize: 7, fontWeight: 700, color: gesAnnotColor }}>
+              {gesAnnotation}
+            </div>
+          </div>
+        );
+      })}
+      <div style={{ textAlign: "center", fontSize: 7, color: "#6b7280", marginTop: 5, fontStyle: "italic" }}>
+        Calculs effectués selon la méthode Th-C-E en fonction de la surface habitable
+      </div>
+      <div style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 4, fontSize: 7, alignItems: "center" }}>
+        {(dpeEpInit || dpeGesInit) && (
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <div style={{ width: 14, height: 9, border: "2.5px solid #1e293b", borderRadius: 1 }} />
+            <span>État initial</span>
+          </div>
+        )}
+        {(dpeEpAfter || dpeGesAfter) && (
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <div style={{ width: 14, height: 9, border: `2.5px solid ${scColor}`, borderRadius: 1 }} />
+            <span>Après travaux ({scCode})</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DpeLabel({ label }: { label: string | null | undefined }) {
   if (!label) return <span className="print-dpe print-dpe-unknown">—</span>;
   const color = DPE_COLORS[label] ?? "#6b7280";
@@ -2172,6 +2289,18 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                   </div>
                 );
               })()}
+
+              {/* ── DPE pyramid ── */}
+              {(thceInitial != null || sc.thce != null || gesInitial != null || sc.ges != null) && (
+                <ThceDpePyramid
+                  epInitial={thceInitial}
+                  gesInitial={gesInitial}
+                  epAfter={sc.thce}
+                  gesAfter={sc.ges}
+                  scColor={scColor}
+                  scCode={sc.code}
+                />
+              )}
 
               <PrintFooter page={pageNum} building={b.name} />
             </div>
