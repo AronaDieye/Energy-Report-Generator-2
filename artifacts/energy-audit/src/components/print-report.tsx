@@ -1715,28 +1715,128 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
         <SectionTitle num="4" title="Systèmes techniques" subtitle="Chauffage, ECS, ventilation, climatisation — état initial" />
 
-        {systemRows.length > 0 ? (
-          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20, fontSize: 10 }}>
-            <thead>
-              <tr style={{ background: "#7c3aed", color: "#fff" }}>
-                <th style={{ ...thStyle, textAlign: "left", width: "35%" }}>Système</th>
-                <th style={{ ...thStyle, textAlign: "left" }}>Description / valeur</th>
-              </tr>
-            </thead>
-            <tbody>
-              {systemRows.map(({ label, key }, i) => (
-                <tr key={key} style={i % 2 === 0 ? rowEven : rowOdd}>
-                  <td style={{ ...tdLeft, fontWeight: 600 }}>{label}</td>
-                  <td style={tdLeft}>{getRaw(rawFields, key)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <div style={{ padding: 16, color: "#94a3b8", fontSize: 10, border: "1px dashed #e2e8f0", borderRadius: 6, marginBottom: 16 }}>
-            Données systèmes CVC non disponibles dans ce fichier.
-          </div>
-        )}
+        {/* Systèmes techniques — card+photo layout */}
+        {(() => {
+          const techSections: { displayLabel: string; cat: string; accent: string; fields: { label: string; key: string }[] }[] = [
+            {
+              displayLabel: "Chauffage & ECS",
+              cat: "chauffage_ecs",
+              accent: "#7c3aed",
+              fields: [
+                { label: "Système de chauffage", key: "Système de chauffage" },
+                { label: "Type ECS",              key: "Type d'ECS" },
+                { label: "COP nominal",           key: "COP nominal" },
+              ],
+            },
+            {
+              displayLabel: "Ventilation",
+              cat: "ventilation",
+              accent: "#0284c7",
+              fields: [{ label: "Type de ventilation", key: "Type de ventilation" }],
+            },
+            {
+              displayLabel: "Climatisation",
+              cat: "climatisation",
+              accent: "#0891b2",
+              fields: [{ label: "EER nominal", key: "EER nominal (PAC)" }],
+            },
+            {
+              displayLabel: "Éclairage",
+              cat: "eclairage",
+              accent: "#ca8a04",
+              fields: [],
+            },
+            {
+              displayLabel: "Compteurs & abonnements",
+              cat: "compteurs",
+              accent: "#64748b",
+              fields: [],
+            },
+          ];
+
+          const visibleSections = techSections.filter(({ cat, fields }) => {
+            const hasFields = fields.some(f => getRaw(rawFields, f.key));
+            const hasPhotos = (photosByCategory[cat] ?? []).length > 0;
+            return hasFields || hasPhotos;
+          });
+
+          if (visibleSections.length === 0) {
+            return (
+              <div style={{ padding: 16, color: "#94a3b8", fontSize: 10, border: "1px dashed #e2e8f0", borderRadius: 6, marginBottom: 16 }}>
+                Données systèmes CVC non disponibles dans ce fichier.
+              </div>
+            );
+          }
+
+          return (
+            <div style={{ marginBottom: 20 }}>
+              {visibleSections.map(({ displayLabel, cat, accent, fields }) => {
+                const catPhotos = photosByCategory[cat] ?? [];
+                const hasPhotos = catPhotos.length > 0;
+                const fieldData = fields.filter(f => getRaw(rawFields, f.key));
+                return (
+                  <div key={cat} style={{ marginBottom: 10, breakInside: "avoid" }}>
+                    <div style={{ display: "flex", gap: 10, alignItems: "stretch" }}>
+                      {/* Description card */}
+                      <div style={{
+                        flex: hasPhotos ? "0 0 38%" : "1",
+                        border: `1px solid ${accent}30`,
+                        borderLeft: `3px solid ${accent}`,
+                        borderRadius: 5,
+                        padding: "8px 12px",
+                        minWidth: 0,
+                        background: "#fafafa",
+                        display: "flex", flexDirection: "column", justifyContent: "center",
+                      }}>
+                        <div style={{ fontSize: 8.5, fontWeight: 800, color: accent, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: fieldData.length ? 5 : 0 }}>
+                          {displayLabel}
+                        </div>
+                        {fieldData.map(({ label, key }) => (
+                          <div key={key} style={{ marginBottom: 3 }}>
+                            <span style={{ fontSize: 7.5, color: "#94a3b8", textTransform: "uppercase" }}>{label} </span>
+                            <span style={{ fontSize: 9, fontWeight: 600, color: "#1e3a5f" }}>{getRaw(rawFields, key)}</span>
+                          </div>
+                        ))}
+                        {fieldData.length === 0 && (
+                          <div style={{ fontSize: 8, color: "#94a3b8", fontStyle: "italic" }}>Photos uniquement</div>
+                        )}
+                      </div>
+                      {/* Photos */}
+                      {hasPhotos && (
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(catPhotos.length, 3)}, 1fr)`, gap: 7 }}>
+                            {catPhotos.slice(0, 3).map((photo) => (
+                              <div key={photo.id} style={{ breakInside: "avoid" }}>
+                                <div style={{ height: 130, borderRadius: 5, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f1f5f9" }}>
+                                  <img
+                                    src={`${apiBase}${photo.url}`}
+                                    alt={photo.caption || photo.fileName}
+                                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                                  />
+                                </div>
+                                {photo.caption && (
+                                  <div style={{ fontSize: 7, color: "#64748b", marginTop: 3, textAlign: "center", fontStyle: "italic", lineHeight: 1.3 }}>
+                                    {photo.caption}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          {catPhotos.length > 3 && (
+                            <div style={{ fontSize: 7, color: "#94a3b8", marginTop: 4, textAlign: "right" }}>
+                              +{catPhotos.length - 3} photo{catPhotos.length - 3 > 1 ? "s" : ""}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {/* — Répartition des déperditions (bar chart) — */}
         {(() => {
