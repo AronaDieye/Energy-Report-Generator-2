@@ -795,7 +795,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         boxShadow: "0 4px 20px rgba(0,0,0,0.25)", borderRadius: 2,
         padding: "56px 60px 48px", display: "flex", flexDirection: "column", position: "relative", boxSizing: "border-box",
       }
-    : { minHeight: "267mm", display: "flex", flexDirection: "column", position: "relative" };
+    : { minHeight: "257mm", padding: "10mm 0 0", display: "flex", flexDirection: "column", position: "relative" };
 
   return (
     <div className={isPreview ? undefined : "print-only"} style={containerStyle}>
@@ -806,7 +806,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         style={{
           ...(isPreview
             ? { width: 794, minHeight: 1123, margin: "0 auto 28px", background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,0.25)", borderRadius: 2, boxSizing: "border-box" as const }
-            : { minHeight: "257mm" }),
+            : { minHeight: "257mm", paddingTop: "10mm" }),
           display: "flex", flexDirection: "column", position: "relative", overflow: "hidden",
         }}
       >

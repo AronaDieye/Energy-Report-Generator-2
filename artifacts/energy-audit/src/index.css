@@ -146,13 +146,16 @@
     visibility: visible;
   }
 
-  /* Make the print view visible and at the top */
+  /* Make the print view visible and at the top.
+     left/right set to 10mm so all content (incl. full-bleed covers) respects paper margins.
+     width:auto stretches between left and right anchors instead of the full paper width. */
   .print-only {
     display: block !important;
     position: absolute;
     top: 0;
-    left: 0;
-    width: 100%;
+    left: 10mm;
+    right: 10mm;
+    width: auto;
     background: #fff;
   }
 
