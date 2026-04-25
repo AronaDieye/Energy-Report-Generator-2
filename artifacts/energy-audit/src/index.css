@@ -147,14 +147,12 @@
   }
 
   /* Make the print view visible and at the top */
-  /* Left/right margins (10mm) handled here so full-bleed elements don't touch paper edges. */
-  /* Top/bottom margins stay in Puppeteer for the footer template area. */
   .print-only {
     display: block !important;
     position: absolute;
     top: 0;
-    left: 10mm;
-    width: calc(100% - 20mm);
+    left: 0;
+    width: 100%;
     background: #fff;
   }
 

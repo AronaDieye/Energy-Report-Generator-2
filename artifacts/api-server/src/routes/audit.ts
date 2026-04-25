@@ -267,12 +267,12 @@ router.get("/audit/reports/:id/pdf", async (req, res): Promise<void> => {
       displayHeaderFooter: true,
       headerTemplate: "<div></div>",
       footerTemplate: `
-        <div style="width:100%;box-sizing:border-box;padding:3px 10mm 0;display:flex;justify-content:space-between;font-size:7.5pt;color:#94a3b8;font-family:'Segoe UI',Arial,sans-serif;border-top:1px solid #e2e8f0;">
+        <div style="width:100%;box-sizing:border-box;padding:3px 12.5mm 0;display:flex;justify-content:space-between;font-size:7.5pt;color:#94a3b8;font-family:'Segoe UI',Arial,sans-serif;border-top:1px solid #e2e8f0;">
           <span>AuditTech Pro — Rapport d'audit énergétique</span>
           <span>${buildingName}</span>
           <span>Page <span class="pageNumber"></span></span>
         </div>`,
-      margin: { top: "10mm", right: "0", bottom: "10mm", left: "0" },
+      margin: { top: "10mm", right: "10mm", bottom: "10mm", left: "10mm" },
     });
 
     const safeName = (report.buildingName ?? "rapport")
