@@ -1197,46 +1197,15 @@ export function ReportDetail() {
   });
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [showCoverEditor, setShowCoverEditor] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleDownloadPdf = useCallback(() => {
     setShowPdfPreview(false);
     setTimeout(() => window.print(), 150);
   }, []);
 
-  const handleDirectDownload = useCallback(async () => {
-    setIsDownloading(true);
-    try {
-      const element = document.querySelector(".print-only") as HTMLElement | null;
-      if (!element) { window.print(); return; }
-
-      const savedStyle = element.getAttribute("style") ?? "";
-      element.style.cssText = "display:block!important;position:absolute;left:-9999px;top:0;width:210mm;background:#fff;";
-
-      const { default: html2pdf } = await import("html2pdf.js");
-      const name = report?.buildingInfo?.name ?? "rapport";
-      const filename = `audit-${name}`.replace(/[^a-z0-9._-]/gi, "_") + ".pdf";
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (html2pdf as any)()
-        .set({
-          margin: [15, 15, 18, 15],
-          filename,
-          image: { type: "jpeg", quality: 0.95 },
-          html2canvas: { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0 },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-          pagebreak: { mode: ["css", "legacy"] },
-        })
-        .from(element)
-        .save();
-
-      element.setAttribute("style", savedStyle);
-    } catch {
-      window.print();
-    } finally {
-      setIsDownloading(false);
-    }
-  }, [report?.buildingInfo?.name]);
+  const handleDirectDownload = useCallback(() => {
+    window.print();
+  }, []);
 
   if (isLoading) {
     return (
@@ -1294,9 +1263,9 @@ export function ReportDetail() {
             <FileText className="h-4 w-4 mr-2" />
             Aperçu PDF
           </Button>
-          <Button variant="outline" onClick={handleDirectDownload} disabled={isDownloading}>
+          <Button variant="outline" onClick={handleDirectDownload}>
             <Download className="h-4 w-4 mr-2" />
-            {isDownloading ? "Génération…" : "Télécharger"}
+            Télécharger PDF
           </Button>
           <Button onClick={() => window.print()}>
             <Printer className="h-4 w-4 mr-2" />
