@@ -469,7 +469,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         boxShadow: "0 4px 20px rgba(0,0,0,0.25)", borderRadius: 2,
         padding: "56px 60px 48px", display: "flex", flexDirection: "column", position: "relative", boxSizing: "border-box",
       }
-    : { minHeight: "277mm", display: "flex", flexDirection: "column", position: "relative" };
+    : { minHeight: "267mm", display: "flex", flexDirection: "column", position: "relative" };
 
   return (
     <div className={isPreview ? undefined : "print-only"} style={containerStyle}>

@@ -261,7 +261,6 @@ router.get("/audit/reports/:id/pdf", async (req, res): Promise<void> => {
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
-      margin: { top: "15mm", right: "15mm", bottom: "18mm", left: "15mm" },
     });
 
     const safeName = (report.buildingName ?? "rapport")

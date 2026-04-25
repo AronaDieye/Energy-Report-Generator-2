@@ -123,9 +123,13 @@
 }
 
 @media print {
-  /* Page setup */
+  /* Page setup — cover page keeps its own margins, all other pages get 12.5 mm */
   @page {
     size: A4 portrait;
+    margin: 12.5mm;
+  }
+
+  @page :first {
     margin: 15mm 15mm 18mm 15mm;
   }
 
@@ -167,7 +171,7 @@
 
   .print-page {
     position: relative;
-    min-height: 257mm;
+    min-height: 267mm;
     padding-bottom: 20mm;
   }
 
