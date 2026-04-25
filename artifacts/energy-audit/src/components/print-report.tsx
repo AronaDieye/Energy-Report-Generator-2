@@ -2827,10 +2827,131 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         );
       })}
 
+      {/* ══ PAGE CONCLUSION ══════════════════════════════════════════════════════ */}
+      {!isPreview && <div className="print-page-break" />}
+      <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
+        <SectionTitle num={`${6 + scData.length}`} title="Conclusion générale" subtitle="Synthèse des recommandations et perspectives de rénovation" />
+        {(() => {
+          const adresse = report.adresseClient;
+          const annee = b.constructionYear || getRaw(rawFields, "Année de construction");
+          const surface = b.heatedSurface || getRaw(rawFields, "Surface habitable");
+          const sc1 = scData[0];
+          const sc2 = scData[1];
+
+          const headerStyle: React.CSSProperties = {
+            fontSize: 10, fontWeight: 800, color: "#1d4ed8",
+            textTransform: "uppercase", letterSpacing: 0.6,
+            borderLeft: "3px solid #1d4ed8", paddingLeft: 8,
+            marginBottom: 6, marginTop: 14,
+          };
+          const paraStyle: React.CSSProperties = {
+            fontSize: 9.5, color: "#374151", lineHeight: 1.65,
+            textAlign: "justify", marginBottom: 6,
+          };
+          const boxStyle: React.CSSProperties = {
+            background: "#f0f7ff", border: "1px solid #bfdbfe",
+            borderRadius: 6, padding: "10px 14px", marginBottom: 8,
+            pageBreakInside: "avoid",
+          };
+          const labelStyle: React.CSSProperties = {
+            fontSize: 8.5, fontWeight: 700, color: "#1e40af",
+            textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 2,
+          };
+          const valueStyle: React.CSSProperties = {
+            fontSize: 10, fontWeight: 700, color: "#0f172a",
+          };
+
+          return (
+            <div>
+              {/* Introduction */}
+              <p style={paraStyle}>
+                Le présent rapport d'audit énergétique a été réalisé conformément aux dispositions du décret n°2022-780 du 4 mai 2022 et de l'arrêté du 4 mai 2022 relatifs à l'audit énergétique réglementaire des logements.
+                Il constitue un état des lieux complet des performances thermiques et énergétiques
+                {adresse ? ` du logement situé ${adresse}` : " du logement audité"}
+                {annee ? `, construit en ${annee}` : ""}
+                {surface ? `, d'une superficie de ${surface} m²` : ""}.
+              </p>
+              <p style={paraStyle}>
+                L'audit a permis d'identifier les points de déperditions thermiques, d'analyser les systèmes de chauffage, de ventilation, d'éclairage et de production d'eau chaude sanitaire, et de modéliser l'impact de plusieurs scénarios de travaux sur les consommations énergétiques et les émissions de gaz à effet de serre.
+              </p>
+
+              {/* Constats principaux */}
+              <div style={headerStyle}>Principaux constats</div>
+              <p style={paraStyle}>
+                L'analyse de l'enveloppe thermique et des systèmes techniques a mis en évidence plusieurs axes d'amélioration prioritaires. Les déperditions les plus significatives sont généralement localisées au niveau de la toiture, des murs et des menuiseries extérieures. Les équipements de chauffage et de production d'eau chaude représentent les postes de consommation les plus importants et constituent des leviers d'action majeurs pour réduire la facture énergétique.
+              </p>
+              <p style={paraStyle}>
+                L'étiquette énergie actuelle du logement et les niveaux de consommation observés confirment la nécessité d'engager des travaux de rénovation afin de réduire la dépendance aux énergies fossiles, d'améliorer le confort thermique des occupants et de valoriser le patrimoine immobilier.
+              </p>
+
+              {/* Scénarios proposés */}
+              {scData.length > 0 && (
+                <>
+                  <div style={headerStyle}>Scénarios de travaux proposés</div>
+                  <p style={paraStyle}>
+                    L'audit présente {scData.length === 1 ? "un scénario de rénovation" : `${scData.length} scénarios de rénovation`} permettant d'atteindre différents niveaux de performance, adaptés aux contraintes budgétaires et aux objectifs des occupants.
+                    {sc1 && ` Le premier scénario (${sc1.label || "Scénario A"}) cible une amélioration immédiate des postes les plus impactants.`}
+                    {sc2 && ` Le second scénario (${sc2.label || "Scénario B"}) propose une rénovation plus globale visant un gain énergétique optimal.`}
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(scData.length, 3)}, 1fr)`, gap: 10, marginBottom: 10 }}>
+                    {scData.map((sc: any, i: number) => (
+                      <div key={i} style={boxStyle}>
+                        <div style={labelStyle}>{sc.label || `Scénario ${String.fromCharCode(65 + i)}`}</div>
+                        {sc.gainPct != null && (
+                          <div style={valueStyle}>−{Math.round(sc.gainPct)} % de consommation</div>
+                        )}
+                        {sc.gainEconomiqueEur != null && (
+                          <div style={{ fontSize: 9, color: "#374151", marginTop: 2 }}>
+                            Économies : {Number(sc.gainEconomiqueEur).toLocaleString("fr-FR")} €/an
+                          </div>
+                        )}
+                        {sc.invest != null && (
+                          <div style={{ fontSize: 9, color: "#374151" }}>
+                            Coût estimé : {Number(sc.invest).toLocaleString("fr-FR")} €
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Aides financières */}
+              <div style={headerStyle}>Aides financières mobilisables</div>
+              <p style={paraStyle}>
+                Plusieurs dispositifs d'aide à la rénovation énergétique peuvent être mobilisés pour financer les travaux recommandés dans ce rapport :
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+                {[
+                  { nom: "MaPrimeRénov'", desc: "Aide de l'État versée par l'Anah, accessible à tous les propriétaires occupants selon les revenus du foyer." },
+                  { nom: "Certificats d'Économie d'Énergie (CEE)", desc: "Primes versées par les fournisseurs d'énergie pour inciter aux travaux de rénovation énergétique." },
+                  { nom: "Éco-PTZ", desc: "Prêt à taux zéro permettant de financer jusqu'à 50 000 € de travaux de rénovation énergétique sans intérêts." },
+                  { nom: "TVA à 5,5 %", desc: "Taux réduit de TVA applicable aux travaux de rénovation énergétique réalisés par des professionnels RGE." },
+                ].map((aide, i) => (
+                  <div key={i} style={{ ...boxStyle, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                    <div style={{ ...labelStyle, color: "#1e3a5f" }}>{aide.nom}</div>
+                    <div style={{ fontSize: 9, color: "#374151", lineHeight: 1.5 }}>{aide.desc}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Suite */}
+              <div style={headerStyle}>Prochaines étapes recommandées</div>
+              <p style={paraStyle}>
+                Suite à la remise du présent rapport, il est recommandé de consulter un ou plusieurs professionnels certifiés RGE (Reconnus Garants de l'Environnement) pour obtenir des devis détaillés sur les travaux préconisés. La mise en œuvre des travaux devra respecter l'ordre de priorité établi dans les scénarios, en commençant par le traitement de l'enveloppe thermique avant de remplacer les systèmes de chauffage, afin d'éviter le surdimensionnement des équipements.
+              </p>
+              <p style={{ ...paraStyle, fontStyle: "italic", color: "#6b7280" }}>
+                Ce rapport est établi sur la base des informations collectées lors de la visite sur site et des données transmises par le propriétaire. Les consommations modélisées sont des estimations basées sur des conditions d'usage conventionnelles. Les économies réelles pourront varier en fonction des habitudes des occupants et des conditions météorologiques.
+              </p>
+            </div>
+          );
+        })()}
+      </div>
+
       {/* ══ PAGE LEXIQUE ════════════════════════════════════════════════════════ */}
       {!isPreview && <div className="print-page-break" />}
       <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
-        <SectionTitle num={`${6 + scData.length}`} title="Lexique et définitions" subtitle="Glossaire des termes techniques utilisés dans ce rapport" />
+        <SectionTitle num={`${7 + scData.length}`} title="Lexique et définitions" subtitle="Glossaire des termes techniques utilisés dans ce rapport" />
         {(() => {
           const terms: { term: string; def: string }[] = [
             { term: "Rénovation énergétique performante", def: "Ensemble de travaux permettant à un bâtiment d'atteindre la classe A ou B du DPE après l'étude des 6 postes essentiels (isolation des murs, des planchers bas, de la toiture, remplacement des menuiseries, ventilation, production de chauffage et d'eau chaude sanitaire). Si les 6 postes ne sont pas traités, la rénovation est dite « performante par étapes »." },
@@ -2904,7 +3025,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         <>
           {!isPreview && <div className="print-page-break" />}
           <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
-            <SectionTitle num={`${7 + scData.length}`} title="Photos du bâtiment" subtitle="Relevé photographique par catégorie" />
+            <SectionTitle num={`${8 + scData.length}`} title="Photos du bâtiment" subtitle="Relevé photographique par catégorie" />
             {SECTION_ORDER.map((cat) => {
               const catPhotos = photosByCategory[cat];
               if (!catPhotos) return null;
