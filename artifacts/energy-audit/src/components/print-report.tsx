@@ -1617,22 +1617,68 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         {envelopeRows.length > 0 && (
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 9, fontWeight: 700, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Enveloppe thermique</div>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
-              <thead>
-                <tr style={{ background: "#1e3a5f", color: "#fff" }}>
-                  <th style={{ ...thStyle, textAlign: "left", width: "35%" }}>Élément</th>
-                  <th style={{ ...thStyle, textAlign: "left" }}>Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                {envelopeRows.map(({ label, key }, i) => (
-                  <tr key={key} style={i % 2 === 0 ? rowEven : rowOdd}>
-                    <td style={{ ...tdLeft, fontWeight: 600 }}>{label}</td>
-                    <td style={tdLeft}>{getRaw(rawFields, key)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+            {/* Tableau + photos côte à côte par élément */}
+            {(() => {
+              const envelopeCatMap: Record<string, string> = {
+                "Isolation murs": "facades",
+                "Isolation toiture": "toitures",
+                "Isolation plancher": "planchers",
+                "Type de menuiserie": "menuiseries",
+              };
+              return envelopeRows.map(({ label, key }, i) => {
+                const cat = envelopeCatMap[key];
+                const catPhotos = cat ? (photosByCategory[cat] ?? []) : [];
+                return (
+                  <div key={key} style={{ marginBottom: 8, breakInside: "avoid" }}>
+                    {/* Row: description + photos */}
+                    <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                      {/* Description cell */}
+                      <div style={{
+                        flex: catPhotos.length > 0 ? "0 0 45%" : "1",
+                        background: i % 2 === 0 ? "#f8fafc" : "#fff",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 4,
+                        padding: "6px 10px",
+                        minWidth: 0,
+                      }}>
+                        <div style={{ fontSize: 8, fontWeight: 700, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 2 }}>{label}</div>
+                        <div style={{ fontSize: 9.5, color: "#374151" }}>{getRaw(rawFields, key) ?? "—"}</div>
+                      </div>
+                      {/* Photos for this element */}
+                      {catPhotos.length > 0 && (
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(catPhotos.length, 3)}, 1fr)`, gap: 6 }}>
+                            {catPhotos.slice(0, 3).map((photo) => (
+                              <div key={photo.id} style={{ breakInside: "avoid" }}>
+                                <div style={{ height: 80, borderRadius: 4, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f1f5f9" }}>
+                                  <img
+                                    src={`${apiBase}${photo.url}`}
+                                    alt={photo.caption || photo.fileName}
+                                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                                  />
+                                </div>
+                                {photo.caption && (
+                                  <div style={{ fontSize: 6.5, color: "#64748b", marginTop: 2, textAlign: "center", fontStyle: "italic", lineHeight: 1.3 }}>
+                                    {photo.caption}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          {catPhotos.length > 3 && (
+                            <div style={{ fontSize: 7, color: "#94a3b8", marginTop: 3, textAlign: "right" }}>
+                              +{catPhotos.length - 3} photo{catPhotos.length - 3 > 1 ? "s" : ""}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
         )}
 
