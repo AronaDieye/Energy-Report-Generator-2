@@ -2043,6 +2043,68 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 );
               })()}
 
+              {/* ── Bilan thermique UBAT après travaux ── */}
+              {(() => {
+                const ubatRows = [
+                  { label: "Coefficient UBAT", key: "UBAT Coefficient", unit: "W/m².°C", highlight: true },
+                  { label: "HT — Déperditions enveloppe", key: "UBAT HT", unit: "W/°C" },
+                  { label: "HD — Parois extérieures", key: "UBAT HD", unit: "W/°C" },
+                  { label: "HU — Parois intérieures", key: "UBAT HU", unit: "W/°C" },
+                  { label: "HS — Sol", key: "UBAT HS", unit: "W/°C" },
+                  { label: "AT — Surface déperditive", key: "UBAT AT", unit: "m²" },
+                  { label: "Ventilation spécifique", key: "UBAT Ventilation", unit: "W/°C" },
+                  { label: "Infiltrations", key: "UBAT Infiltrations", unit: "W/°C" },
+                  { label: "GV — Total général", key: "UBAT GV", unit: "W/°C" },
+                ].map(r => ({ ...r, value: getScVal(rawFields, sc.code, r.key) }))
+                  .filter(r => r.value !== null);
+
+                if (ubatRows.length === 0) return null;
+
+                // Also get initial state values for comparison
+                const ubatInitRows: Record<string, string | null> = {
+                  "UBAT Coefficient": getRaw(rawFields, "UBAT - Coefficient"),
+                  "UBAT HT":          getRaw(rawFields, "UBAT - HT enveloppe"),
+                  "UBAT GV":          getRaw(rawFields, "UBAT - GV total"),
+                };
+
+                return (
+                  <div style={{ marginTop: 12, border: `1.5px solid ${scColor}33`, borderRadius: 8, overflow: "hidden" }}>
+                    <div style={{ background: scColor, padding: "6px 14px" }}>
+                      <span style={{ fontSize: 9, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 1 }}>
+                        Bilan thermique UBAT après travaux
+                      </span>
+                    </div>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr style={{ background: "#f1f5f9" }}>
+                          <th style={{ padding: "4px 10px", textAlign: "left", fontSize: 8.5, fontWeight: 700, color: "#374151", border: "1px solid #e2e8f0" }}>Indicateur</th>
+                          <th style={{ padding: "4px 10px", textAlign: "right", fontSize: 8.5, fontWeight: 700, color: "#374151", border: "1px solid #e2e8f0" }}>État initial</th>
+                          <th style={{ padding: "4px 10px", textAlign: "right", fontSize: 8.5, fontWeight: 700, color: scColor, border: "1px solid #e2e8f0" }}>Après travaux</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ubatRows.map(({ label, key, value, highlight }, ri) => {
+                          const initVal = ubatInitRows[key] ?? null;
+                          return (
+                            <tr key={key} style={{ background: ri % 2 === 0 ? "#f8fafc" : "#fff" }}>
+                              <td style={{ padding: "3px 10px", fontSize: highlight ? 9.5 : 8.5, fontWeight: highlight ? 700 : 500, color: "#374151", border: "1px solid #e2e8f0" }}>
+                                {label}
+                              </td>
+                              <td style={{ padding: "3px 10px", textAlign: "right", fontSize: 8.5, fontFamily: "monospace", color: "#94a3b8", border: "1px solid #e2e8f0" }}>
+                                {initVal ?? "—"}
+                              </td>
+                              <td style={{ padding: "3px 10px", textAlign: "right", fontSize: highlight ? 10 : 8.5, fontWeight: highlight ? 800 : 700, fontFamily: "monospace", color: scColor, border: "1px solid #e2e8f0" }}>
+                                {value}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+
               <PrintFooter page={pageNum} building={b.name} />
             </div>
           </React.Fragment>
