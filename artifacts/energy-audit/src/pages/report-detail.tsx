@@ -985,13 +985,6 @@ interface CoverForm {
   reference: string;
   coverPhotoId: number | null;
   introText: string;
-  auditeurNom: string;
-  auditeurTelephone: string;
-  auditeurEmail: string;
-  rgeNumero: string;
-  rgeValidite: string;
-  opqibiNumero: string;
-  numCarteAuditeur: string;
 }
 
 interface EditorPhoto {
@@ -1063,6 +1056,10 @@ function CoverPageEditor({
   const [photos, setPhotos] = useState<EditorPhoto[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [uploadingCertif, setUploadingCertif] = useState(false);
+  const certifInputRef = React.useRef<HTMLInputElement>(null);
+
+  const certifPhotos = photos.filter(p => p.category === "certifications");
 
   // Fetch existing photos on open
   React.useEffect(() => {
@@ -1103,6 +1100,37 @@ function CoverPageEditor({
     } finally {
       setUploadingPhoto(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleCertifUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || certifPhotos.length >= 3) return;
+    setUploadingCertif(true);
+    try {
+      const fd = new FormData();
+      fd.append("photo", file);
+      fd.append("category", "certifications");
+      fd.append("caption", `Certification ${certifPhotos.length + 1}`);
+      const res = await fetch(`${apiBase}/api/audit/reports/${reportId}/photos`, { method: "POST", body: fd });
+      if (!res.ok) throw new Error("Upload échoué");
+      const listRes = await fetch(`${apiBase}/api/audit/reports/${reportId}/photos`);
+      const ps: EditorPhoto[] = listRes.ok ? await listRes.json() : photos;
+      setPhotos(ps);
+    } catch {
+      setError("Erreur lors de l'envoi du document");
+    } finally {
+      setUploadingCertif(false);
+      if (certifInputRef.current) certifInputRef.current.value = "";
+    }
+  };
+
+  const handleCertifDelete = async (photoId: number) => {
+    try {
+      await fetch(`${apiBase}/api/audit/reports/${reportId}/photos/${photoId}`, { method: "DELETE" });
+      setPhotos(prev => prev.filter(p => p.id !== photoId));
+    } catch {
+      setError("Erreur lors de la suppression");
     }
   };
 
@@ -1233,18 +1261,49 @@ function CoverPageEditor({
               </div>
             </div>
 
-            {/* Certifications */}
+            {/* Photos de certification */}
             <div>
-              <SectionDivider label="Certifications & Auditeur" color="purple" />
-              <div className="grid grid-cols-2 gap-3">
-                <CoverField label="Nom de l'auditeur" value={form.auditeurNom} onChange={handleChange("auditeurNom")} placeholder="Prénom NOM" />
-                <CoverField label="Téléphone auditeur" value={form.auditeurTelephone} onChange={handleChange("auditeurTelephone")} placeholder="06 00 00 00 00" />
-                <CoverField label="Email auditeur" value={form.auditeurEmail} onChange={handleChange("auditeurEmail")} placeholder="auditeur@bureau.fr" />
-                <CoverField label="N° carte professionnelle" value={form.numCarteAuditeur} onChange={handleChange("numCarteAuditeur")} placeholder="ADEME-AUDIT-XXXXX" />
-                <CoverField label="N° certification RGE" value={form.rgeNumero} onChange={handleChange("rgeNumero")} placeholder="E-E190001-R2" />
-                <CoverField label="Validité RGE (date)" value={form.rgeValidite} onChange={handleChange("rgeValidite")} placeholder="31/12/2025" />
-                <CoverField label="N° référence OPQIBI" value={form.opqibiNumero} onChange={handleChange("opqibiNumero")} placeholder="1905-0000" />
+              <SectionDivider label="Documents de certification (max. 3)" color="purple" />
+              <p className="text-xs text-muted-foreground mb-3">
+                Ajoutez jusqu'à 3 scans ou photos de certifications. Chaque document sera affiché en pleine page à la fin du rapport PDF.
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                {certifPhotos.slice(0, 3).map((p) => (
+                  <div key={p.id} className="relative group rounded border overflow-hidden">
+                    <img
+                      src={`${apiBase}${p.url}`}
+                      alt={p.caption || "Certification"}
+                      className="w-full h-32 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleCertifDelete(p.id)}
+                      className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 text-sm font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >×</button>
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs px-2 py-1 truncate">
+                      {p.caption || `Certification ${certifPhotos.indexOf(p) + 1}`}
+                    </div>
+                  </div>
+                ))}
+                {certifPhotos.length < 3 && (
+                  <button
+                    type="button"
+                    onClick={() => certifInputRef.current?.click()}
+                    disabled={uploadingCertif}
+                    className="h-32 border-2 border-dashed rounded flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors disabled:opacity-50"
+                  >
+                    <span className="text-2xl">+</span>
+                    <span>{uploadingCertif ? "Envoi…" : "Ajouter un document"}</span>
+                  </button>
+                )}
               </div>
+              <input
+                ref={certifInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                className="hidden"
+                onChange={handleCertifUpload}
+              />
             </div>
 
             {/* Mission */}
@@ -1434,13 +1493,6 @@ export function ReportDetail() {
             reference: report.metadata?.reference ?? "",
             coverPhotoId: (report.metadata as Record<string, unknown>)?.coverPhotoId as number | null ?? null,
             introText: (report.metadata as Record<string, unknown>)?.introText as string ?? DEFAULT_INTRO_TEXT,
-            auditeurNom: (report.metadata as Record<string, unknown>)?.auditeurNom as string ?? "",
-            auditeurTelephone: (report.metadata as Record<string, unknown>)?.auditeurTelephone as string ?? "",
-            auditeurEmail: (report.metadata as Record<string, unknown>)?.auditeurEmail as string ?? "",
-            rgeNumero: (report.metadata as Record<string, unknown>)?.rgeNumero as string ?? "",
-            rgeValidite: (report.metadata as Record<string, unknown>)?.rgeValidite as string ?? "",
-            opqibiNumero: (report.metadata as Record<string, unknown>)?.opqibiNumero as string ?? "",
-            numCarteAuditeur: (report.metadata as Record<string, unknown>)?.numCarteAuditeur as string ?? "",
           }}
           onClose={() => setShowCoverEditor(false)}
           onSaved={() => refetch()}

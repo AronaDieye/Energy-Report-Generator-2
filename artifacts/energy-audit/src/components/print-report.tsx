@@ -480,13 +480,6 @@ interface BaoMetadata {
   gesInitialKgCo2M2?: number | null;
   coverPhotoId?: number | null;
   introText?: string | null;
-  auditeurNom?: string | null;
-  auditeurTelephone?: string | null;
-  auditeurEmail?: string | null;
-  rgeNumero?: string | null;
-  rgeValidite?: string | null;
-  opqibiNumero?: string | null;
-  numCarteAuditeur?: string | null;
   scenarios?: BaoScenarioMeta[];
 }
 
@@ -3067,156 +3060,37 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         </>
       )}
 
-      {/* ══ PAGE CERTIFICATIONS ══════════════════════════════════════════════════ */}
-      {!isPreview && <div className="print-page-break" />}
-      <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
-        {/* Header */}
-        <div style={{ borderBottom: "3px solid #1e3a5f", paddingBottom: 12, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-          <div>
-            <div style={{ fontSize: 7, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 3 }}>
-              Document de certification
+      {/* ══ PAGES CERTIFICATIONS (une photo par page) ════════════════════════════ */}
+      {photos
+        .filter(p => p.category === "certifications")
+        .slice(0, 3)
+        .map((photo) => (
+          <React.Fragment key={photo.id}>
+            {!isPreview && <div className="print-page-break" />}
+            <div
+              className={isPreview ? undefined : "print-page"}
+              style={{
+                ...pageStyle,
+                padding: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: isPreview ? 400 : undefined,
+              }}
+            >
+              <img
+                src={`${apiBase}${photo.url}`}
+                alt={photo.caption || "Certification"}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  display: "block",
+                }}
+              />
             </div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#1e3a5f", letterSpacing: 0.3 }}>
-              {meta?.bureauEtudes || "Bureau d'études"}
-            </div>
-            {meta?.bureauAdresse && (
-              <div style={{ fontSize: 9, color: "#64748b", marginTop: 2 }}>{meta.bureauAdresse}</div>
-            )}
-          </div>
-          <div style={{ textAlign: "right" }}>
-            {meta?.siret && <div style={{ fontSize: 8.5, color: "#64748b" }}>SIRET : {meta.siret}</div>}
-            {meta?.bureauEmail && <div style={{ fontSize: 8.5, color: "#64748b" }}>{meta.bureauEmail}</div>}
-            {meta?.bureauTelephone && <div style={{ fontSize: 8.5, color: "#64748b" }}>{meta.bureauTelephone}</div>}
-          </div>
-        </div>
-
-        {/* Certifications grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 24 }}>
-          {/* RGE */}
-          <div style={{ border: "2px solid #16a34a", borderRadius: 8, padding: "12px 14px", pageBreakInside: "avoid" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 6, background: "#16a34a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ fontSize: 11, fontWeight: 900, color: "#fff" }}>RGE</span>
-              </div>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "#15803d" }}>Reconnu Garant</div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: "#15803d" }}>de l'Environnement</div>
-              </div>
-            </div>
-            {meta?.rgeNumero ? (
-              <div style={{ fontSize: 8.5, color: "#374151" }}>
-                <span style={{ fontWeight: 600 }}>N° : </span>{meta.rgeNumero}
-              </div>
-            ) : (
-              <div style={{ fontSize: 8, color: "#94a3b8", fontStyle: "italic" }}>Numéro non renseigné</div>
-            )}
-            {meta?.rgeValidite && (
-              <div style={{ fontSize: 8.5, color: "#374151", marginTop: 3 }}>
-                <span style={{ fontWeight: 600 }}>Validité : </span>{meta.rgeValidite}
-              </div>
-            )}
-            <div style={{ marginTop: 8, fontSize: 7.5, color: "#6b7280", lineHeight: 1.4 }}>
-              Qualification délivrée par un organisme accrédité. Obligatoire pour bénéficier des aides à la rénovation.
-            </div>
-          </div>
-
-          {/* OPQIBI */}
-          <div style={{ border: "2px solid #2563eb", borderRadius: 8, padding: "12px 14px", pageBreakInside: "avoid" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 6, background: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ fontSize: 9, fontWeight: 900, color: "#fff", letterSpacing: -0.5 }}>OPQIBI</span>
-              </div>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "#1d4ed8" }}>Qualification</div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: "#1d4ed8" }}>Ingénierie</div>
-              </div>
-            </div>
-            {meta?.opqibiNumero ? (
-              <div style={{ fontSize: 8.5, color: "#374151" }}>
-                <span style={{ fontWeight: 600 }}>Réf. : </span>{meta.opqibiNumero}
-              </div>
-            ) : (
-              <div style={{ fontSize: 8, color: "#94a3b8", fontStyle: "italic" }}>Référence non renseignée</div>
-            )}
-            {meta?.qualification && (
-              <div style={{ fontSize: 8.5, color: "#374151", marginTop: 3 }}>
-                <span style={{ fontWeight: 600 }}>Qualification : </span>{meta.qualification}
-              </div>
-            )}
-            <div style={{ marginTop: 8, fontSize: 7.5, color: "#6b7280", lineHeight: 1.4 }}>
-              Organisme professionnel de qualification de l'ingénierie du bâtiment et des infrastructures.
-            </div>
-          </div>
-
-          {/* Carte auditeur */}
-          <div style={{ border: "2px solid #7c3aed", borderRadius: 8, padding: "12px 14px", pageBreakInside: "avoid" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 6, background: "#7c3aed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <span style={{ fontSize: 8, fontWeight: 900, color: "#fff", textAlign: "center", lineHeight: 1.2 }}>AUD.{"\n"}ADEME</span>
-              </div>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 800, color: "#6d28d9" }}>Auditeur</div>
-                <div style={{ fontSize: 9, fontWeight: 700, color: "#6d28d9" }}>Énergétique</div>
-              </div>
-            </div>
-            {meta?.numCarteAuditeur ? (
-              <div style={{ fontSize: 8.5, color: "#374151" }}>
-                <span style={{ fontWeight: 600 }}>N° : </span>{meta.numCarteAuditeur}
-              </div>
-            ) : (
-              <div style={{ fontSize: 8, color: "#94a3b8", fontStyle: "italic" }}>Numéro non renseigné</div>
-            )}
-            <div style={{ marginTop: 8, fontSize: 7.5, color: "#6b7280", lineHeight: 1.4 }}>
-              Auditeur certifié conforme aux exigences du décret n°2022-780 relatif à l'audit énergétique réglementaire.
-            </div>
-          </div>
-        </div>
-
-        {/* Auditeur responsable */}
-        <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "14px 18px", marginBottom: 20 }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10, borderBottom: "1px solid #e2e8f0", paddingBottom: 6 }}>
-            Auditeur responsable du rapport
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-            <div>
-              <div style={{ fontSize: 8, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Nom & Prénom</div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#0f172a" }}>{meta?.auditeurNom || "—"}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 8, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Téléphone</div>
-              <div style={{ fontSize: 10, color: "#374151" }}>{meta?.auditeurTelephone || "—"}</div>
-            </div>
-            <div>
-              <div style={{ fontSize: 8, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Email</div>
-              <div style={{ fontSize: 10, color: "#374151" }}>{meta?.auditeurEmail || meta?.bureauEmail || "—"}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Attestation + signature */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
-          <div style={{ fontSize: 8.5, color: "#374151", lineHeight: 1.65, padding: "12px 14px", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 6 }}>
-            <div style={{ fontWeight: 700, fontSize: 9, color: "#92400e", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Attestation de conformité</div>
-            Je soussigné(e), auditeur énergétique certifié, atteste que le présent rapport d'audit énergétique a été réalisé conformément au décret n°2022-780 du 4 mai 2022 et à l'arrêté du 4 mai 2022 fixant le contenu et les modalités de réalisation de l'audit énergétique. Les données collectées, les modélisations effectuées et les recommandations formulées reflètent fidèlement les constats réalisés lors de la visite sur site.
-          </div>
-          <div>
-            <div style={{ fontSize: 8.5, color: "#374151", marginBottom: 8, fontWeight: 600 }}>Signature et cachet du bureau d'études :</div>
-            <div style={{ border: "1px dashed #cbd5e1", borderRadius: 6, height: 90, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontSize: 8, color: "#94a3b8", fontStyle: "italic" }}>Signature</span>
-            </div>
-            <div style={{ marginTop: 6, fontSize: 8, color: "#94a3b8" }}>
-              Fait à ________________, le {meta?.dateRestitution || new Date().toLocaleDateString("fr-FR")}
-            </div>
-          </div>
-        </div>
-
-        {/* Pied de page légal */}
-        <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 10, fontSize: 7.5, color: "#94a3b8", lineHeight: 1.5, textAlign: "center" }}>
-          Ce rapport est la propriété exclusive de {meta?.beneficiaire || "son destinataire"} et du {meta?.bureauEtudes || "bureau d'études ayant réalisé l'audit"}.
-          Toute reproduction, même partielle, sans autorisation écrite est interdite. Ce document ne vaut pas DPE au sens de l'article L.126-26 du Code de la construction.
-          {meta?.reference && ` | Réf. dossier : ${meta.reference}`}
-        </div>
-      </div>
+          </React.Fragment>
+        ))}
     </div>
   );
 }
