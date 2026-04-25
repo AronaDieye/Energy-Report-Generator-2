@@ -1410,6 +1410,104 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         <PrintFooter page={2} building={b.name} />
       </div>
 
+      {/* ══ PAGE SOMMAIRE ════════════════════════════════════════════════════ */}
+      {!isPreview && (
+        <>
+          <div className="print-page-break" />
+          <div className="print-page" style={pageStyle}>
+            {/* En-tête */}
+            <div style={{ borderBottom: "3px solid #1e3a5f", paddingBottom: 12, marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+              <div>
+                <div style={{ fontSize: 7, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4 }}>Rapport d'audit énergétique</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: "#1e3a5f", letterSpacing: -0.3 }}>Sommaire</div>
+              </div>
+              {meta?.reference && (
+                <div style={{ fontSize: 8, color: "#94a3b8" }}>Réf. {meta.reference}</div>
+              )}
+            </div>
+
+            {/* Liste des sections */}
+            {(() => {
+              const tocEntries: { num: string; title: string; subtitle?: string; indent?: boolean }[] = [
+                { num: "—", title: "Préambule", subtitle: "Note introductive" },
+                { num: "1", title: "Synthèse audit énergétique globale", subtitle: "Comparaison des indicateurs entre l'état initial et les scénarios" },
+                { num: "2", title: "Détail des scénarios de travaux", subtitle: "Fiches synthétiques par scénario" },
+                { num: "3", title: "Données bâtiment", subtitle: "Caractéristiques générales, climatiques et de l'enveloppe" },
+                { num: "4", title: "Systèmes techniques", subtitle: "Chauffage, ECS, ventilation, climatisation — état initial" },
+                { num: "5", title: "Consommations énergétiques par usage", subtitle: "État initial — répartition par poste (méthode Th-C-E)" },
+                { num: "5b", title: "Bilan thermique — UBAT", subtitle: "Déperditions de l'enveloppe — état initial" },
+                ...scData.map((sc, i) => ({
+                  num: `${6 + i}`,
+                  title: `Scénario de travaux — ${sc.code}`,
+                  subtitle: sc.label !== sc.code ? sc.label : undefined,
+                  indent: true,
+                })),
+                { num: `${6 + scData.length}`, title: "Conclusion générale", subtitle: "Synthèse des recommandations et perspectives de rénovation" },
+                { num: `${7 + scData.length}`, title: "Lexique et définitions", subtitle: "Glossaire des termes techniques utilisés dans ce rapport" },
+                { num: `${8 + scData.length}`, title: "Photos du bâtiment", subtitle: "Relevé photographique par catégorie" },
+                { num: "Annexe", title: "Documents de certification", subtitle: "Certifications et qualifications du bureau d'études" },
+              ];
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                  {tocEntries.map((entry, i) => {
+                    const isGroup = entry.num === "—" || entry.num === "Annexe";
+                    const isScenario = entry.indent;
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          display: "flex",
+                          alignItems: "baseline",
+                          gap: 8,
+                          padding: isScenario ? "6px 0 6px 24px" : "9px 0",
+                          borderBottom: "1px solid #f1f5f9",
+                        }}
+                      >
+                        {/* Numéro */}
+                        <div style={{
+                          minWidth: 36,
+                          fontSize: isScenario ? 9 : 11,
+                          fontWeight: 800,
+                          color: isGroup ? "#64748b" : isScenario ? "#1d4ed8" : "#1e3a5f",
+                          flexShrink: 0,
+                          fontStyle: isGroup ? "italic" : undefined,
+                        }}>
+                          {entry.num}
+                        </div>
+                        {/* Titre + sous-titre */}
+                        <div style={{ flex: 1 }}>
+                          <div style={{
+                            fontSize: isScenario ? 9.5 : 11,
+                            fontWeight: isGroup ? 600 : 700,
+                            color: "#0f172a",
+                          }}>
+                            {entry.title}
+                          </div>
+                          {entry.subtitle && (
+                            <div style={{ fontSize: 8, color: "#94a3b8", marginTop: 1 }}>{entry.subtitle}</div>
+                          )}
+                        </div>
+                        {/* Ligne pointillée */}
+                        <div style={{
+                          flex: 0,
+                          height: 1,
+                          minWidth: 60,
+                          borderBottom: "1px dotted #cbd5e1",
+                          alignSelf: "center",
+                          marginBottom: 4,
+                        }} />
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
+            <PrintFooter page={2} building={b.name} />
+          </div>
+        </>
+      )}
+
       {/* ══ PAGE TEXTE INTRODUCTIF ════════════════════════════════════════════ */}
       {!isPreview && (() => {
         const introText = (meta?.introText && meta.introText.trim().length > 0) ? meta.introText : DEFAULT_INTRO_TEXT;
