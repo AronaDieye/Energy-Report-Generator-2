@@ -985,6 +985,13 @@ interface CoverForm {
   reference: string;
   coverPhotoId: number | null;
   introText: string;
+  auditeurNom: string;
+  auditeurTelephone: string;
+  auditeurEmail: string;
+  rgeNumero: string;
+  rgeValidite: string;
+  opqibiNumero: string;
+  numCarteAuditeur: string;
 }
 
 interface EditorPhoto {
@@ -1222,7 +1229,21 @@ function CoverPageEditor({
                 <CoverField label="Email" value={form.bureauEmail} onChange={handleChange("bureauEmail")} placeholder="contact@bureau.fr" />
                 <CoverField label="Téléphone" value={form.bureauTelephone} onChange={handleChange("bureauTelephone")} placeholder="01 23 45 67 89" />
                 <CoverField label="N° SIRET" value={form.siret} onChange={handleChange("siret")} placeholder="123 456 789 00012" />
-                <CoverField label="Qualification / Certification" value={form.qualification} onChange={handleChange("qualification")} placeholder="RGE, OPQIBI..." />
+                <CoverField label="Qualification générale" value={form.qualification} onChange={handleChange("qualification")} placeholder="RGE, OPQIBI..." />
+              </div>
+            </div>
+
+            {/* Certifications */}
+            <div>
+              <SectionDivider label="Certifications & Auditeur" color="purple" />
+              <div className="grid grid-cols-2 gap-3">
+                <CoverField label="Nom de l'auditeur" value={form.auditeurNom} onChange={handleChange("auditeurNom")} placeholder="Prénom NOM" />
+                <CoverField label="Téléphone auditeur" value={form.auditeurTelephone} onChange={handleChange("auditeurTelephone")} placeholder="06 00 00 00 00" />
+                <CoverField label="Email auditeur" value={form.auditeurEmail} onChange={handleChange("auditeurEmail")} placeholder="auditeur@bureau.fr" />
+                <CoverField label="N° carte professionnelle" value={form.numCarteAuditeur} onChange={handleChange("numCarteAuditeur")} placeholder="ADEME-AUDIT-XXXXX" />
+                <CoverField label="N° certification RGE" value={form.rgeNumero} onChange={handleChange("rgeNumero")} placeholder="E-E190001-R2" />
+                <CoverField label="Validité RGE (date)" value={form.rgeValidite} onChange={handleChange("rgeValidite")} placeholder="31/12/2025" />
+                <CoverField label="N° référence OPQIBI" value={form.opqibiNumero} onChange={handleChange("opqibiNumero")} placeholder="1905-0000" />
               </div>
             </div>
 
@@ -1413,6 +1434,13 @@ export function ReportDetail() {
             reference: report.metadata?.reference ?? "",
             coverPhotoId: (report.metadata as Record<string, unknown>)?.coverPhotoId as number | null ?? null,
             introText: (report.metadata as Record<string, unknown>)?.introText as string ?? DEFAULT_INTRO_TEXT,
+            auditeurNom: (report.metadata as Record<string, unknown>)?.auditeurNom as string ?? "",
+            auditeurTelephone: (report.metadata as Record<string, unknown>)?.auditeurTelephone as string ?? "",
+            auditeurEmail: (report.metadata as Record<string, unknown>)?.auditeurEmail as string ?? "",
+            rgeNumero: (report.metadata as Record<string, unknown>)?.rgeNumero as string ?? "",
+            rgeValidite: (report.metadata as Record<string, unknown>)?.rgeValidite as string ?? "",
+            opqibiNumero: (report.metadata as Record<string, unknown>)?.opqibiNumero as string ?? "",
+            numCarteAuditeur: (report.metadata as Record<string, unknown>)?.numCarteAuditeur as string ?? "",
           }}
           onClose={() => setShowCoverEditor(false)}
           onSaved={() => refetch()}
