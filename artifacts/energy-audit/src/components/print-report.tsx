@@ -483,6 +483,38 @@ interface BaoMetadata {
   scenarios?: BaoScenarioMeta[];
 }
 
+const DEFAULT_INTRO_TEXT = `OBJECTIF DE L'ETUDE
+Le présent document vise à présenter de manière exhaustive les résultats de l'audit énergétique réalisé sur le bâtiment concerné. L'étude a pour but d'évaluer en profondeur les performances thermiques, les consommations énergétiques actuelles et de formuler des recommandations concrètes permettant de réduire la consommation d'énergie. Cet audit a pour objectif final de rendre le bâtiment conforme aux réglementations en vigueur, tout en proposant une optimisation énergétique durable.
+
+L'audit énergétique a été conduit conformément aux recommandations de l'ADEME et aux exigences des normes NF EN 16247-1 et NF EN 16247-2. Ces normes fixent les méthodologies et bonnes pratiques à suivre pour la réalisation d'audits énergétiques complets et pertinents. De plus, l'audit s'inscrit dans les obligations du décret n° 2012-111 du 27 janvier 2012, qui impose aux bâtiments, en particulier ceux de grande taille, de procéder à des audits énergétiques dans le cadre d'une démarche d'amélioration de l'efficacité énergétique.
+
+L'étude couvre plusieurs aspects du bâtiment, notamment :
+
+Contenu détaillé de l'audit
+L'analyse s'est déroulée en plusieurs phases successives, chacune ayant permis de collecter des données précises sur les différents aspects du bâtiment. Voici les points étudiés de manière approfondie :
+
+Analyse de l'enveloppe thermique du bâtiment
+Murs extérieurs, toitures, planchers et ouvertures ont fait l'objet d'une inspection détaillée pour évaluer leur niveau d'isolation thermique. Cette étape est essentielle car l'enveloppe joue un rôle clé dans la réduction des déperditions de chaleur. Une attention particulière a été accordée à l'identification des ponts thermiques.
+Les matériaux composant l'enveloppe ont été évalués sur la base de leur capacité à limiter les déperditions thermiques, en prenant en compte les standards actuels d'efficacité énergétique.
+
+Systèmes de chauffage, de ventilation et de climatisation (CVC)
+L'étude a porté sur le rendement des systèmes de chauffage, ventilation et climatisation en place. Le diagnostic a évalué la performance de chaque composant, incluant les chaudières, pompes à chaleur, unités de traitement de l'air et équipements de refroidissement, en prenant en compte leur ancienneté, leur technologie et leur efficacité énergétique.
+L'audit a inclus également l'évaluation des systèmes de régulation (thermostats, capteurs de température et d'humidité, etc.), ainsi que des dispositifs de gestion centralisée permettant d'optimiser l'utilisation énergétique en fonction des horaires d'occupation et des besoins spécifiques des utilisateurs du bâtiment.
+
+Production d'eau chaude sanitaire (ECS)
+Les installations dédiées à la production d'eau chaude sanitaire ont été analysées, notamment les chaudières, ballons d'eau chaude, ou tout autre équipement spécifique utilisé pour répondre aux besoins en ECS dans le bâtiment. L'efficacité énergétique de ces équipements a été mesurée pour évaluer leur impact sur les consommations globales.
+
+Systèmes d'éclairage et équipements électriques
+Une attention particulière a été portée à l'éclairage. L'étude a évalué la technologie des luminaires (fluorescents, LED, etc.), l'intensité d'utilisation, et les systèmes de contrôle (interrupteurs, détecteurs de présence, etc.).
+D'autres équipements électriques, tels que les ascenseurs, systèmes de sécurité, salles serveurs, équipements informatiques, ont également été pris en compte, notamment leur consommation en période de pleine activité et en période de veille.
+
+Analyse des habitudes d'utilisation des occupants
+L'audit s'est intéressé à l'influence des comportements des occupants sur les consommations énergétiques réelles du bâtiment. Cette phase inclut une enquête sur les horaires d'occupation, les postes de travail et les pratiques de gestion de l'énergie (par exemple, l'usage des équipements en dehors des heures d'ouverture).
+
+Modélisation et comparaison des consommations
+Une modélisation énergétique du bâtiment a été réalisée pour estimer les consommations théoriques en fonction des caractéristiques du bâtiment et des systèmes énergétiques installés.
+Les données modélisées ont ensuite été comparées aux consommations réelles observées (via les factures énergétiques) afin de détecter des écarts et des dysfonctionnements éventuels. Cette analyse permet de comprendre si des usages non optimisés ou des équipements obsolètes contribuent à des surconsommations.`;
+
 interface UbatParoisRow {
   designation: string;
   code: string | null;
@@ -1343,8 +1375,10 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         <PrintFooter page={2} building={b.name} />
       </div>
 
-      {/* ══ PAGE TEXTE INTRODUCTIF (si renseigné) ════════════════════════════ */}
-      {meta?.introText && meta.introText.trim().length > 0 && !isPreview && (
+      {/* ══ PAGE TEXTE INTRODUCTIF ════════════════════════════════════════════ */}
+      {!isPreview && (() => {
+        const introText = (meta?.introText && meta.introText.trim().length > 0) ? meta.introText : DEFAULT_INTRO_TEXT;
+        return (
         <>
           <div className="print-page-break" />
           <div className="print-page" style={pageStyle}>
@@ -1357,24 +1391,47 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                   Préambule
                 </div>
               </div>
-              {meta.introText.split(/\n\n+/).map((para, i) => (
-                para.trim() ? (
-                  <p key={i} style={{
-                    fontSize: 10.5,
-                    color: "#374151",
-                    lineHeight: 1.75,
-                    marginBottom: 14,
-                    textAlign: "justify" as const,
-                  }}>
-                    {para.trim()}
-                  </p>
-                ) : null
-              ))}
+              {introText.split(/\n\n+/).map((para, i) => {
+                if (!para.trim()) return null;
+                const lines = para.trim().split('\n');
+                const isHeadingBlock = lines.length > 1;
+                return (
+                  <div key={i} style={{ marginBottom: 14 }}>
+                    {isHeadingBlock && (
+                      <div style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: "#1d4ed8",
+                        textTransform: "uppercase" as const,
+                        letterSpacing: 0.5,
+                        marginBottom: 3,
+                      }}>
+                        {lines[0]}
+                      </div>
+                    )}
+                    <p style={{
+                      fontSize: 10.5,
+                      color: "#374151",
+                      lineHeight: 1.75,
+                      margin: 0,
+                      textAlign: "justify" as const,
+                    }}>
+                      {(isHeadingBlock ? lines.slice(1) : lines).map((line, j, arr) => (
+                        <React.Fragment key={j}>
+                          {line}
+                          {j < arr.length - 1 && <br />}
+                        </React.Fragment>
+                      ))}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
             <PrintFooter page={3} building={b.name} />
           </div>
         </>
-      )}
+        );
+      })()}
 
       {/* ══ PAGE 4 — BÂTIMENT & DONNÉES TECHNIQUES ═══════════════════════════ */}
       {!isPreview && <div className="print-page-break" />}
