@@ -1620,38 +1620,42 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
             {/* Tableau + photos côte à côte par élément */}
             {(() => {
-              const envelopeCatMap: Record<string, string> = {
-                "Isolation murs": "facades",
-                "Isolation toiture": "toitures",
-                "Isolation plancher": "planchers",
-                "Type de menuiserie": "menuiseries",
+              const envelopeCatMap: Record<string, { cat: string; displayLabel: string }> = {
+                "Isolation murs":    { cat: "facades",    displayLabel: "Façades extérieures" },
+                "Isolation toiture": { cat: "toitures",   displayLabel: "Toitures" },
+                "Isolation plancher":{ cat: "planchers",  displayLabel: "Planchers bas" },
+                "Type de menuiserie":{ cat: "menuiseries",displayLabel: "Menuiseries" },
               };
-              return envelopeRows.map(({ label, key }, i) => {
-                const cat = envelopeCatMap[key];
-                const catPhotos = cat ? (photosByCategory[cat] ?? []) : [];
+              return envelopeRows.map(({ key }, i) => {
+                const mapping = envelopeCatMap[key];
+                const displayLabel = mapping?.displayLabel ?? key;
+                const catPhotos = mapping ? (photosByCategory[mapping.cat] ?? []) : [];
+                const hasPhotos = catPhotos.length > 0;
                 return (
-                  <div key={key} style={{ marginBottom: 8, breakInside: "avoid" }}>
-                    {/* Row: description + photos */}
-                    <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <div key={key} style={{ marginBottom: 10, breakInside: "avoid" }}>
+                    <div style={{ display: "flex", gap: 10, alignItems: "stretch" }}>
                       {/* Description cell */}
                       <div style={{
-                        flex: catPhotos.length > 0 ? "0 0 45%" : "1",
+                        flex: hasPhotos ? "0 0 38%" : "1",
                         background: i % 2 === 0 ? "#f8fafc" : "#fff",
                         border: "1px solid #e2e8f0",
-                        borderRadius: 4,
-                        padding: "6px 10px",
+                        borderRadius: 5,
+                        padding: "8px 12px",
                         minWidth: 0,
+                        display: "flex", flexDirection: "column", justifyContent: "center",
                       }}>
-                        <div style={{ fontSize: 8, fontWeight: 700, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 2 }}>{label}</div>
-                        <div style={{ fontSize: 9.5, color: "#374151" }}>{getRaw(rawFields, key) ?? "—"}</div>
+                        <div style={{ fontSize: 8.5, fontWeight: 800, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+                          {displayLabel}
+                        </div>
+                        <div style={{ fontSize: 9, color: "#374151", lineHeight: 1.45 }}>{getRaw(rawFields, key) ?? "—"}</div>
                       </div>
-                      {/* Photos for this element */}
-                      {catPhotos.length > 0 && (
+                      {/* Photos */}
+                      {hasPhotos && (
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(catPhotos.length, 3)}, 1fr)`, gap: 6 }}>
+                          <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(catPhotos.length, 3)}, 1fr)`, gap: 7 }}>
                             {catPhotos.slice(0, 3).map((photo) => (
                               <div key={photo.id} style={{ breakInside: "avoid" }}>
-                                <div style={{ height: 80, borderRadius: 4, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f1f5f9" }}>
+                                <div style={{ height: 130, borderRadius: 5, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f1f5f9" }}>
                                   <img
                                     src={`${apiBase}${photo.url}`}
                                     alt={photo.caption || photo.fileName}
@@ -1660,7 +1664,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                                   />
                                 </div>
                                 {photo.caption && (
-                                  <div style={{ fontSize: 6.5, color: "#64748b", marginTop: 2, textAlign: "center", fontStyle: "italic", lineHeight: 1.3 }}>
+                                  <div style={{ fontSize: 7, color: "#64748b", marginTop: 3, textAlign: "center", fontStyle: "italic", lineHeight: 1.3 }}>
                                     {photo.caption}
                                   </div>
                                 )}
@@ -1668,7 +1672,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                             ))}
                           </div>
                           {catPhotos.length > 3 && (
-                            <div style={{ fontSize: 7, color: "#94a3b8", marginTop: 3, textAlign: "right" }}>
+                            <div style={{ fontSize: 7, color: "#94a3b8", marginTop: 4, textAlign: "right" }}>
                               +{catPhotos.length - 3} photo{catPhotos.length - 3 > 1 ? "s" : ""}
                             </div>
                           )}
