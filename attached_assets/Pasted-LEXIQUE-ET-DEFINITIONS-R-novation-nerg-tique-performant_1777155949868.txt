@@ -1,0 +1,107 @@
+LEXIQUE ET DEFINITIONS
+Rénovation énergétique performante
+La rénovation énergétique performante d'un bâtiment ou d'une partie de bâtiment est en principe un ensemble de travaux qui permettent à ce bâtiment ou à cette partie de bâtiment d'atteindre la classe A ou B du DPE après l'étude des 6 postes de travaux essentiels à la réussite d'une rénovation énergétique (isolation des murs, isolation des planchers bas, isolation de la toiture, remplacement des menuiseries extérieures, ventilation, production de chauffage et d'eau chaude sanitaire).
+Neutralité carbone
+La neutralité carbone vise à parvenir à un équilibre entre les émissions de carbone issues des activités humaines et l'absorption du carbone de l'atmosphère par les puits de carbone. Pour l'atteindre, nous devons utiliser différents moyens pour réduire et compenser les émissions de gaz à effet de serre (GES) produites par les activités humaines, en particulier le CO2, le principal gaz à effet de serre en volume dans l’atmosphère.
+Énergie finale
+L’énergie finale (kWh Ef ) correspond à l’énergie directement consommée par l’occupant d’un logement. Elle est comptabilisée au niveau du compteur et sert de base à la facturation.
+Énergie primaire
+L’énergie primaire (kWh Ep) est l’énergie contenue dans les ressources naturelles, avant une éventuelle transformation. Elle tient également compte (en plus de l’énergie finale consommée) de l’énergie nécessaire à la production, au stockage, au transport et à la distribution de l’énergie finale. L’Énergie Primaire est la somme de toutes les énergies nécessaires à l’obtention d’une unité d’énergie finale.
+Système de pilotage
+Le pilotage est un ensemble de dispositifs de mesure, de régulation et de contrôle dans votre logement. Ils permettent de limiter et d'optimiser les consommations d'énergie au sein de votre logement et de réduire ainsi l'empreinte carbone tout en garantissant le confort et le bien-être des usagers. Ces dispositifs associent le pilotage de l'énergie, des protections mobiles, des ouvrants et la détection des risques techniques.
+Photovoltaïque autoconsommée
+L’autoconsommation photovoltaïque consiste à consommer sa propre production d’électricité solaire. Elle permet donc d’utiliser une énergie locale et abondante
+Résistance thermique
+La résistance thermique, notée R, est la capacité du matériau à résister aux variations de chaleur, c'est-à-dire au chaud comme au froid. Plus la résistance thermique est grande, plus la performance de l'isolant sera élevée.
+Rénovation énergétique performante globale
+Une rénovation énergétique performante globale est une rénovation énergétique performante réalisée en une seule fois, dans un délai de moins de 18 mois pour une maison individuelle, et de moins de 36 mois pour un bâtiment d'habitation collective.
+Déperdition de chaleur
+La déperdition de chaleur désigne la perte de chaleur du bâtiment.
+Confort d’été
+Le confort d'été est la capacité d'un bâtiment à maintenir une température intérieure maximale agréable l'été, sans avoir à recourir à un système de climatisation.
+Pathologie
+Analyse des symptômes, des causes et des remèdes à apporter aux ouvrages qui présentent des désordres.
+
+
+
+Isolation des murs
+Dans le but de réduire d'éliminer les déperditions de chaleur, l'isolation des murs par l'extérieur consiste à envelopper le bâtiment d'un procédé d'isolation composé d'un matériau isolant, d'un dispositif de fixation et de protection (pare vapeur, ...) , en veillant à éviter les ponts thermiques (points d'interruption de l'isolation, qui peuvent constituer des points de condensation et de dégradation des parois intérieures du logement).
+
+Isolation des combles
+L'isolation du plancher de combles consiste à disposer sur toute la surface du plancher de façon continue et jointive à la charpente et aux murs  un procédé d'isolation composé d'un matériau isolant, d'un dispositif de fixation et de protection (pare vapeur,écran hautement perméable à la vapeur ...) . On peut isoler le plancher des combles avec des rouleaux d'isolant ou un isolant en vrac.
+Biogaz 
+Le biogaz est le résultat de la fermentation anaérobie (en l’absence d’air) des déchets organiques (les déchets ménagers, les boues des stations d’épuration, les effluents agricoles et les effluents des industries agroalimentaires etc.). Ce processus est spontané dans les décharges d’ordures ménagères et forcé dans les réacteurs appelés méthaniseurs.
+Le biogaz est un gaz pauvre qui contient environ 50% de méthane. Il peut faire l’objet d’une valorisation thermique ou électrique. La valorisation thermique du biogaz permet rarement de couvrir les besoins de chaleur autres que ceux des sites de production. Ces derniers sont en effet, souvent éloignés de tout établissement consommateur de chaleur. La valorisation est donc en général électrique.
+Biomasse 
+La biomasse est la fraction biodégradable des produits, déchets et résidus provenant de l’agriculture, y compris les substances végétales et animales de la sylviculture et des industries connexes, ainsi que la fraction biodégradable des déchets industriels et ménagers.
+Ainsi, la biomasse regroupe l’ensemble de la matière végétale susceptible d’être collectée à des fins de valorisation énergétique. Elle concerne notamment le bois énergie, le biogaz, la paille.
+Bois énergie 
+La combustion du bois dit « bois énergie » fournit de la chaleur capable de couvrir totalement ou partiellement les besoins en eau chaude ou en chauffage des ménages ainsi que les besoins énergétiques des industries de transformation du bois. Le bois énergie est aujourd’hui la première énergie renouvelable en France.
+CO2 
+Dioxyde de carbone ou gaz carbonique, c’est un des gaz à effet de serre produit notamment par la combustion des énergies fossiles (pétrole, charbon et gaz naturel).
+Consommation d’énergie finale :
+Consommation que nous mesurons au compteur (kWh d’électricité, m3 de fioul, kWh de chaleur, kWh de gaz).
+Consommation d’énergie primaire 
+Consommation d’énergie finale + pertes de distribution + consommation des producteurs et des transformateurs d’énergie.
+Développement durable 
+Démarches et projets visant à intégrer le développement social et économique et la protection de l’environnement. Depuis la conférence de Rio de Janeiro (1992), la communauté internationale reconnaît le développement durable comme un objectif
+Dichroïque 
+Il s’agit de lampes halogènes de 20 à 50 W intégrées dans un réflecteur aluminium (Ø 50 mm en général).
+Effet de serre 
+L’effet de serre est d’abord un phénomène naturel essentiel à la survie de notre planète : certains gaz contenus dans l’atmosphère terrestre piègent une fraction du rayonnement solaire et maintiennent ainsi une température moyenne à la surface de l’ordre de + 15°C, alors qu’elle s’établirait sinon à -18°C.
+C’est l’accroissement de la concentration de ces gaz à effet de serre, liée à l’activité humaine, qui fait craindre aujourd’hui une augmentation de la température dans les prochaines décennies. Une telle augmentation, même si elle se limitait à quelques degrés, aurait, selon les experts, des conséquences totalement imprévisibles mais de très grande ampleur dans certaines zones du globe.
+L’énergie est au cœur du sujet, puisque les gaz à effet de serre issus de la combustion des énergies fossiles représentent environ les ¾ des émissions d’origine anthropique. Seules l’énergie nucléaire et les énergies renouvelables sont non productrices de gaz à effet de serre.
+Energie éolienne 
+Energie du vent convertie en électricité à partir d’un aérogénérateur (éolienne). Un aérogénérateur est constitué d’un mat (ou tour) sur lequel repose une nacelle contenant un arbre de transmission entraîné par le rotor et actionnant la génératrice électrique. Il existe des aérogénérateurs de forte puissance (jusqu’à 5 MW) destinés à alimenter le réseau électrique, mais aussi de plus petites éoliennes susceptibles d’alimenter en électricité une maison isolée. Le temps de fonctionnement à pleine puissance (facteur de charge) des éoliennes est de 2 000 à 3 000 heures par an, soit environ 1/3 du temps. En France, environ 600 MW d’origine éolienne étaient installés fin novembre 2005. Ce parc pourrait croître pour atteindre plusieurs milliers de MW à l’horizon 2010.
+Energies renouvelables 
+Sources d’énergie naturelles et inépuisables. La première d’entre elles est le rayonnement solaire et les autres en découlent plus ou moins directement (vents, cycle de l’eau et marées, développement de biomasse, etc.).
+Fluocompacte 
+Une lampe fluocompacte fonctionne comme un tube fluorescent mais le tube est replié de manière à le rendre plus compact aussi communément appelée lampe « éco ».
+Gaz à effet de serre 
+Gaz présents naturellement en très faible quantité dans l’atmosphère qui régulent l’équilibre énergétique de la planète et permettent que la température moyenne à la surface de la terre soit de + 15°C et non de -18°C. Les activités humaines sont en train de bouleverser cet équilibre en émettant un surplus de gaz à effet de serre qui provoque un réchauffement global et perturbe les climats de la planète.
+Géothermie 
+La géothermie ou « chaleur de la terre » se présente sous forme de réservoirs de vapeur ou d’eaux chaudes ou encore de roches chaudes. Lorsque le réservoir géothermique est à une température modérée, cette ressource est exploitée pour la production de chaleur distribuée par un réseau de chaleur. Elle est particulièrement développée dans les bassins aquitain et parisien pour le chauffage urbain ou par des pompes à chaleur pour le chauffage résidentiel. Lorsque la température du réservoir géothermique est plus élevée et permet de produire de la vapeur, il est possible de produire de l’électricité.
+kW: Kilo watt.
+KWh : Kilo watt heure
+LED : Diode électroluminescente (abrégé en DEL).
+MW: Mega Watt.
+MWh: Mega Watt heure
+
+Solaire photovoltaïque 
+L’énergie solaire photovoltaïque utilise la lumière du soleil (les photons) qui est transformée directement en électricité (les électrons) par des modules photovoltaïques composés de petites tranches de silicium (les cellules photovoltaïques). Le courant continu produit par le champ de modules photovoltaïques est transformé en courant alternatif par un ou des onduleurs. Les systèmes photovoltaïques peuvent être raccordés au réseau de distribution électrique public, tout en étant intégré au bâtiment (toits et façades photovoltaïques). Le solaire photovoltaïque est également utilisé pour alimenter en électricité les sites non reliés au réseau général de distribution (maisons isolées, refuges, balises, parcmètres) ou dans des applications déconnectées du réseau. Un dispositif de batteries stockant l’électricité est alors nécessaire pour un usage nocturne.
+Des recherches importantes sont engagées pour améliorer le rendement des cellules photovoltaïques et pour faire baisser les coûts de fabrication dans le but, à terme, de pouvoir l’utiliser à grande échelle dans des conditions économiques raisonnables.
+Solaire thermique 
+L’énergie solaire thermique résulte de l’utilisation de capteurs qui transforment l’énergie du rayonnement solaire en chaleur véhiculée par de l’eau. Ce principe est utilisé soit pour fournir de l’eau chaude sanitaire (chauffe-eau solaire) soit encore pour contribuer au chauffage d’une habitation (système solaire combiné). L’eau chaude ainsi produite, stockée dans un ballon, peut-être utilisée de jour comme de nuit.
+Plusieurs dizaines de milliers de chauffe-eau solaires sont aujourd’hui installés, principalement dans des départements d’outre-mer. En métropole, le climat moins favorable implique le recours à des chauffe-eau solaires mixtes nécessitant un chauffage d’appoint.
+Eco-gestes : Augmentez vos économies d’énergies
+Préconisations pour assurer une bonne étanchéité à l’air après travaux
+La recherche de la performance énergétique passe par une gestion aboutie de l’étanchéité à l’air du logement. En effet, malgré la présence d’isolant, les infiltrations d’air parasite d’un logement peuvent fortement en augmenter la consommation d’énergie.
+Au-delà de la performance énergétique, il s’agit également de confort. Gérer l’étanchéité à l’air d’un logement, c’est aussi supprimer les courants d’air mais aussi les nuisances sonores, les qualités acoustiques d’une paroi étant fortement dégradées par la présence d’ouvertures ou d’infiltrations d’air.
+Cette étanchéité à l’air doit être traitée sur l’ensemble du logement et l’ensemble des parois afin que cette recherche d’amélioration soit cohérente.
+Il est cependant important de préciser que pour le confort et la qualité de l’air, il est fondamental de renouveler l’air d’un logement. Lorsqu’il est question d’étanchéité à l’air, il s’agit de maîtriser les entrées d’air parasite et non de supprimer tout le renouvellement d’air. Le traitement de l’étanchéité à l’air doit s’accompagner d’un système de ventilation performant.
+Selon le mode constructif, les techniques ou les matériaux employés, différentes méthodes de traitement de l’étanchéité peuvent être appliquées.
+Cheminée et poêle
+Le poêle à bois étanche a été créé pour optimiser la consommation d'énergie et la maîtrise de l'étanchéité du bâtiment suite à l'arrivée de la RT2012. Il se distingue des poêles à bois classiques par son arrivée d'air extérieure directe. Certains modèles peuvent être munis d'un conduitde type ventouse. Facile à installer, cet équipement est un peu plus cher qu'un poêle classique, mais son achat est rapidement amorti par les économies réalisées et il est éligible à des aides financières comme le CITE. Les poêles dits étanches tendent à devenir la norme aussi bien en matière de sécurité que d'efficacité énergétique.
+Améliorer l’étanchéité au niveau des parties courantes des parois
+Au niveau des parties courantes des parois délimitant le volume protégé, toute fissure doit être colmatée. Les matériaux poreux utilisés en construction (briques, blocs de béton, laines minérales, …), s’ils ne sont pas enduits, sont perméables à l’air. De plus, il arrive que les joints des maçonneries ne soient pas correctement réalisés : les joints verticaux sont partiellement remplis mais ce défaut est camouflé par rejointage augmentant encore la perméabilité de l’ensemble de la maçonnerie. À titre d’exemple, des mesures d’étanchéité sur des maisons en murs creux en blocs de béton non plafonnés sont donné des débits d’environ 0.5 m³/(h.m²).
+Améliorer l’étanchéité à l’air de l’enveloppe
+Ces matériaux doivent être protégés d’une couche étanche à l’air : un enduit (cimentage ou plafonnage), des plaques de plâtres enrobées correctement rejointoyées. Une couche de peinture épaisse et filmogène peut aussi convenir. Une fois traités, les valeurs de
+débit à 50 Pa varient de 0 à 1.3 m³/(h.m²) en fonction du type et de la qualité de traitement, avec une moyenne de 0.3 m³/(h.m²) (moyenne sur 89 mesures faites par8 auteurs différents).
+Ces matériaux doivent être protégés d’une couche étanche à l’air : un enduit (cimentage ou plafonnage), des plaques de plâtres enrobées correctement rejointoyées. Une couche de peinture épaisse et filmogène peut aussi convenir. 
+Points de vigilance
+Si on peut trouver des murs non étanches dans leurs parties courantes (par exemple des murs en blocs de béton non enduits, des murs fissurés, etc.), ces cas sont plutôt rares et la majorité des difficultés viennent de points singuliers : Menuiseries Liaisons murs/menuiseries, volets roulants, joints ouvrants/dormants, menuiseries coulissantes Réseaux électriques et fluides Interrupteurs, prises, spots encastrés, points lumineux en général, pénétrations extérieur/intérieur Réseaux aérauliques Réseaux de ventilation, évacuations de sèche-linges, hottes de cuisines, aspirations centralisées Trappes et menuiseries intérieures Accès aux combles, caves… Structure Liaisons planchers/murs, murs/toiture, linteaux. (Notamment linteaux en bois), pièces de charpente, en général, les éléments " secs " (bois, hourdis, etc.) non noyés dans un mortier, un enduit… Conduits de fumée Escaliers, etc. Risques d'infiltrations d’air entre liaisons "sèches" et non calfeutrées : planchers, contre-cloisons, grenier, etc. (non traitées par une isolation extérieure)
+Traitement de l’étanchéité à l’air
+Menuiseries
+Ventilation (tolérance max : 10 mm dans tous les plans).
+Des défauts importants nuisent à l’étanchéité, les joints ne pouvant combler des vides trop importants ou trop irréguliers. La pose de la menuiserie doit bien sûr être soignée.
+Menuiseries coulissantes : rarement étanches, préférer les menuiseries à frappe ("à la française") ou "à translation". Seuils : les seuils de portes et portes fenêtres permettant un accès handicapé sont limités en hauteur et peuvent générer des fuites.
+Privilégier un bon classement AEV. Volets roulants : choisir des volets avec coffre à l’extérieur
+Ventilation (tolérance max : 10 mm dans tous les plans).
+Des défauts importants nuisent à l’étanchéité, les joints ne pouvant combler des vides trop importants ou trop irréguliers. La pose de la menuiserie doit bien sûr être soignée.
+Menuiseries coulissantes : rarement étanches, préférer les menuiseries à frappe ("à la française") ou "à translation". Seuils : les seuils de portes et portes fenêtres permettant un accès handicapé sont limités en hauteur et peuvent générer des fuites.
+Privilégier un bon classement AEV. Volets roulants : choisir des volets avec coffre à l’extérieur permet un traitement plus aisé. Les volets à sangles ou, dans une moindre mesure, à manivelle sont souvent des sources d’infiltration ; les modèles récents peuvent posséder des accessoires améliorant l’étanchéité des passages de commande.
+Les volets électriques sont plus faciles à étanchéifier. Les coffres intérieurs sont difficiles à isoler et sont aussi souvent sources de fuites. Il existe un classement pour mesurer la perméabilité des coffres de volets roulants allant de C1 à C4, C4 étant le plus étanche.
+Électricité
+Dans la mesure du possible, installer le tableau de répartition dans l’espace chauffé ainsi que toutes les boites de dérivation. Étanchéifier la gaine d’arrivée générale ainsi que toutes les gaines traversant la barrière d’étanchéité (éclairages et prises extérieurs, garage, grenier, cave, etc.) : il existe des accessoires dédiés ; un mastic acrylique peut aussi limiter les fuites.
+Les boîtiers d’appareillage ne devraient pas percer le plan d’étanchéité. Ponctuellement, un boîtier étanche peut limiter les fuites dues à ce défaut de conception.
+

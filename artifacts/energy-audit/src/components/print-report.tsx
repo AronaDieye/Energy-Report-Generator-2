@@ -2827,12 +2827,84 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         );
       })}
 
+      {/* ══ PAGE LEXIQUE ════════════════════════════════════════════════════════ */}
+      {!isPreview && <div className="print-page-break" />}
+      <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
+        <SectionTitle num={`${6 + scData.length}`} title="Lexique et définitions" subtitle="Glossaire des termes techniques utilisés dans ce rapport" />
+        {(() => {
+          const terms: { term: string; def: string }[] = [
+            { term: "Rénovation énergétique performante", def: "Ensemble de travaux permettant à un bâtiment d'atteindre la classe A ou B du DPE après l'étude des 6 postes essentiels (isolation des murs, des planchers bas, de la toiture, remplacement des menuiseries, ventilation, production de chauffage et d'eau chaude sanitaire). Si les 6 postes ne sont pas traités, la rénovation est dite « performante par étapes »." },
+            { term: "Neutralité carbone", def: "Équilibre entre les émissions de carbone issues des activités humaines et l'absorption du carbone par les puits de carbone. Pour l'atteindre, il faut réduire et compenser les émissions de gaz à effet de serre (GES), notamment le CO2." },
+            { term: "Énergie finale (kWh Ef)", def: "Énergie directement consommée par l'occupant d'un logement. Elle est comptabilisée au niveau du compteur et sert de base à la facturation." },
+            { term: "Énergie primaire (kWh Ep)", def: "Énergie contenue dans les ressources naturelles, avant transformation. Elle inclut l'énergie nécessaire à la production, au stockage, au transport et à la distribution de l'énergie finale." },
+            { term: "Système de pilotage", def: "Ensemble de dispositifs de mesure, de régulation et de contrôle permettant de limiter et d'optimiser les consommations d'énergie, de réduire l'empreinte carbone, et de garantir le confort des usagers." },
+            { term: "Photovoltaïque autoconsommée", def: "L'autoconsommation photovoltaïque consiste à consommer sa propre production d'électricité solaire, permettant d'utiliser une énergie locale et abondante." },
+            { term: "Résistance thermique (R)", def: "Capacité d'un matériau à résister aux variations de chaleur. Plus la résistance thermique est grande, plus la performance de l'isolant est élevée." },
+            { term: "Rénovation énergétique performante globale", def: "Rénovation énergétique performante réalisée en une seule fois : moins de 18 mois pour une maison individuelle, moins de 36 mois pour un bâtiment collectif." },
+            { term: "Déperdition de chaleur", def: "Perte de chaleur du bâtiment vers l'extérieur." },
+            { term: "Confort d'été", def: "Capacité d'un bâtiment à maintenir une température intérieure maximale agréable en été, sans recourir à la climatisation." },
+            { term: "Pathologie", def: "Analyse des symptômes, des causes et des remèdes à apporter aux ouvrages présentant des désordres." },
+            { term: "Isolation des murs", def: "Pour réduire les déperditions, l'isolation des murs par l'extérieur consiste à envelopper le bâtiment d'un procédé isolant (matériau + fixation + protection), en évitant les ponts thermiques." },
+            { term: "Isolation des combles", def: "Pose en continu sur le plancher des combles d'un matériau isolant avec dispositif de fixation et protection. Peut se faire avec des rouleaux d'isolant ou un isolant en vrac." },
+            { term: "Biogaz", def: "Résultat de la fermentation anaérobie des déchets organiques. Contient environ 50 % de méthane et peut être valorisé thermiquement ou électriquement." },
+            { term: "Biomasse", def: "Fraction biodégradable des produits, déchets et résidus agricoles, sylvicoles et industriels susceptibles d'être valorisés énergétiquement (bois énergie, biogaz, paille…)." },
+            { term: "Bois énergie", def: "Combustion du bois fournissant de la chaleur pour couvrir les besoins en eau chaude ou en chauffage. Première énergie renouvelable en France." },
+            { term: "CO2", def: "Dioxyde de carbone — principal gaz à effet de serre produit notamment par la combustion des énergies fossiles (pétrole, charbon, gaz naturel)." },
+            { term: "Consommation d'énergie finale", def: "Consommation mesurée au compteur (kWh d'électricité, m³ de fioul, kWh de chaleur, kWh de gaz)." },
+            { term: "Consommation d'énergie primaire", def: "Consommation d'énergie finale + pertes de distribution + consommation des producteurs et transformateurs d'énergie." },
+            { term: "Développement durable", def: "Démarches et projets visant à intégrer le développement social et économique avec la protection de l'environnement, reconnue comme objectif international depuis Rio (1992)." },
+            { term: "Dichroïque", def: "Lampes halogènes de 20 à 50 W intégrées dans un réflecteur aluminium (Ø 50 mm en général)." },
+            { term: "Effet de serre", def: "Phénomène naturel où des gaz atmosphériques piègent une fraction du rayonnement solaire, maintenant une température moyenne de +15 °C. L'activité humaine amplifie ce phénomène via les gaz à effet de serre issus des énergies fossiles." },
+            { term: "Énergie éolienne", def: "Énergie du vent convertie en électricité par un aérogénérateur (éolienne). Existe en grande puissance (jusqu'à 5 MW) pour le réseau, ou en petites éoliennes pour l'autonomie." },
+            { term: "Énergies renouvelables", def: "Sources d'énergie naturelles et inépuisables dont la première est le rayonnement solaire (vents, cycle de l'eau, marées, biomasse…)." },
+            { term: "Fluocompacte", def: "Lampe fonctionnant comme un tube fluorescent mais replié pour être plus compact, aussi appelée lampe « éco »." },
+            { term: "Gaz à effet de serre", def: "Gaz présents naturellement dans l'atmosphère régulant l'équilibre énergétique de la planète. Leur surémission liée aux activités humaines provoque un réchauffement global." },
+            { term: "Géothermie", def: "Chaleur de la terre exploitée sous forme de réservoirs de vapeur, d'eaux chaudes ou de roches chaudes pour la production de chaleur ou d'électricité, via des pompes à chaleur ou des réseaux de chaleur." },
+            { term: "kW / kWh / MW / MWh", def: "Unités de puissance et d'énergie électrique. kW : Kilowatt. kWh : Kilowatt-heure. MW : Mégawatt. MWh : Mégawatt-heure." },
+            { term: "LED", def: "Diode électroluminescente (DEL). Technologie d'éclairage à haute efficacité énergétique, en remplacement progressif des lampes fluorescentes et halogènes." },
+            { term: "Solaire photovoltaïque", def: "Technologie convertissant la lumière du soleil directement en électricité via des modules composés de cellules photovoltaïques en silicium. Le courant continu est transformé en courant alternatif par un onduleur." },
+            { term: "Solaire thermique", def: "Utilisation de capteurs transformant l'énergie solaire en chaleur pour produire de l'eau chaude sanitaire (chauffe-eau solaire) ou contribuer au chauffage (système solaire combiné)." },
+          ];
+          const ecoGestures: { title: string; text: string }[] = [
+            { title: "Étanchéité à l'air après travaux", text: "La performance énergétique passe par une gestion aboutie de l'étanchéité à l'air. Les infiltrations parasites peuvent fortement augmenter la consommation, malgré la présence d'isolant. L'étanchéité doit être traitée sur l'ensemble des parois et s'accompagner d'un système de ventilation performant pour garantir la qualité de l'air intérieur." },
+            { title: "Points de vigilance", text: "Les principales difficultés viennent des points singuliers : menuiseries et leurs liaisons (volets roulants, joints), réseaux électriques (interrupteurs, prises, spots encastrés), réseaux aérauliques (ventilation, hottes, sèche-linges), trappes d'accès aux combles, liaisons structure (planchers/murs, murs/toiture, linteaux)." },
+            { title: "Menuiseries", text: "Préférer les menuiseries à frappe (à la française) ou à translation aux coulissantes. Choisir des volets roulants avec coffre extérieur pour un traitement facilité. Privilégier un bon classement AEV. Les défauts importants d'alignement nuisent à l'étanchéité des joints." },
+            { title: "Électricité", text: "Installer le tableau de répartition et les boîtes de dérivation dans l'espace chauffé. Étanchéifier les gaines traversant la barrière d'étanchéité. Les boîtiers d'appareillage ne doivent pas percer le plan d'étanchéité." },
+          ];
+          return (
+            <div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 16px", marginBottom: 20 }}>
+                {terms.map((t, i) => (
+                  <div key={i} style={{ paddingBottom: 6, borderBottom: "1px solid #f1f5f9", pageBreakInside: "avoid" }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: "#1d4ed8", textTransform: "uppercase" as const, letterSpacing: 0.3, marginBottom: 1 }}>{t.term}</div>
+                    <div style={{ fontSize: 9, color: "#374151", lineHeight: 1.5 }}>{t.def}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ borderTop: "2px solid #1d4ed8", paddingTop: 10, marginTop: 4 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: "#0f172a", textTransform: "uppercase" as const, letterSpacing: 0.8, marginBottom: 10 }}>
+                  Éco-gestes — Étanchéité à l'air
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 16px" }}>
+                  {ecoGestures.map((g, i) => (
+                    <div key={i} style={{ paddingBottom: 6, borderBottom: "1px solid #f1f5f9", pageBreakInside: "avoid" }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "#1d4ed8", textTransform: "uppercase" as const, letterSpacing: 0.3, marginBottom: 1 }}>{g.title}</div>
+                      <div style={{ fontSize: 9, color: "#374151", lineHeight: 1.5 }}>{g.text}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+
       {/* ══ PAGE PHOTOS ═══════════════════════════════════════════════════════ */}
       {Object.keys(photosByCategory).length > 0 && (
         <>
           {!isPreview && <div className="print-page-break" />}
           <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
-            <SectionTitle num={`${6 + scData.length}`} title="Photos du bâtiment" subtitle="Relevé photographique par catégorie" />
+            <SectionTitle num={`${7 + scData.length}`} title="Photos du bâtiment" subtitle="Relevé photographique par catégorie" />
             {SECTION_ORDER.map((cat) => {
               const catPhotos = photosByCategory[cat];
               if (!catPhotos) return null;
