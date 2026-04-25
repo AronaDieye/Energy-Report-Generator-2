@@ -113,6 +113,19 @@ export interface ExtractedAuditData {
 
   rawFields: RawField[];
   metadata?: BaoMetadata | null;
+  scenarioUbatData?: Record<string, {
+    coefficient: number | null;
+    ht: number | null;
+    hd: number | null;
+    hu: number | null;
+    hs: number | null;
+    at: number | null;
+    ventilation: number | null;
+    infiltrations: number | null;
+    gv: number | null;
+    deperditionsTotalesKw: number | null;
+    paroisRows: UbatParoisRow[];
+  }> | null;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -370,36 +383,120 @@ interface ScenarioUbatSummary {
   ventilation: number | null;
   infiltrations: number | null;
   gv: number | null;
+  deperditionsTotalesKw: number | null;
+  paroisRows: UbatParoisRow[];
+}
+
+function parseUbatSlice(slice: string): ScenarioUbatSummary {
+  const coefM = slice.match(/COEFFICIENT\s+UBAT\s*=\s*([\d,]+)/i);
+  const htM   = slice.match(/HT\s*=\s*[\s\n]*([\d\s,]+)/);
+  const hdM   = slice.match(/Déperditions\s+Parois\s+Extérieures\s+HD\s*:\s*([\d\s,]+)\s*W\/°C/i);
+  const huM   = slice.match(/Déperditions\s+Parois\s+Intérieures\s+HU\s*:\s*([\d\s,]+)\s*W\/°C/i);
+  const hsM   = slice.match(/Déperditions\s+par\s+le\s+sol\s+HS\s*:\s*([\d\s,]+)\s*W\/°C/i);
+  const atM   = slice.match(/Surface\s+Totale\s+des\s+parois\s+déperditives\s*AT\s*:\s*([\d\s,]+)\s*m²/i);
+  const ventM = slice.match(/Ventilation\s+spécifique\s*:\s*([\d\s,]+)\s*W\/°C/i);
+  const infM  = slice.match(/Infiltrations\s*:\s*([\d\s,]+)\s*W\/°C/i);
+  const gvM   = slice.match(/Total\s*\(GV\)\s*:\s*([\d\s,]+)\s*W\/°C/i);
+  const depTM = slice.match(/Déperditions\s+totales\s*\(sans\s+majoration\)\s*:\s*([\d\s,]+)\s*kW/i);
+
+  // Parse parois rows using the same logic as parseUbatSection
+  const paroisRows: UbatParoisRow[] = [];
+  const lines = slice.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+  const headerIdx = lines.findIndex(l => l === "Désignation");
+  if (headerIdx >= 0) {
+    let i = headerIdx + 1;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (line === "HT =" || /^COEFFICIENT UBAT/.test(line) || /^RECAPITULATIF/.test(line)) break;
+      const isMurExt  = /^mur\s+ext/i.test(line);
+      const isVitrage = /^vitrage\s*\d+/i.test(line);
+      const isPorte   = /^porte\s*\d*/i.test(line);
+      const isPT      = /^p\s+th\./i.test(line);
+      const isAutre   = /^(mur\s+int|plafond|plancher|dalle|paroi)/i.test(line);
+      if (isMurExt || isVitrage || isPorte || isPT || isAutre) {
+        const designation = line;
+        i++;
+        const block: string[] = [];
+        while (i < lines.length && block.length < 14) {
+          const next = lines[i];
+          if (next === "HT =" || /^COEFFICIENT UBAT/.test(next) || /^RECAPITULATIF/.test(next)) break;
+          if (/^(mur\s+(ext|int)|vitrage\s*\d+|porte\s*\d*|p\s+th\.|plafond|plancher|dalle|paroi)/i.test(next)) break;
+          block.push(next);
+          i++;
+        }
+        const kind: UbatParoisRow["kind"] =
+          isMurExt  ? "mur_ext" :
+          isVitrage ? "vitrage" :
+          isPorte   ? "porte"   :
+          isPT      ? "pont_thermique" : "autre";
+        const row: UbatParoisRow = {
+          designation, code: null, nb: null, u: null, psi: null,
+          b: null, surface: null, longueur: null, orie: null, deperd: null, ref: null, kind,
+        };
+        if (block.length > 0) {
+          row.code = block[0];
+          if (isPT) {
+            if (block.length > 1) row.psi = block[1];
+            if (block.length > 2) row.b = block[2];
+            if (block.length > 3) row.longueur = block[3];
+            if (block.length > 4) row.deperd = block[4];
+            if (block.length > 5 && /^[A-Z]/i.test(block[5])) row.ref = block[5];
+          } else {
+            let offset = 1;
+            if (block.length > 1 && /^\d+$/.test(block[1])) { row.nb = block[1]; offset = 2; }
+            if (block.length > offset)     row.u       = block[offset];
+            if (block.length > offset + 1) row.b       = block[offset + 1];
+            if (block.length > offset + 2) row.surface = block[offset + 2];
+            const orieIdx = block.findIndex(v => ORIENTATIONS.has(v));
+            if (orieIdx >= 0) {
+              row.orie = block[orieIdx];
+              if (orieIdx + 1 < block.length) row.deperd = block[orieIdx + 1];
+              if (orieIdx + 2 < block.length && /^[A-Za-z]/.test(block[orieIdx + 2])) row.ref = block[orieIdx + 2];
+            }
+          }
+        }
+        paroisRows.push(row);
+      } else {
+        i++;
+      }
+    }
+  }
+
+  return {
+    coefficient: coefM ? parseNum(coefM[1]) : null,
+    ht:          htM   ? parseNum(htM[1])   : null,
+    hd:          hdM   ? parseNum(hdM[1])   : null,
+    hu:          huM   ? parseNum(huM[1])   : null,
+    hs:          hsM   ? parseNum(hsM[1])   : null,
+    at:          atM   ? parseNum(atM[1])   : null,
+    ventilation: ventM ? parseNum(ventM[1]) : null,
+    infiltrations: infM ? parseNum(infM[1]) : null,
+    gv:          gvM   ? parseNum(gvM[1])   : null,
+    deperditionsTotalesKw: depTM ? parseNum(depTM[1]) : null,
+    paroisRows,
+  };
 }
 
 function parseScenarioUbatSections(text: string, scCodes: string[]): ScenarioUbatSummary[] {
-  const results: ScenarioUbatSummary[] = scCodes.map(() => ({
+  const empty = (): ScenarioUbatSummary => ({
     coefficient: null, ht: null, hd: null, hu: null, hs: null, at: null,
-    ventilation: null, infiltrations: null, gv: null,
-  }));
-
-  // Find all positions where a per-modification Ubat section begins.
-  // BAO SED uses patterns like:
-  //   "MODIFICATION N° 1 : CALCUL du COEFFICIENT UBAT"
-  //   "MODIFICATION N°1 CALCUL du COEFFICIENT UBAT"
-  // Also try "Variante X" prefix if present.
-  const modifUbatRegex = /MODIFICATION\s*N[°o]?\s*(\d+)\s*:?\s*CALCUL\s+du\s+COEFFICIENT\s+UBAT/gi;
-  const varianteUbatRegex = /Variante\s+(\d+)\s*:?\s*CALCUL\s+du\s+COEFFICIENT\s+UBAT/gi;
+    ventilation: null, infiltrations: null, gv: null, deperditionsTotalesKw: null, paroisRows: [],
+  });
+  const results: ScenarioUbatSummary[] = scCodes.map(empty);
 
   const positions: Array<{ idx: number; modifNum: number }> = [];
-
   let m: RegExpExecArray | null;
+
+  const modifUbatRegex = /MODIFICATION\s*N[°o]?\s*(\d+)\s*:?\s*CALCUL\s+du\s+COEFFICIENT\s+UBAT/gi;
   while ((m = modifUbatRegex.exec(text)) !== null) {
     positions.push({ idx: m.index, modifNum: parseInt(m[1], 10) });
   }
+  const varianteUbatRegex = /Variante\s+(\d+)\s*:?\s*CALCUL\s+du\s+COEFFICIENT\s+UBAT/gi;
   while ((m = varianteUbatRegex.exec(text)) !== null) {
     if (!positions.some(p => p.modifNum === parseInt(m![1], 10))) {
       positions.push({ idx: m.index, modifNum: parseInt(m[1], 10) });
     }
   }
-
-  // Also look for a second "ETAT INITIAL" pattern that might be labelled "ETAT APRES"
-  // Some BAO versions use "ETAT APRES MODIFICATION N°X : CALCUL du COEFFICIENT UBAT"
   const etatApresRegex = /ETAT\s+APR[EÈ]S\s+MODIFICATION\s*N[°o]?\s*(\d+)\s*:?\s*CALCUL\s+du\s+COEFFICIENT\s+UBAT/gi;
   while ((m = etatApresRegex.exec(text)) !== null) {
     const num = parseInt(m[1], 10);
@@ -411,30 +508,11 @@ function parseScenarioUbatSections(text: string, scCodes: string[]): ScenarioUba
   for (const pos of positions) {
     const scIdx = pos.modifNum - 1;
     if (scIdx < 0 || scIdx >= scCodes.length) continue;
-
-    const slice = text.slice(pos.idx, pos.idx + 6000);
-
-    const coefM = slice.match(/COEFFICIENT\s+UBAT\s*=\s*([\d,]+)/i);
-    const htM   = slice.match(/HT\s*=\s*[\s\n]*([\d\s,]+)/);
-    const hdM   = slice.match(/Déperditions\s+Parois\s+Extérieures\s+HD\s*:\s*([\d\s,]+)\s*W\/°C/i);
-    const huM   = slice.match(/Déperditions\s+Parois\s+Intérieures\s+HU\s*:\s*([\d\s,]+)\s*W\/°C/i);
-    const hsM   = slice.match(/Déperditions\s+par\s+le\s+sol\s+HS\s*:\s*([\d\s,]+)\s*W\/°C/i);
-    const atM   = slice.match(/Surface\s+Totale\s+des\s+parois\s+déperditives\s*AT\s*:\s*([\d\s,]+)\s*m²/i);
-    const ventM = slice.match(/Ventilation\s+spécifique\s*:\s*([\d\s,]+)\s*W\/°C/i);
-    const infM  = slice.match(/Infiltrations\s*:\s*([\d\s,]+)\s*W\/°C/i);
-    const gvM   = slice.match(/Total\s*\(GV\)\s*:\s*([\d\s,]+)\s*W\/°C/i);
-
-    results[scIdx] = {
-      coefficient: coefM ? parseNum(coefM[1]) : null,
-      ht:          htM   ? parseNum(htM[1])   : null,
-      hd:          hdM   ? parseNum(hdM[1])   : null,
-      hu:          huM   ? parseNum(huM[1])   : null,
-      hs:          hsM   ? parseNum(hsM[1])   : null,
-      at:          atM   ? parseNum(atM[1])   : null,
-      ventilation: ventM ? parseNum(ventM[1]) : null,
-      infiltrations: infM ? parseNum(infM[1]) : null,
-      gv:          gvM   ? parseNum(gvM[1])   : null,
-    };
+    // Slice up to the next modification section or 12000 chars
+    const nextPos = positions.find(p => p.idx > pos.idx);
+    const end = nextPos ? nextPos.idx : pos.idx + 12000;
+    const slice = text.slice(pos.idx, end);
+    results[scIdx] = parseUbatSlice(slice);
   }
 
   return results;
@@ -1320,26 +1398,26 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
     }
   }
 
-  // ── 12b. Per-scenario Ubat rawFields
-  {
-    const scCodes = scenarios.map(sc => sc.code);
-    const scUbats = parseScenarioUbatSections(text, scCodes);
-    scUbats.forEach((ubat, idx) => {
-      const sc = scenarios[idx];
-      if (!sc) return;
-      const scSection = `SCÉNARIO ${sc.code}`;
-      const fmt = (v: number | null) => v !== null ? v.toLocaleString("fr-FR", { maximumFractionDigits: 2 }) : null;
-      if (ubat.coefficient !== null) addField(`${scSection} - UBAT Coefficient`, fmt(ubat.coefficient) + " W/m².°C", scSection);
-      if (ubat.ht !== null)          addField(`${scSection} - UBAT HT`,          fmt(ubat.ht) + " W/°C",     scSection);
-      if (ubat.hd !== null)          addField(`${scSection} - UBAT HD`,          fmt(ubat.hd) + " W/°C",     scSection);
-      if (ubat.hu !== null)          addField(`${scSection} - UBAT HU`,          fmt(ubat.hu) + " W/°C",     scSection);
-      if (ubat.hs !== null)          addField(`${scSection} - UBAT HS`,          fmt(ubat.hs) + " W/°C",     scSection);
-      if (ubat.at !== null)          addField(`${scSection} - UBAT AT`,          fmt(ubat.at) + " m²",       scSection);
-      if (ubat.ventilation !== null)  addField(`${scSection} - UBAT Ventilation`, fmt(ubat.ventilation) + " W/°C", scSection);
-      if (ubat.infiltrations !== null) addField(`${scSection} - UBAT Infiltrations`, fmt(ubat.infiltrations) + " W/°C", scSection);
-      if (ubat.gv !== null)          addField(`${scSection} - UBAT GV`,          fmt(ubat.gv) + " W/°C",     scSection);
-    });
-  }
+  // ── 12b. Per-scenario Ubat rawFields + structured data
+  const scCodes = scenarios.map(sc => sc.code);
+  const scUbats = parseScenarioUbatSections(text, scCodes);
+  const scenarioUbatData: Record<string, ScenarioUbatSummary> = {};
+  scUbats.forEach((ubat, idx) => {
+    const sc = scenarios[idx];
+    if (!sc) return;
+    scenarioUbatData[sc.code] = ubat;
+    const scSection = `SCÉNARIO ${sc.code}`;
+    const fmt = (v: number | null) => v !== null ? v.toLocaleString("fr-FR", { maximumFractionDigits: 2 }) : null;
+    if (ubat.coefficient !== null) addField(`${scSection} - UBAT Coefficient`, fmt(ubat.coefficient) + " W/m².°C", scSection);
+    if (ubat.ht !== null)          addField(`${scSection} - UBAT HT`,          fmt(ubat.ht) + " W/°C",     scSection);
+    if (ubat.hd !== null)          addField(`${scSection} - UBAT HD`,          fmt(ubat.hd) + " W/°C",     scSection);
+    if (ubat.hu !== null)          addField(`${scSection} - UBAT HU`,          fmt(ubat.hu) + " W/°C",     scSection);
+    if (ubat.hs !== null)          addField(`${scSection} - UBAT HS`,          fmt(ubat.hs) + " W/°C",     scSection);
+    if (ubat.at !== null)          addField(`${scSection} - UBAT AT`,          fmt(ubat.at) + " m²",       scSection);
+    if (ubat.ventilation !== null)  addField(`${scSection} - UBAT Ventilation`, fmt(ubat.ventilation) + " W/°C", scSection);
+    if (ubat.infiltrations !== null) addField(`${scSection} - UBAT Infiltrations`, fmt(ubat.infiltrations) + " W/°C", scSection);
+    if (ubat.gv !== null)          addField(`${scSection} - UBAT GV`,          fmt(ubat.gv) + " W/°C",     scSection);
+  });
 
   // ── 13. Compute final values
   const primaryEP = dpeConsomMatch ? parseNum(dpeConsomMatch[1]) : null;
@@ -1434,6 +1512,7 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
     rawFields,
     metadata,
     ubatParoisData: ubat.paroisRows.length > 0 ? ubat.paroisRows : null,
+    scenarioUbatData: Object.keys(scenarioUbatData).length > 0 ? scenarioUbatData : null,
   };
 }
 

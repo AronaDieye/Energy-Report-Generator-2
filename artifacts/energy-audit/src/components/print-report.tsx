@@ -269,6 +269,19 @@ interface ReportData {
   sectionCharacteristics?: Record<string, string> | null;
   metadata?: BaoMetadata | null;
   ubatParoisData?: UbatParoisRow[] | null;
+  scenarioUbatData?: Record<string, {
+    coefficient: number | null;
+    ht: number | null;
+    hd: number | null;
+    hu: number | null;
+    hs: number | null;
+    at: number | null;
+    ventilation: number | null;
+    infiltrations: number | null;
+    gv: number | null;
+    deperditionsTotalesKw: number | null;
+    paroisRows: UbatParoisRow[];
+  }> | null;
 }
 
 export function PrintReport({ report, mode = "print" }: { report: ReportData; mode?: "print" | "preview" }) {
@@ -2045,62 +2058,113 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
               {/* ── Bilan thermique UBAT après travaux ── */}
               {(() => {
-                const ubatRows = [
-                  { label: "Coefficient UBAT", key: "UBAT Coefficient", unit: "W/m².°C", highlight: true },
-                  { label: "HT — Déperditions enveloppe", key: "UBAT HT", unit: "W/°C" },
-                  { label: "HD — Parois extérieures", key: "UBAT HD", unit: "W/°C" },
-                  { label: "HU — Parois intérieures", key: "UBAT HU", unit: "W/°C" },
-                  { label: "HS — Sol", key: "UBAT HS", unit: "W/°C" },
-                  { label: "AT — Surface déperditive", key: "UBAT AT", unit: "m²" },
-                  { label: "Ventilation spécifique", key: "UBAT Ventilation", unit: "W/°C" },
-                  { label: "Infiltrations", key: "UBAT Infiltrations", unit: "W/°C" },
-                  { label: "GV — Total général", key: "UBAT GV", unit: "W/°C" },
-                ].map(r => ({ ...r, value: getScVal(rawFields, sc.code, r.key) }))
-                  .filter(r => r.value !== null);
+                const scUbat = report.scenarioUbatData?.[sc.code] ?? null;
+                if (!scUbat) return null;
 
-                if (ubatRows.length === 0) return null;
+                const kpiCards = [
+                  { label: "Coefficient UBAT", value: scUbat.coefficient, unit: "W/m².°C", highlight: true },
+                  { label: "HT — Déperditions enveloppe", value: scUbat.ht, unit: "W/°C", highlight: false },
+                  { label: "GV — Total général", value: scUbat.gv, unit: "W/°C", highlight: false },
+                  { label: "Déperditions totales", value: scUbat.deperditionsTotalesKw, unit: "kW", highlight: true },
+                ].filter(c => c.value !== null);
 
-                // Also get initial state values for comparison
-                const ubatInitRows: Record<string, string | null> = {
-                  "UBAT Coefficient": getRaw(rawFields, "UBAT - Coefficient"),
-                  "UBAT HT":          getRaw(rawFields, "UBAT - HT enveloppe"),
-                  "UBAT GV":          getRaw(rawFields, "UBAT - GV total"),
+                const scParoisRows = scUbat.paroisRows;
+                const kindColor: Record<string, string> = {
+                  mur_ext: "#1e40af", vitrage: "#0891b2", porte: "#7c3aed",
+                  pont_thermique: "#b45309", autre: "#047857",
                 };
+                const isSubItem = (r: UbatParoisRow) => r.kind === "vitrage" || r.kind === "porte";
+                const htTotal = scUbat.ht ?? scParoisRows.reduce((acc, r) => {
+                  const n = r.deperd ? parseFloat(r.deperd.replace(/\s/g, "").replace(",", ".")) : 0;
+                  return acc + (isNaN(n) ? 0 : n);
+                }, 0);
+
+                if (kpiCards.length === 0 && scParoisRows.length === 0) return null;
 
                 return (
                   <div style={{ marginTop: 12, border: `1.5px solid ${scColor}33`, borderRadius: 8, overflow: "hidden" }}>
                     <div style={{ background: scColor, padding: "6px 14px" }}>
                       <span style={{ fontSize: 9, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 1 }}>
-                        Bilan thermique UBAT après travaux
+                        Bilan thermique UBAT — après travaux
                       </span>
                     </div>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                      <thead>
-                        <tr style={{ background: "#f1f5f9" }}>
-                          <th style={{ padding: "4px 10px", textAlign: "left", fontSize: 8.5, fontWeight: 700, color: "#374151", border: "1px solid #e2e8f0" }}>Indicateur</th>
-                          <th style={{ padding: "4px 10px", textAlign: "right", fontSize: 8.5, fontWeight: 700, color: "#374151", border: "1px solid #e2e8f0" }}>État initial</th>
-                          <th style={{ padding: "4px 10px", textAlign: "right", fontSize: 8.5, fontWeight: 700, color: scColor, border: "1px solid #e2e8f0" }}>Après travaux</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {ubatRows.map(({ label, key, value, highlight }, ri) => {
-                          const initVal = ubatInitRows[key] ?? null;
-                          return (
-                            <tr key={key} style={{ background: ri % 2 === 0 ? "#f8fafc" : "#fff" }}>
-                              <td style={{ padding: "3px 10px", fontSize: highlight ? 9.5 : 8.5, fontWeight: highlight ? 700 : 500, color: "#374151", border: "1px solid #e2e8f0" }}>
-                                {label}
-                              </td>
-                              <td style={{ padding: "3px 10px", textAlign: "right", fontSize: 8.5, fontFamily: "monospace", color: "#94a3b8", border: "1px solid #e2e8f0" }}>
-                                {initVal ?? "—"}
-                              </td>
-                              <td style={{ padding: "3px 10px", textAlign: "right", fontSize: highlight ? 10 : 8.5, fontWeight: highlight ? 800 : 700, fontFamily: "monospace", color: scColor, border: "1px solid #e2e8f0" }}>
-                                {value}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                    <div style={{ padding: "10px 14px" }}>
+                      {kpiCards.length > 0 && (
+                        <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+                          {kpiCards.map(c => (
+                            <div key={c.label} style={{
+                              flex: "1 1 120px", background: scColorLight, border: `1px solid ${scColor}44`,
+                              borderRadius: 6, padding: "5px 8px", textAlign: "center",
+                            }}>
+                              <div style={{ fontSize: 7.5, color: scColor, fontWeight: 600, marginBottom: 2 }}>{c.label}</div>
+                              <div style={{ fontSize: c.highlight ? 12 : 11, fontWeight: 800, color: "#1e293b" }}>
+                                {c.value!.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}{" "}
+                                <span style={{ fontSize: 8, fontWeight: 500, color: "#64748b" }}>{c.unit}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {scParoisRows.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: 8, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+                            Détail des parois — Calcul UBAT après travaux
+                          </div>
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 8 }}>
+                            <thead>
+                              <tr style={{ background: scColor, color: "#fff" }}>
+                                <th style={{ padding: "3px 4px", textAlign: "left", fontWeight: 700 }}>Désignation</th>
+                                <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 44 }}>Code</th>
+                                <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 20 }}>Nb</th>
+                                <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 42 }}>U / ψ</th>
+                                <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 28 }}>b</th>
+                                <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 46 }}>Surf./Long.</th>
+                                <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 28 }}>Orie</th>
+                                <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 54 }}>Déperd. W/°C</th>
+                                <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 26 }}>Réf.</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {scParoisRows.map((r, idx) => {
+                                const sub = isSubItem(r);
+                                const color = kindColor[r.kind] ?? scColor;
+                                const bg = idx % 2 === 0 ? scColorLight : "#fff";
+                                return (
+                                  <tr key={idx} style={{ background: sub ? "#fafafa" : bg }}>
+                                    <td style={{
+                                      padding: "2px 4px", paddingLeft: sub ? 14 : 4,
+                                      fontWeight: sub ? 400 : 600,
+                                      color: sub ? "#64748b" : color,
+                                      borderLeft: sub ? `2px solid ${color}33` : `3px solid ${color}`,
+                                    }}>
+                                      {r.designation}
+                                    </td>
+                                    <td style={{ padding: "2px 4px", textAlign: "center", color: "#374151", fontFamily: "monospace" }}>{r.code ?? ""}</td>
+                                    <td style={{ padding: "2px 4px", textAlign: "center", color: "#64748b" }}>{r.nb ?? ""}</td>
+                                    <td style={{ padding: "2px 4px", textAlign: "right", color: "#374151" }}>
+                                      {r.kind === "pont_thermique" ? (r.psi ?? "") : (r.u ?? "")}
+                                    </td>
+                                    <td style={{ padding: "2px 4px", textAlign: "right", color: "#64748b" }}>{r.b ?? ""}</td>
+                                    <td style={{ padding: "2px 4px", textAlign: "right", color: "#374151" }}>
+                                      {r.kind === "pont_thermique" ? (r.longueur ?? "") : (r.surface ?? "")}
+                                    </td>
+                                    <td style={{ padding: "2px 4px", textAlign: "center", color: "#64748b", fontStyle: "italic" }}>{r.orie ?? ""}</td>
+                                    <td style={{ padding: "2px 4px", textAlign: "right", fontWeight: 700, color: "#1e293b" }}>{r.deperd ?? ""}</td>
+                                    <td style={{ padding: "2px 4px", textAlign: "center", color: "#94a3b8", fontSize: 7 }}>{r.ref ?? ""}</td>
+                                  </tr>
+                                );
+                              })}
+                              <tr style={{ background: scColor, color: "#fff" }}>
+                                <td colSpan={6} style={{ padding: "3px 4px", fontWeight: 700, textAlign: "right", fontSize: 9 }}>HT =</td>
+                                <td colSpan={3} style={{ padding: "3px 4px", fontWeight: 800, textAlign: "right", fontSize: 10 }}>
+                                  {htTotal.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} W/°C
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })()}

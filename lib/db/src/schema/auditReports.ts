@@ -112,6 +112,35 @@ export const auditReportsTable = pgTable("audit_reports", {
     deperd: string | null;
     ref: string | null;
     kind: "mur_ext" | "vitrage" | "porte" | "pont_thermique" | "autre";
+  }>>(
+
+  ),
+
+  scenarioUbatData: jsonb("scenario_ubat_data").$type<Record<string, {
+    coefficient: number | null;
+    ht: number | null;
+    hd: number | null;
+    hu: number | null;
+    hs: number | null;
+    at: number | null;
+    ventilation: number | null;
+    infiltrations: number | null;
+    gv: number | null;
+    deperditionsTotalesKw: number | null;
+    paroisRows: Array<{
+      designation: string;
+      code: string | null;
+      nb: string | null;
+      u: string | null;
+      psi: string | null;
+      b: string | null;
+      surface: string | null;
+      longueur: string | null;
+      orie: string | null;
+      deperd: string | null;
+      ref: string | null;
+      kind: "mur_ext" | "vitrage" | "porte" | "pont_thermique" | "autre";
+    }>;
   }>>(),
 
   visitReportData: jsonb("visit_report_data").$type<{

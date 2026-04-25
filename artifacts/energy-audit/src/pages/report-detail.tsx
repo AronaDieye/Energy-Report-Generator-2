@@ -1453,6 +1453,7 @@ export function ReportDetail() {
           sectionCharacteristics: (report as unknown as { sectionCharacteristics?: Record<string, string> }).sectionCharacteristics ?? {},
           metadata: (report as unknown as { metadata?: Record<string, unknown> | null }).metadata ?? null,
           ubatParoisData: (report as unknown as { ubatParoisData?: unknown[] | null }).ubatParoisData ?? null,
+          scenarioUbatData: (report as unknown as { scenarioUbatData?: Record<string, unknown> | null }).scenarioUbatData ?? null,
         }}
       />
 
@@ -1515,6 +1516,7 @@ export function ReportDetail() {
                 sectionCharacteristics: (report as unknown as { sectionCharacteristics?: Record<string, string> }).sectionCharacteristics ?? {},
                 metadata: (report as unknown as { metadata?: Record<string, unknown> | null }).metadata ?? null,
                 ubatParoisData: (report as unknown as { ubatParoisData?: unknown[] | null }).ubatParoisData ?? null,
+                scenarioUbatData: (report as unknown as { scenarioUbatData?: Record<string, unknown> | null }).scenarioUbatData ?? null,
               }}
             />
           </div>
