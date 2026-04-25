@@ -479,6 +479,7 @@ interface BaoMetadata {
   cep5UsagesInitial?: number | null;
   gesInitialKgCo2M2?: number | null;
   coverPhotoId?: number | null;
+  introText?: string | null;
   scenarios?: BaoScenarioMeta[];
 }
 
@@ -1341,6 +1342,39 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
         <PrintFooter page={2} building={b.name} />
       </div>
+
+      {/* ══ PAGE TEXTE INTRODUCTIF (si renseigné) ════════════════════════════ */}
+      {meta?.introText && meta.introText.trim().length > 0 && !isPreview && (
+        <>
+          <div className="print-page-break" />
+          <div className="print-page" style={pageStyle}>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ borderLeft: "4px solid #1d4ed8", paddingLeft: 14, marginBottom: 18 }}>
+                <div style={{ fontSize: 8, letterSpacing: 2, textTransform: "uppercase", color: "#1d4ed8", opacity: 0.7, marginBottom: 4 }}>
+                  Note introductive
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a" }}>
+                  Préambule
+                </div>
+              </div>
+              {meta.introText.split(/\n\n+/).map((para, i) => (
+                para.trim() ? (
+                  <p key={i} style={{
+                    fontSize: 10.5,
+                    color: "#374151",
+                    lineHeight: 1.75,
+                    marginBottom: 14,
+                    textAlign: "justify" as const,
+                  }}>
+                    {para.trim()}
+                  </p>
+                ) : null
+              ))}
+            </div>
+            <PrintFooter page={3} building={b.name} />
+          </div>
+        </>
+      )}
 
       {/* ══ PAGE 4 — BÂTIMENT & DONNÉES TECHNIQUES ═══════════════════════════ */}
       {!isPreview && <div className="print-page-break" />}

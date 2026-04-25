@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ArrowLeft,
@@ -920,6 +921,7 @@ interface CoverForm {
   dateRestitution: string;
   reference: string;
   coverPhotoId: number | null;
+  introText: string;
 }
 
 interface EditorPhoto {
@@ -1174,6 +1176,23 @@ function CoverPageEditor({
               </div>
             </div>
 
+            {/* Texte introductif avant section 3 */}
+            <div>
+              <SectionDivider label="Texte introductif — avant « Données bâtiment »" color="blue" />
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  Ces paragraphes apparaîtront dans le rapport PDF juste avant la section 3 « Données bâtiment ».
+                  Séparez chaque paragraphe par une ligne vide.
+                </Label>
+                <Textarea
+                  value={form.introText}
+                  onChange={e => setForm(f => ({ ...f, introText: e.target.value }))}
+                  placeholder={"Dans le cadre de la réglementation en vigueur...\n\nLe présent rapport a pour objet de..."}
+                  className="text-sm min-h-[160px] resize-y"
+                />
+              </div>
+            </div>
+
           </div>
         </ScrollArea>
 
@@ -1330,6 +1349,7 @@ export function ReportDetail() {
             dateRestitution: report.metadata?.dateRestitution ?? "",
             reference: report.metadata?.reference ?? "",
             coverPhotoId: (report.metadata as Record<string, unknown>)?.coverPhotoId as number | null ?? null,
+            introText: (report.metadata as Record<string, unknown>)?.introText as string ?? "",
           }}
           onClose={() => setShowCoverEditor(false)}
           onSaved={() => refetch()}
