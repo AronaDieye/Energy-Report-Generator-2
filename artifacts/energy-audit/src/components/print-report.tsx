@@ -2036,6 +2036,120 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 </div>
               )}
 
+              {/* ── Consommations par usage + Bilan énergétique ── */}
+              {(() => {
+                type ScSrcE = { name: string | null; kwhAn: number | null };
+                const getScEnt = (prefix: string): ScSrcE[] => {
+                  const srcRaw = getScVal(rawFields, sc.code, `${prefix} - Source d'énergie`);
+                  const totalVal = parseVal(getScVal(rawFields, sc.code, `${prefix} - Énergie finale`));
+                  if (srcRaw) {
+                    const srcs = srcRaw.split(", ").filter(Boolean);
+                    const entries = srcs.map(s => ({ name: s, kwhAn: parseVal(getScVal(rawFields, sc.code, `${prefix} - ${s} - Énergie finale`)) }));
+                    if (entries.some(e => e.kwhAn !== null)) return entries;
+                    return [{ name: srcRaw, kwhAn: totalVal }];
+                  }
+                  if (totalVal !== null) return [{ name: null, kwhAn: totalVal }];
+                  return [];
+                };
+
+                const usagePrefixes = [
+                  { label: "Chauffage", prefix: "Chauffage" },
+                  { label: "ECS", prefix: "ECS" },
+                  { label: "Refroidissement", prefix: "Refroidissement" },
+                  { label: "Éclairage", prefix: "Éclairage" },
+                  { label: "Auxiliaires", prefix: "Auxiliaires" },
+                ];
+
+                const usageRows = usagePrefixes.map(({ label, prefix }) => ({
+                  label,
+                  entries: getScEnt(prefix),
+                })).filter(r => r.entries.length > 0);
+
+                const cefKwhAn = parseVal(getScVal(rawFields, sc.code, "CEF kWh/an"));
+                const totalCef = cefKwhAn ?? usageRows.reduce((sum, r) => {
+                  return sum + r.entries.reduce((s, e) => s + (e.kwhAn ?? 0), 0);
+                }, 0);
+
+                const balanceItems = [
+                  { l: "Énergie finale totale", v: totalCef > 0 ? `${totalCef.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh/an` : null },
+                  { l: "CEF (kWhEF/m².an)", v: sc.cef !== null ? `${fmtNum(sc.cef, 1)} kWhEF/m².an` : null },
+                  { l: "CEP 5 usages (kWhEP/m².an)", v: sc.thce !== null ? `${fmtNum(sc.thce, 1)} kWhEP/m².an` : null },
+                  { l: "GES (kgCO₂/m².an)", v: sc.ges !== null ? `${fmtNum(sc.ges, 1)} kgCO₂/m².an` : null },
+                  { l: "Dépense annuelle", v: sc.cost !== null ? `${fmtNum(sc.cost)} €/an` : null },
+                  { l: "Gain économique", v: sc.gainEconomiqueEur !== null ? `${fmtNum(sc.gainEconomiqueEur)} €/an` : null },
+                  { l: "Gain énergétique", v: sc.gainPct !== null ? `${fmtNum(sc.gainPct, 1)} %` : null },
+                ].filter(r => r.v !== null);
+
+                if (usageRows.length === 0 && balanceItems.length === 0) return null;
+
+                const tdC: React.CSSProperties = { padding: "3px 7px", fontSize: 9, border: "1px solid #e2e8f0", verticalAlign: "middle" };
+
+                return (
+                  <div style={{ marginTop: 14, border: `1.5px solid ${scColor}33`, borderRadius: 8, overflow: "hidden" }}>
+                    <div style={{ background: scColor, padding: "6px 14px" }}>
+                      <span style={{ fontSize: 9, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 1 }}>
+                        Consommations énergétiques après travaux
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", gap: 0 }}>
+                      {/* Consumption by usage */}
+                      {usageRows.length > 0 && (
+                        <div style={{ flex: 1, padding: "10px 14px", borderRight: `1px solid ${scColor}22` }}>
+                          <div style={{ fontSize: 8, fontWeight: 700, color: scColor, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Par usage</div>
+                          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <thead>
+                              <tr style={{ background: "#f1f5f9" }}>
+                                <th style={{ ...tdC, fontWeight: 700, color: "#374151", textAlign: "left" }}>Usage</th>
+                                <th style={{ ...tdC, fontWeight: 700, color: "#374151", textAlign: "left" }}>Source d'énergie</th>
+                                <th style={{ ...tdC, fontWeight: 700, color: "#374151", textAlign: "right" }}>kWh/an</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {usageRows.map(({ label, entries }, ui) =>
+                                entries.map((e, ei) => (
+                                  <tr key={`${label}-${ei}`} style={{ background: ui % 2 === 0 ? "#f8fafc" : "#fff" }}>
+                                    {ei === 0 && (
+                                      <td style={{ ...tdC, fontWeight: 700, color: "#1e3a5f", textTransform: "uppercase", fontSize: 8 }} rowSpan={entries.length}>
+                                        {label}
+                                      </td>
+                                    )}
+                                    <td style={{ ...tdC, fontStyle: "italic", color: "#64748b" }}>{e.name ?? ""}</td>
+                                    <td style={{ ...tdC, textAlign: "right", fontWeight: 700, fontFamily: "monospace", color: scColor }}>
+                                      {e.kwhAn != null ? e.kwhAn.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) : "—"}
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                              {totalCef > 0 && (
+                                <tr style={{ background: "#e2e8f0", borderTop: "1.5px solid #94a3b8" }}>
+                                  <td style={{ ...tdC, fontWeight: 700, color: "#0f172a", textTransform: "uppercase", fontSize: 8 }} colSpan={2}>TOTAL</td>
+                                  <td style={{ ...tdC, textAlign: "right", fontWeight: 800, fontFamily: "monospace", color: scColor }}>
+                                    {totalCef.toLocaleString("fr-FR", { maximumFractionDigits: 0 })} kWh
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
+                      {/* Energy balance */}
+                      {balanceItems.length > 0 && (
+                        <div style={{ minWidth: 220, padding: "10px 14px" }}>
+                          <div style={{ fontSize: 8, fontWeight: 700, color: scColor, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Bilan énergétique</div>
+                          {balanceItems.map(({ l, v }) => (
+                            <div key={l} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "1px solid #f1f5f9", padding: "2.5px 0" }}>
+                              <span style={{ fontSize: 8.5, color: "#64748b" }}>{l}</span>
+                              <span style={{ fontSize: 9.5, fontWeight: 700, color: "#1e293b", marginLeft: 12 }}>{v}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <PrintFooter page={pageNum} building={b.name} />
             </div>
           </React.Fragment>
