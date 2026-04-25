@@ -483,59 +483,60 @@ interface BaoMetadata {
   scenarios?: BaoScenarioMeta[];
 }
 
-const DEFAULT_INTRO_TEXT = `OBJECTIF DE L'ETUDE
+const DEFAULT_INTRO_TEXT = `1. OBJECTIF DE L'ÉTUDE
 Le présent document vise à présenter de manière exhaustive les résultats de l'audit énergétique réalisé sur le bâtiment concerné. L'étude a pour but d'évaluer en profondeur les performances thermiques, les consommations énergétiques actuelles et de formuler des recommandations concrètes permettant de réduire la consommation d'énergie. Cet audit a pour objectif final de rendre le bâtiment conforme aux réglementations en vigueur, tout en proposant une optimisation énergétique durable.
 
 L'audit énergétique a été conduit conformément aux recommandations de l'ADEME et aux exigences des normes NF EN 16247-1 et NF EN 16247-2. Ces normes fixent les méthodologies et bonnes pratiques à suivre pour la réalisation d'audits énergétiques complets et pertinents. De plus, l'audit s'inscrit dans les obligations du décret n° 2012-111 du 27 janvier 2012, qui impose aux bâtiments, en particulier ceux de grande taille, de procéder à des audits énergétiques dans le cadre d'une démarche d'amélioration de l'efficacité énergétique.
 
 L'étude couvre plusieurs aspects du bâtiment, notamment :
 
-Contenu détaillé de l'audit
+2. CONTENU DÉTAILLÉ DE L'AUDIT
 L'analyse s'est déroulée en plusieurs phases successives, chacune ayant permis de collecter des données précises sur les différents aspects du bâtiment. Voici les points étudiés de manière approfondie :
 
-Analyse de l'enveloppe thermique du bâtiment
+2.1 Analyse de l'enveloppe thermique du bâtiment
 Murs extérieurs, toitures, planchers et ouvertures ont fait l'objet d'une inspection détaillée pour évaluer leur niveau d'isolation thermique. Cette étape est essentielle car l'enveloppe joue un rôle clé dans la réduction des déperditions de chaleur. Une attention particulière a été accordée à l'identification des ponts thermiques.
 Les matériaux composant l'enveloppe ont été évalués sur la base de leur capacité à limiter les déperditions thermiques, en prenant en compte les standards actuels d'efficacité énergétique.
 
-Systèmes de chauffage, de ventilation et de climatisation (CVC)
+2.2 Systèmes de chauffage, de ventilation et de climatisation (CVC)
 L'étude a porté sur le rendement des systèmes de chauffage, ventilation et climatisation en place. Le diagnostic a évalué la performance de chaque composant, incluant les chaudières, pompes à chaleur, unités de traitement de l'air et équipements de refroidissement, en prenant en compte leur ancienneté, leur technologie et leur efficacité énergétique.
 L'audit a inclus également l'évaluation des systèmes de régulation (thermostats, capteurs de température et d'humidité, etc.), ainsi que des dispositifs de gestion centralisée permettant d'optimiser l'utilisation énergétique en fonction des horaires d'occupation et des besoins spécifiques des utilisateurs du bâtiment.
 
-Production d'eau chaude sanitaire (ECS)
+2.3 Production d'eau chaude sanitaire (ECS)
 Les installations dédiées à la production d'eau chaude sanitaire ont été analysées, notamment les chaudières, ballons d'eau chaude, ou tout autre équipement spécifique utilisé pour répondre aux besoins en ECS dans le bâtiment. L'efficacité énergétique de ces équipements a été mesurée pour évaluer leur impact sur les consommations globales.
 
-Systèmes d'éclairage et équipements électriques
+2.4 Systèmes d'éclairage et équipements électriques
 Une attention particulière a été portée à l'éclairage. L'étude a évalué la technologie des luminaires (fluorescents, LED, etc.), l'intensité d'utilisation, et les systèmes de contrôle (interrupteurs, détecteurs de présence, etc.).
 D'autres équipements électriques, tels que les ascenseurs, systèmes de sécurité, salles serveurs, équipements informatiques, ont également été pris en compte, notamment leur consommation en période de pleine activité et en période de veille.
 
-Analyse des habitudes d'utilisation des occupants
+2.5 Analyse des habitudes d'utilisation des occupants
 L'audit s'est intéressé à l'influence des comportements des occupants sur les consommations énergétiques réelles du bâtiment. Cette phase inclut une enquête sur les horaires d'occupation, les postes de travail et les pratiques de gestion de l'énergie (par exemple, l'usage des équipements en dehors des heures d'ouverture).
 
-Modélisation et comparaison des consommations
+2.6 Modélisation et comparaison des consommations
 Une modélisation énergétique du bâtiment a été réalisée pour estimer les consommations théoriques en fonction des caractéristiques du bâtiment et des systèmes énergétiques installés.
 Les données modélisées ont ensuite été comparées aux consommations réelles observées (via les factures énergétiques) afin de détecter des écarts et des dysfonctionnements éventuels. Cette analyse permet de comprendre si des usages non optimisés ou des équipements obsolètes contribuent à des surconsommations.
 
-PRESENTATION GENERALE
-Visite sur site et contact préliminaire
+3. PRÉSENTATION GÉNÉRALE
+
+3.1 Visite sur site et contact préliminaire
 Les interlocuteurs rencontrés ont été :
 • Le gardien de la résidence ;
 • Membres du conseil syndical ;
 • Copropriétaires / locataires.
 Les discussions / prises d'informations avec ces intervenants nous ont permis de déterminer l'état et les caractéristiques des équipements techniques, le taux d'occupation des locaux, l'utilisation des bâtiments et de ses équipements.
 
-Enquête auprès des résidents
+3.2 Enquête auprès des résidents
 Dans le cadre de l'audit énergétique, l'enquête menée auprès des résidents, avec le soutien du syndic, visait d'abord à recenser les équipements spécifiques individuels. Cela inclut les systèmes de chauffage d'appoint et de ventilation mécanique, ainsi que tout autre dispositif pouvant influencer la consommation énergétique. Ces informations sont essentielles pour identifier les éventuelles sources de consommation excessive ou d'efficacité énergétique dans le bâtiment.
 
 L'enquête a permis également de recenser les travaux d'isolation ou de remplacement des menuiseries réalisés par certains propriétaires. Savoir quel logement a eu d'améliorations telle que l'isolation des murs, des combles ou le remplacement des fenêtres est essentiel pour évaluer la variabilité des performances énergétiques entre les appartements. Ces données permettent de mieux cibler les recommandations d'améliorations pour l'ensemble du bâtiment.
 
 L'enquête a permis d'évaluer le niveau d'implication et les attentes des copropriétaires concernant d'éventuels travaux de réhabilitation énergétique. Connaître leur motivation et leur disposition à investir dans des projets d'amélioration permet de préparer des recommandations qui tiennent compte des besoins collectifs et des moyens financiers disponibles, facilitant ainsi la prise de décision pour les interventions futures.
 
-Conclusion de l'enquête
+3.3 Conclusion de l'enquête
 Les occupants signalent des problèmes principalement liés au chauffage et à la ventilation, avec de nombreux retours concernant les courants d'air. Ces dysfonctionnements nuisent au confort des résidents et révèlent des faiblesses dans l'isolation thermique du bâtiment.
 
 Les attentes des copropriétaires se tournent vers une amélioration significative du confort thermique, notamment en optimisant les systèmes de chauffage et de ventilation. Ils recherchent des solutions qui permettront également de réaliser des économies d'énergie, une priorité pour améliorer à la fois le bien-être quotidien et la performance énergétique de l'immeuble.
 
-Besoins du client
+3.4 Besoins du client
 Les besoins du client se concentrent sur plusieurs aspects spécifiques :
 • La réduction des consommations énergétiques
 • L'optimisation de l'isolation thermique
@@ -1424,43 +1425,86 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
               {introText.split(/\n\n+/).map((para, i) => {
                 if (!para.trim()) return null;
                 const lines = para.trim().split('\n');
-                const isHeadingBlock = lines.length > 1;
-                return (
-                  <div key={i} style={{ marginBottom: 14 }}>
-                    {isHeadingBlock && (
-                      <div style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: "#1d4ed8",
-                        textTransform: "uppercase" as const,
-                        letterSpacing: 0.5,
-                        marginBottom: 3,
-                      }}>
-                        {lines[0]}
+                const firstLine = lines[0];
+                const isMainSection = /^\d+\. /.test(firstLine) && !/^\d+\.\d+/.test(firstLine);
+                const isSubSection = /^\d+\.\d+ /.test(firstLine);
+                const isLegacyHeading = !isMainSection && !isSubSection && lines.length > 1;
+                const bodyLines = (isMainSection || isSubSection || isLegacyHeading) ? lines.slice(1) : lines;
+
+                const renderBodyLines = (bLines: string[]) => bLines.map((line, j) => {
+                  if (!line.trim()) return null;
+                  if (line.startsWith('• ')) {
+                    return (
+                      <div key={j} style={{ display: "flex", gap: 6, marginBottom: 2, marginLeft: 8 }}>
+                        <span style={{ color: "#1d4ed8", fontWeight: 700, flexShrink: 0 }}>•</span>
+                        <span style={{ fontSize: 10.5, color: "#374151", lineHeight: 1.7 }}>{line.slice(2)}</span>
                       </div>
-                    )}
-                    {(isHeadingBlock ? lines.slice(1) : lines).map((line, j) => {
-                      const isBullet = line.startsWith('• ');
-                      if (isBullet) {
-                        return (
-                          <div key={j} style={{ display: "flex", gap: 6, marginBottom: 2, marginLeft: 8 }}>
-                            <span style={{ color: "#1d4ed8", fontWeight: 700, flexShrink: 0 }}>•</span>
-                            <span style={{ fontSize: 10.5, color: "#374151", lineHeight: 1.7 }}>{line.slice(2)}</span>
-                          </div>
-                        );
-                      }
-                      return (
-                        <p key={j} style={{
-                          fontSize: 10.5,
-                          color: "#374151",
-                          lineHeight: 1.75,
-                          margin: "0 0 4px 0",
-                          textAlign: "justify" as const,
+                    );
+                  }
+                  return (
+                    <p key={j} style={{ fontSize: 10.5, color: "#374151", lineHeight: 1.75, margin: "0 0 4px 0", textAlign: "justify" as const }}>
+                      {line}
+                    </p>
+                  );
+                });
+
+                if (isMainSection) {
+                  return (
+                    <div key={i} style={{ marginBottom: 18, marginTop: i === 0 ? 0 : 10 }}>
+                      <div style={{
+                        display: "flex", alignItems: "baseline", gap: 10,
+                        borderBottom: "2px solid #1d4ed8", paddingBottom: 5, marginBottom: 10,
+                      }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: "#1d4ed8", flexShrink: 0 }}>
+                          {firstLine.match(/^\d+\./)?.[0]}
+                        </span>
+                        <span style={{
+                          fontSize: 12, fontWeight: 800, color: "#0f172a",
+                          textTransform: "uppercase" as const, letterSpacing: 0.8,
                         }}>
-                          {line}
-                        </p>
-                      );
-                    })}
+                          {firstLine.replace(/^\d+\.\s*/, '')}
+                        </span>
+                      </div>
+                      {renderBodyLines(bodyLines)}
+                    </div>
+                  );
+                }
+
+                if (isSubSection) {
+                  return (
+                    <div key={i} style={{ marginBottom: 12 }}>
+                      <div style={{
+                        display: "flex", alignItems: "baseline", gap: 6, marginBottom: 4,
+                      }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: "#1d4ed8", flexShrink: 0 }}>
+                          {firstLine.match(/^\d+\.\d+/)?.[0]}
+                        </span>
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, color: "#1e40af",
+                          textTransform: "uppercase" as const, letterSpacing: 0.4,
+                        }}>
+                          {firstLine.replace(/^\d+\.\d+\s*/, '')}
+                        </span>
+                      </div>
+                      {renderBodyLines(bodyLines)}
+                    </div>
+                  );
+                }
+
+                if (isLegacyHeading) {
+                  return (
+                    <div key={i} style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#1d4ed8", textTransform: "uppercase" as const, letterSpacing: 0.4, marginBottom: 3 }}>
+                        {firstLine}
+                      </div>
+                      {renderBodyLines(bodyLines)}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={i} style={{ marginBottom: 10 }}>
+                    {renderBodyLines(bodyLines)}
                   </div>
                 );
               })}
