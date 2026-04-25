@@ -193,13 +193,13 @@ function Dpe3CLLabel({
   const darkText = (cls: string) => cls === "A" || cls === "B" || cls === "C" || cls === "D";
 
   return (
-    <div style={{ breakInside: "avoid" }}>
+    <div>
       <div style={{ fontSize: 8, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
         Étiquette DPE — Méthode 3CL 2021
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
         {/* Energy consumption panel */}
-        <div style={{ flex: 7 }}>
+        <div style={{ flex: 7, minWidth: 0, overflow: "hidden" }}>
           <div style={{ fontSize: 6, color: "#374151", marginBottom: 3 }}>
             <span style={{ fontWeight: 600 }}>consommation</span> (énergie primaire) | <span style={{ fontWeight: 600 }}>émissions</span>
           </div>
@@ -249,7 +249,7 @@ function Dpe3CLLabel({
           <div style={{ fontSize: 6, color: "#94a3b8", marginTop: 5 }}>Méthode 3CL 2021 - Moteur TRIBU</div>
         </div>
         {/* GES panel */}
-        <div style={{ flex: 5, border: "1.5px solid #93c5fd", borderRadius: 5, padding: "5px 7px" }}>
+        <div style={{ flex: 5, minWidth: 0, border: "1.5px solid #93c5fd", borderRadius: 5, padding: "5px 7px" }}>
           <div style={{ fontSize: 6.5, fontWeight: 700, color: "#1e40af", marginBottom: 4, lineHeight: 1.3 }}>
             *Dont émissions de gaz à effet de serre
           </div>
@@ -1943,7 +1943,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
         {/* ── Étiquettes DPE état initial ── */}
         {(thceInitial != null || gesInitial != null || initialEP != null || report.energyLabel.currentLabel != null) && (
-          <div style={{ display: 'flex', gap: 12, marginTop: 14 }}>
+          <div style={{ display: 'flex', gap: 12, marginTop: 14, breakInside: 'avoid' }}>
             {(thceInitial != null || gesInitial != null) && (
               <div style={{ flex: 1, minWidth: 0 }}>
                 <ThceDpePyramid
@@ -2465,7 +2465,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
               {/* ── Étiquettes DPE scénario (Th-C-E + 3CL 2021) ── */}
               {(thceInitial != null || sc.thce != null || gesInitial != null || sc.ges != null || sc.cep3 != null || sc.dpeLabel != null) && (
-                <div style={{ display: "flex", gap: 12, marginTop: 14 }}>
+                <div style={{ display: "flex", gap: 12, marginTop: 14, breakInside: "avoid" }}>
                   {(thceInitial != null || sc.thce != null || gesInitial != null || sc.ges != null) && (
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <ThceDpePyramid
