@@ -1592,8 +1592,9 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
               };
               const isSubItem = (r: UbatParoisRow) => r.kind === "vitrage" || r.kind === "porte";
 
-              // Calculate HT total from rows
-              const htTotal = rows.reduce((acc, r) => {
+              // Use stored HT from BAO récapitulatif (includes HS planchers which have no deperd in the table)
+              const htFromRawField = parseVal(rawFields.find(f => f.key === "UBAT - HT enveloppe")?.value ?? null);
+              const htTotal = htFromRawField ?? rows.reduce((acc, r) => {
                 const n = r.deperd ? parseFloat(r.deperd.replace(/\s/g, "").replace(",", ".")) : 0;
                 return acc + (isNaN(n) ? 0 : n);
               }, 0);
