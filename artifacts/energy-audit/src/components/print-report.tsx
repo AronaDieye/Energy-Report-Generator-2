@@ -480,7 +480,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         style={{
           ...(isPreview
             ? { width: 794, minHeight: 1123, margin: "0 auto 28px", background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,0.25)", borderRadius: 2, boxSizing: "border-box" as const }
-            : { minHeight: "277mm" }),
+            : { minHeight: "257mm" }),
           display: "flex", flexDirection: "column", position: "relative", overflow: "hidden",
         }}
       >

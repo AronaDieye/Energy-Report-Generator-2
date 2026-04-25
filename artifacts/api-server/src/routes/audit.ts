@@ -241,6 +241,23 @@ router.get("/audit/reports/:id/pdf", async (req, res): Promise<void> => {
     // Wait for images and async content to settle
     await new Promise(r => setTimeout(r, 2500));
 
+    // Restructure the DOM: move .print-only to body root so the invisible React UI
+    // content doesn't create phantom blank pages in the print layout.
+    await page.evaluate(() => {
+      const printDiv = document.querySelector(".print-only") as HTMLElement | null;
+      if (!printDiv) return;
+      document.body.innerHTML = "";
+      document.body.style.margin = "0";
+      document.body.style.padding = "0";
+      document.body.appendChild(printDiv);
+      printDiv.style.position = "static";
+      printDiv.style.top = "";
+      printDiv.style.left = "";
+      printDiv.style.display = "block";
+      printDiv.style.visibility = "visible";
+      printDiv.style.width = "100%";
+    });
+
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
