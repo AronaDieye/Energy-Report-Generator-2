@@ -37,6 +37,7 @@ import { BatimentTab } from "../components/batiment-tab";
 import { PrintReport } from "../components/print-report";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
 
 const fmt = (num: number | null | undefined, suffix = "", decimals = 0) => {
   if (num === null || num === undefined) return "—";
@@ -1193,8 +1194,8 @@ function CoverPageEditor({
 
 export function ReportDetail() {
   const { id } = useParams();
-  const { data: report, isLoading, refetch } = useGetAuditReport(Number(id), {
-    query: { enabled: !!id },
+  const { data: report, isLoading, isError, refetch } = useGetAuditReport(Number(id), {
+    query: { enabled: !!id, retry: false },
   });
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [showCoverEditor, setShowCoverEditor] = useState(false);
@@ -1211,7 +1212,15 @@ export function ReportDetail() {
     try {
       const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
       const res = await fetch(`${apiBase}/api/audit/reports/${id}/pdf`);
-      if (!res.ok) throw new Error("PDF generation failed");
+      if (!res.ok) {
+        if (res.status === 404) {
+          toast({ title: "Rapport introuvable", description: "Ce rapport n'existe plus dans la base de données.", variant: "destructive" });
+        } else {
+          const text = await res.text().catch(() => "");
+          toast({ title: "Erreur de génération PDF", description: text || `Erreur serveur (${res.status})`, variant: "destructive" });
+        }
+        return;
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -1225,6 +1234,7 @@ export function ReportDetail() {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("PDF download error:", err);
+      toast({ title: "Erreur réseau", description: "Impossible de contacter le serveur. Vérifiez votre connexion.", variant: "destructive" });
     } finally {
       setIsPdfGenerating(false);
     }
@@ -1246,10 +1256,11 @@ export function ReportDetail() {
     );
   }
 
-  if (!report) {
+  if (isError || !report) {
     return (
       <div className="text-center py-20">
         <h2 className="text-2xl font-bold mb-4">Rapport introuvable</h2>
+        <p className="text-muted-foreground mb-6">Ce rapport n'existe pas ou a été supprimé.</p>
         <Link href="/">
           <Button>Retour au tableau de bord</Button>
         </Link>
