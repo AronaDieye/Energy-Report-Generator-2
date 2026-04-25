@@ -1719,13 +1719,20 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         {(() => {
           const techSections: { displayLabel: string; cat: string; accent: string; fields: { label: string; key: string }[] }[] = [
             {
-              displayLabel: "Chauffage & ECS",
+              displayLabel: "Chauffage",
               cat: "chauffage_ecs",
               accent: "#7c3aed",
               fields: [
                 { label: "Système de chauffage", key: "Système de chauffage" },
-                { label: "Type ECS",              key: "Type d'ECS" },
-                { label: "COP nominal",           key: "COP nominal" },
+                { label: "COP nominal",          key: "COP nominal" },
+              ],
+            },
+            {
+              displayLabel: "ECS — Eau Chaude Sanitaire",
+              cat: "",
+              accent: "#a855f7",
+              fields: [
+                { label: "Type ECS", key: "Type d'ECS" },
               ],
             },
             {
