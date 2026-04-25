@@ -2054,52 +2054,51 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           const fmtP = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 }).format(n);
 
           return (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+            <div style={{ marginBottom: 16, pageBreakInside: "avoid" }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "#7c3aed", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, borderBottom: "1px solid #ede9fe", paddingBottom: 4 }}>
                 Répartition des déperditions — État initial (W/°C)
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div>
                 {categories.map(({ key, label, color, subItems }) => {
                   const val = pv(getRaw(rawFields, key));
                   if (val === null) return null;
                   const pct = gv > 0 ? (val / gv) * 100 : 0;
                   return (
-                    <div key={key}>
+                    <div key={key} style={{ pageBreakInside: "avoid", marginBottom: 5 }}>
                       {/* Main category row */}
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                         <div style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0 }} />
-                        <span style={{ fontSize: 9, fontWeight: 600, color, flex: 1 }}>{label}</span>
-                        <span style={{ fontSize: 9, fontWeight: 700, color: "#1e293b", width: 70, textAlign: "right" }}>{fmtV(val)} W/°C</span>
-                        <span style={{ fontSize: 8, color: "#94a3b8", width: 36, textAlign: "right" }}>{fmtP(pct)} %</span>
+                        <span style={{ fontSize: 9, fontWeight: 700, color, flex: 1 }}>{label}</span>
+                        <span style={{ fontSize: 9, fontWeight: 700, color: "#1e293b", width: 72, textAlign: "right" }}>{fmtV(val)} W/°C</span>
+                        <span style={{ fontSize: 8, color: "#94a3b8", width: 38, textAlign: "right" }}>{fmtP(pct)} %</span>
                       </div>
                       {/* Progress bar */}
-                      <div style={{ marginLeft: 16, height: 6, background: "#f1f5f9", borderRadius: 3, overflow: "hidden", marginBottom: 3 }}>
+                      <div style={{ marginLeft: 16, height: 5, background: "#f1f5f9", borderRadius: 3, overflow: "hidden", marginBottom: subItems.length > 0 ? 3 : 0 }}>
                         <div style={{ height: "100%", background: color, borderRadius: 3, width: `${Math.min(pct, 100)}%` }} />
                       </div>
                       {/* Sub-items */}
-                      {subItems.map(({ key: sk, label: sl, color: sc }) => {
-                        const sv = pv(getRaw(rawFields, sk));
-                        if (!sv) return null;
-                        const sp = gv > 0 ? (sv / gv) * 100 : 0;
-                        return (
-                          <div key={sk} style={{ marginLeft: 24, marginBottom: 2 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <div style={{ width: 7, height: 7, borderRadius: 1, background: sc, flexShrink: 0 }} />
-                              <span style={{ fontSize: 8, color: "#64748b", flex: 1 }}>{sl}</span>
-                              <span style={{ fontSize: 8, color: "#64748b", width: 70, textAlign: "right" }}>{fmtV(sv)} W/°C</span>
-                              <span style={{ fontSize: 7.5, color: "#cbd5e1", width: 36, textAlign: "right" }}>{fmtP(sp)} %</span>
-                            </div>
-                            <div style={{ marginLeft: 13, height: 3, background: "#f1f5f9", borderRadius: 2, overflow: "hidden", marginTop: 1 }}>
-                              <div style={{ height: "100%", background: sc, borderRadius: 2, width: `${Math.min(sp, 100)}%` }} />
-                            </div>
-                          </div>
-                        );
-                      })}
+                      {subItems.length > 0 && (
+                        <div style={{ marginLeft: 16, background: "#fafafa", borderRadius: 3, padding: "3px 6px", pageBreakInside: "avoid" }}>
+                          {subItems.map(({ key: sk, label: sl, color: sc }) => {
+                            const sv = pv(getRaw(rawFields, sk));
+                            if (!sv) return null;
+                            const sp = gv > 0 ? (sv / gv) * 100 : 0;
+                            return (
+                              <div key={sk} style={{ display: "grid", gridTemplateColumns: "12px 1fr 72px 38px", gap: "0 6px", alignItems: "center", marginBottom: 2 }}>
+                                <div style={{ width: 7, height: 7, borderRadius: 1, background: sc, justifySelf: "center" }} />
+                                <span style={{ fontSize: 8, color: "#64748b" }}>{sl}</span>
+                                <span style={{ fontSize: 8, color: "#64748b", textAlign: "right" }}>{fmtV(sv)} W/°C</span>
+                                <span style={{ fontSize: 7.5, color: "#cbd5e1", textAlign: "right" }}>{fmtP(sp)} %</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
                 {/* Total */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1.5px solid #e2e8f0", paddingTop: 6, marginTop: 2 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "2px solid #1e293b", paddingTop: 5, marginTop: 4 }}>
                   <span style={{ fontSize: 9, fontWeight: 700 }}>Total GV</span>
                   <span style={{ fontSize: 10, fontWeight: 800, color: "#1e293b" }}>{fmtV(gv)} W/°C</span>
                 </div>
