@@ -480,6 +480,8 @@ interface BaoMetadata {
   gesInitialKgCo2M2?: number | null;
   coverPhotoId?: number | null;
   introText?: string | null;
+  logicielUtilise?: string | null;
+  methodeCalcul?: string | null;
   scenarios?: BaoScenarioMeta[];
 }
 
@@ -1015,6 +1017,8 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                   { l: "Date de réalisation", v: meta.dateRealisation },
                   { l: "Date de restitution", v: meta.dateRestitution },
                   { l: "Référence dossier", v: meta.reference },
+                  { l: "Logiciel utilisé", v: meta.logicielUtilise },
+                  { l: "Méthode de calcul", v: meta.methodeCalcul },
                 ].filter(r => r.v).map(({ l, v }) => (
                   <div key={l}>
                     <div style={{ fontSize: 7, color: "#94a3b8", textTransform: "uppercase" }}>{l}</div>

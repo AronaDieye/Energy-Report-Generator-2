@@ -504,6 +504,7 @@ router.patch("/audit/reports/:id/cover", async (req, res): Promise<void> => {
     buildingName, buildingAddress,
     bureauEtudes, bureauAdresse, bureauEmail, bureauTelephone, siret, qualification,
     maitreDoeuvre, beneficiaire, adresseClient, dateVisite, dateRealisation, dateRestitution, reference,
+    logicielUtilise, methodeCalcul,
     coverPhotoId,
   } = req.body;
 
@@ -511,6 +512,7 @@ router.patch("/audit/reports/:id/cover", async (req, res): Promise<void> => {
   for (const [k, v] of Object.entries({
     bureauEtudes, bureauAdresse, bureauEmail, bureauTelephone, siret, qualification,
     maitreDoeuvre, beneficiaire, adresseClient, dateVisite, dateRealisation, dateRestitution, reference,
+    logicielUtilise, methodeCalcul,
   })) {
     if (v !== undefined) metaPatch[k] = v === "" ? null : v;
   }

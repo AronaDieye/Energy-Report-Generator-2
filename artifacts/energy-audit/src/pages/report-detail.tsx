@@ -985,6 +985,8 @@ interface CoverForm {
   reference: string;
   coverPhotoId: number | null;
   introText: string;
+  logicielUtilise: string;
+  methodeCalcul: string;
 }
 
 interface EditorPhoto {
@@ -1316,6 +1318,8 @@ function CoverPageEditor({
                 <CoverField label="Date de réalisation" value={form.dateRealisation} onChange={handleChange("dateRealisation")} placeholder="JJ/MM/AAAA" />
                 <CoverField label="Date de restitution" value={form.dateRestitution} onChange={handleChange("dateRestitution")} placeholder="JJ/MM/AAAA" />
                 <CoverField label="Référence dossier" value={form.reference} onChange={handleChange("reference")} placeholder="REF-2025-001" />
+                <CoverField label="Logiciel utilisé" value={form.logicielUtilise} onChange={handleChange("logicielUtilise")} placeholder="ex : TRIBU, BAO…" />
+                <CoverField label="Méthode de calcul" value={form.methodeCalcul} onChange={handleChange("methodeCalcul")} placeholder="ex : Th-C-E, 3CL-2021…" />
               </div>
             </div>
 
@@ -1493,6 +1497,8 @@ export function ReportDetail() {
             reference: report.metadata?.reference ?? "",
             coverPhotoId: (report.metadata as Record<string, unknown>)?.coverPhotoId as number | null ?? null,
             introText: (report.metadata as Record<string, unknown>)?.introText as string ?? DEFAULT_INTRO_TEXT,
+            logicielUtilise: (report.metadata as Record<string, unknown>)?.logicielUtilise as string ?? "",
+            methodeCalcul: (report.metadata as Record<string, unknown>)?.methodeCalcul as string ?? "",
           }}
           onClose={() => setShowCoverEditor(false)}
           onSaved={() => refetch()}
