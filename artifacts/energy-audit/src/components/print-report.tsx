@@ -2082,29 +2082,33 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 if (kpiCards.length === 0 && scParoisRows.length === 0) return null;
 
                 return (
-                  <div style={{ marginTop: 12, border: `1.5px solid ${scColor}33`, borderRadius: 8, overflow: "hidden" }}>
-                    <div style={{ background: scColor, padding: "6px 14px" }}>
-                      <span style={{ fontSize: 9, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 1 }}>
-                        Bilan thermique UBAT — après travaux
-                      </span>
-                    </div>
-                    <div style={{ padding: "10px 14px" }}>
+                  <div style={{ marginTop: 12, border: `1.5px solid ${scColor}33`, borderRadius: 8 }}>
+                    <div style={{ breakInside: "avoid" }}>
+                      <div style={{ background: scColor, padding: "6px 14px", borderRadius: "6px 6px 0 0" }}>
+                        <span style={{ fontSize: 9, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 1 }}>
+                          Bilan thermique UBAT — après travaux
+                        </span>
+                      </div>
                       {kpiCards.length > 0 && (
-                        <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
-                          {kpiCards.map(c => (
-                            <div key={c.label} style={{
-                              flex: "1 1 120px", background: scColorLight, border: `1px solid ${scColor}44`,
-                              borderRadius: 6, padding: "5px 8px", textAlign: "center",
-                            }}>
-                              <div style={{ fontSize: 7.5, color: scColor, fontWeight: 600, marginBottom: 2 }}>{c.label}</div>
-                              <div style={{ fontSize: c.highlight ? 12 : 11, fontWeight: 800, color: "#1e293b" }}>
-                                {c.value!.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}{" "}
-                                <span style={{ fontSize: 8, fontWeight: 500, color: "#64748b" }}>{c.unit}</span>
+                        <div style={{ padding: "10px 14px 0 14px" }}>
+                          <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+                            {kpiCards.map(c => (
+                              <div key={c.label} style={{
+                                flex: "1 1 120px", background: scColorLight, border: `1px solid ${scColor}44`,
+                                borderRadius: 6, padding: "5px 8px", textAlign: "center",
+                              }}>
+                                <div style={{ fontSize: 7.5, color: scColor, fontWeight: 600, marginBottom: 2 }}>{c.label}</div>
+                                <div style={{ fontSize: c.highlight ? 12 : 11, fontWeight: 800, color: "#1e293b" }}>
+                                  {c.value!.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}{" "}
+                                  <span style={{ fontSize: 8, fontWeight: 500, color: "#64748b" }}>{c.unit}</span>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
                       )}
+                    </div>
+                    <div style={{ padding: "0 14px 10px 14px" }}>
                       {scParoisRows.length > 0 && (
                         <div>
                           <div style={{ fontSize: 8, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
