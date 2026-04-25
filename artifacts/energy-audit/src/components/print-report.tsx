@@ -49,11 +49,11 @@ function getGesClass(ges: number): string {
 }
 
 function ThceDpePyramid({
-  epInitial, gesInitial, epAfter, gesAfter, scColor, scCode,
+  epInitial, gesInitial, epAfter, gesAfter, scColor, scCode, annotWidth = 90,
 }: {
   epInitial: number | null; gesInitial: number | null;
   epAfter: number | null; gesAfter: number | null;
-  scColor: string; scCode: string;
+  scColor: string; scCode: string; annotWidth?: number;
 }) {
   const CLASSES = ["G", "F", "E", "D", "C", "B", "A"] as const;
   const WIDTHS: Record<string, number> = { G: 100, F: 84, E: 68, D: 52, C: 38, B: 25, A: 14 };
@@ -71,9 +71,9 @@ function ThceDpePyramid({
         Étiquette DPE — Méthode Th-C-E
       </div>
       <div style={{ display: "flex", fontSize: 7, marginBottom: 2 }}>
-        <div style={{ width: 90, textAlign: "right", paddingRight: 6, color: "#475569", fontWeight: 600 }}>kWhEP/m².an</div>
+        <div style={{ width: annotWidth, textAlign: "right", paddingRight: 6, color: "#475569", fontWeight: 600 }}>kWhEP/m².an</div>
         <div style={{ flex: 1 }} />
-        <div style={{ width: 90, paddingLeft: 6, color: "#475569", fontWeight: 600 }}>kgCO₂éq/m².an</div>
+        <div style={{ width: annotWidth, paddingLeft: 6, color: "#475569", fontWeight: 600 }}>kgCO₂éq/m².an</div>
       </div>
       {CLASSES.map((cls) => {
         const isEpInit  = cls === dpeEpInit;
@@ -104,7 +104,7 @@ function ThceDpePyramid({
 
         return (
           <div key={cls} style={{ display: "flex", alignItems: "center", marginBottom: 2, height: ROW_H }}>
-            <div style={{ width: 90, textAlign: "right", paddingRight: 5, fontSize: 7, fontWeight: 700, color: epAnnotColor }}>
+            <div style={{ width: annotWidth, textAlign: "right", paddingRight: 5, fontSize: 7, fontWeight: 700, color: epAnnotColor }}>
               {epAnnotation}
             </div>
             <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", height: ROW_H }}>
@@ -118,7 +118,7 @@ function ThceDpePyramid({
                 <span style={{ fontSize: 9, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{cls}</span>
               </div>
             </div>
-            <div style={{ width: 90, paddingLeft: 5, fontSize: 7, fontWeight: 700, color: gesAnnotColor }}>
+            <div style={{ width: annotWidth, paddingLeft: 5, fontSize: 7, fontWeight: 700, color: gesAnnotColor }}>
               {gesAnnotation}
             </div>
           </div>
@@ -140,6 +140,116 @@ function ThceDpePyramid({
             <span>Après travaux ({scCode})</span>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function Dpe3CLLabel({
+  ep, ges, dpeClass,
+}: {
+  ep: number | null; ges: number | null; dpeClass: string | null;
+}) {
+  const classes = ["A", "B", "C", "D", "E", "F", "G"];
+  const EP_COLORS: Record<string, string> = {
+    A: "#00a651", B: "#51b748", C: "#b2d235", D: "#f9e400", E: "#f7a600", F: "#f15a25", G: "#cc0033",
+  };
+  const EP_WIDTHS: Record<string, number> = { A: 30, B: 41, C: 53, D: 65, E: 77, F: 88, G: 100 };
+  const GES_COLORS: Record<string, string> = {
+    A: "#e0f0fc", B: "#b3d5ee", C: "#7eb3d8", D: "#4a8fbe", E: "#2a6599", F: "#1a4070", G: "#0d1f40",
+  };
+  const gesClass = ges != null
+    ? (ges <= 6 ? "A" : ges <= 11 ? "B" : ges <= 30 ? "C" : ges <= 50 ? "D" : ges <= 70 ? "E" : ges <= 100 ? "F" : "G")
+    : null;
+  const ROW_H = 14;
+  const ARROW_TIP = 7;
+  const darkText = (cls: string) => cls === "A" || cls === "B" || cls === "C" || cls === "D";
+
+  return (
+    <div style={{ breakInside: "avoid" }}>
+      <div style={{ fontSize: 8, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+        Étiquette DPE — Méthode 3CL 2021
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+        {/* Energy consumption panel */}
+        <div style={{ flex: 7 }}>
+          <div style={{ fontSize: 6, color: "#374151", marginBottom: 3 }}>
+            <span style={{ fontWeight: 600 }}>consommation</span> (énergie primaire) | <span style={{ fontWeight: 600 }}>émissions</span>
+          </div>
+          {/* Value box + class badge */}
+          <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
+            <div style={{ border: "1.5px solid #374151", padding: "3px 8px", borderRadius: 3, textAlign: "center", lineHeight: 1.2 }}>
+              {ep != null && <div style={{ fontSize: 16, fontWeight: 800, color: "#1e293b", lineHeight: 1 }}>{fmtNum(ep, 0)}</div>}
+              {ges != null && <div style={{ fontSize: 9, color: "#374151" }}>{fmtNum(ges, 0)}*</div>}
+              <div style={{ fontSize: 6, color: "#64748b" }}>kWh/m².an</div>
+            </div>
+            {dpeClass && (
+              <div style={{
+                width: 42, height: 42, background: EP_COLORS[dpeClass] ?? "#6b7280",
+                color: darkText(dpeClass) ? "#1e293b" : "#fff",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 26, fontWeight: 900, borderRadius: 4, flexShrink: 0,
+              }}>{dpeClass}</div>
+            )}
+          </div>
+          <div style={{ fontSize: 6, color: "#374151", marginBottom: 3, fontStyle: "italic" }}>logement extrêmement performant</div>
+          {classes.map((cls) => {
+            const isActive = cls === dpeClass;
+            const w = EP_WIDTHS[cls];
+            return (
+              <div key={cls} style={{ display: "flex", alignItems: "center", marginBottom: 2 }}>
+                <div style={{
+                  width: `${w}%`, height: ROW_H,
+                  background: isActive ? EP_COLORS[cls] : `${EP_COLORS[cls]}55`,
+                  clipPath: `polygon(0 0, calc(100% - ${ARROW_TIP}px) 0, 100% 50%, calc(100% - ${ARROW_TIP}px) 100%, 0 100%)`,
+                  display: "flex", alignItems: "center",
+                  paddingLeft: 5, paddingRight: ARROW_TIP + 2, boxSizing: "border-box",
+                }}>
+                  <span style={{ fontSize: 8, fontWeight: 800, color: isActive ? (darkText(cls) ? "#1e293b" : "#fff") : EP_COLORS[cls] }}>{cls}</span>
+                </div>
+                {isActive && ep != null && (
+                  <span style={{ fontSize: 7, fontWeight: 700, color: "#1e293b", marginLeft: 4, whiteSpace: "nowrap" }}>
+                    {fmtNum(ep, 0)} kWh/m².an
+                  </span>
+                )}
+              </div>
+            );
+          })}
+          <div style={{ fontSize: 6, color: "#374151", marginTop: 3, fontStyle: "italic" }}>logement extrêmement peu performant</div>
+          {(dpeClass === "F" || dpeClass === "G") && (
+            <div style={{ fontSize: 6, color: "#dc2626", fontStyle: "italic", marginTop: 1 }}>passoire énergétique</div>
+          )}
+          <div style={{ fontSize: 6, color: "#94a3b8", marginTop: 5 }}>Méthode 3CL 2021 - Moteur TRIBU</div>
+        </div>
+        {/* GES panel */}
+        <div style={{ flex: 5, border: "1.5px solid #93c5fd", borderRadius: 5, padding: "5px 7px" }}>
+          <div style={{ fontSize: 6.5, fontWeight: 700, color: "#1e40af", marginBottom: 4, lineHeight: 1.3 }}>
+            *Dont émissions de gaz à effet de serre
+          </div>
+          <div style={{ fontSize: 5.5, color: "#374151", marginBottom: 3, fontStyle: "italic" }}>peu d'émissions de CO₂</div>
+          {classes.map((cls) => {
+            const isActive = cls === gesClass;
+            return (
+              <div key={cls} style={{ display: "flex", alignItems: "center", marginBottom: 2 }}>
+                <div style={{
+                  flex: 1, height: 12, background: GES_COLORS[cls], borderRadius: 3,
+                  display: "flex", alignItems: "center", paddingLeft: 4,
+                  outline: isActive ? "2px solid #1e293b" : "none", outlineOffset: -1,
+                }}>
+                  <span style={{ fontSize: 7, fontWeight: 700, color: cls === "A" ? "#374151" : "#fff" }}>{cls}</span>
+                </div>
+                {isActive && ges != null && (
+                  <span style={{ fontSize: 6.5, fontWeight: 700, color: "#1e293b", marginLeft: 4, whiteSpace: "nowrap" }}>
+                    — {fmtNum(ges, 0)} kg CO₂/m².an
+                  </span>
+                )}
+              </div>
+            );
+          })}
+          <div style={{ fontSize: 5.5, color: "#374151", marginTop: 3, fontStyle: "italic" }}>
+            émissions de CO₂<br />très importantes
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1794,6 +1904,34 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
               );
             })()}
           </>
+        )}
+
+        {/* ── Étiquettes DPE état initial ── */}
+        {(thceInitial != null || gesInitial != null || initialEP != null || report.energyLabel.currentLabel != null) && (
+          <div style={{ display: 'flex', gap: 12, marginTop: 14 }}>
+            {(thceInitial != null || gesInitial != null) && (
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <ThceDpePyramid
+                  epInitial={thceInitial}
+                  gesInitial={gesInitial}
+                  epAfter={null}
+                  gesAfter={null}
+                  scColor='#374151'
+                  scCode=''
+                  annotWidth={60}
+                />
+              </div>
+            )}
+            {(initialEP != null || report.energyLabel.currentLabel != null) && (
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Dpe3CLLabel
+                  ep={initialEP}
+                  ges={initialGes}
+                  dpeClass={report.energyLabel.currentLabel}
+                />
+              </div>
+            )}
+          </div>
         )}
 
         <PrintFooter page={5} building={b.name} />
