@@ -258,9 +258,21 @@ router.get("/audit/reports/:id/pdf", async (req, res): Promise<void> => {
       printDiv.style.width = "100%";
     });
 
+    const buildingName = (report.buildingName ?? "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,
+      displayHeaderFooter: true,
+      headerTemplate: "<div></div>",
+      footerTemplate: `
+        <div style="width:100%;box-sizing:border-box;padding:3px 12.5mm 0;display:flex;justify-content:space-between;font-size:7.5pt;color:#94a3b8;font-family:'Segoe UI',Arial,sans-serif;border-top:1px solid #e2e8f0;">
+          <span>AuditTech Pro — Rapport d'audit énergétique</span>
+          <span>${buildingName}</span>
+          <span>Page <span class="pageNumber"></span></span>
+        </div>`,
+      margin: { top: "12.5mm", right: "12.5mm", bottom: "14mm", left: "12.5mm" },
     });
 
     const safeName = (report.buildingName ?? "rapport")

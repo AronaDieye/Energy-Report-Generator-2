@@ -123,14 +123,9 @@
 }
 
 @media print {
-  /* Page setup — cover page keeps its own margins, all other pages get 12.5 mm */
+  /* Page setup — margins are controlled by Puppeteer page.pdf() margin option */
   @page {
     size: A4 portrait;
-    margin: 12.5mm;
-  }
-
-  @page :first {
-    margin: 15mm 15mm 18mm 15mm;
   }
 
   /* Reset */
@@ -171,8 +166,12 @@
 
   .print-page {
     position: relative;
-    min-height: 267mm;
-    padding-bottom: 20mm;
+    min-height: 257mm;
+  }
+
+  /* React-rendered footers are replaced by Puppeteer's footerTemplate in PDF mode */
+  .print-react-footer {
+    display: none !important;
   }
 
   /* Typography */
