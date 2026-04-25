@@ -935,7 +935,37 @@ L'audit s'est intéressé à l'influence des comportements des occupants sur les
 
 Modélisation et comparaison des consommations
 Une modélisation énergétique du bâtiment a été réalisée pour estimer les consommations théoriques en fonction des caractéristiques du bâtiment et des systèmes énergétiques installés.
-Les données modélisées ont ensuite été comparées aux consommations réelles observées (via les factures énergétiques) afin de détecter des écarts et des dysfonctionnements éventuels. Cette analyse permet de comprendre si des usages non optimisés ou des équipements obsolètes contribuent à des surconsommations.`;
+Les données modélisées ont ensuite été comparées aux consommations réelles observées (via les factures énergétiques) afin de détecter des écarts et des dysfonctionnements éventuels. Cette analyse permet de comprendre si des usages non optimisés ou des équipements obsolètes contribuent à des surconsommations.
+
+PRESENTATION GENERALE
+Visite sur site et contact préliminaire
+Les interlocuteurs rencontrés ont été :
+• Le gardien de la résidence ;
+• Membres du conseil syndical ;
+• Copropriétaires / locataires.
+Les discussions / prises d'informations avec ces intervenants nous ont permis de déterminer l'état et les caractéristiques des équipements techniques, le taux d'occupation des locaux, l'utilisation des bâtiments et de ses équipements.
+
+Enquête auprès des résidents
+Dans le cadre de l'audit énergétique, l'enquête menée auprès des résidents, avec le soutien du syndic, visait d'abord à recenser les équipements spécifiques individuels. Cela inclut les systèmes de chauffage d'appoint et de ventilation mécanique, ainsi que tout autre dispositif pouvant influencer la consommation énergétique. Ces informations sont essentielles pour identifier les éventuelles sources de consommation excessive ou d'efficacité énergétique dans le bâtiment.
+
+L'enquête a permis également de recenser les travaux d'isolation ou de remplacement des menuiseries réalisés par certains propriétaires. Savoir quel logement a eu d'améliorations telle que l'isolation des murs, des combles ou le remplacement des fenêtres est essentiel pour évaluer la variabilité des performances énergétiques entre les appartements. Ces données permettent de mieux cibler les recommandations d'améliorations pour l'ensemble du bâtiment.
+
+L'enquête a permis d'évaluer le niveau d'implication et les attentes des copropriétaires concernant d'éventuels travaux de réhabilitation énergétique. Connaître leur motivation et leur disposition à investir dans des projets d'amélioration permet de préparer des recommandations qui tiennent compte des besoins collectifs et des moyens financiers disponibles, facilitant ainsi la prise de décision pour les interventions futures.
+
+Conclusion de l'enquête
+Les occupants signalent des problèmes principalement liés au chauffage et à la ventilation, avec de nombreux retours concernant les courants d'air. Ces dysfonctionnements nuisent au confort des résidents et révèlent des faiblesses dans l'isolation thermique du bâtiment.
+
+Les attentes des copropriétaires se tournent vers une amélioration significative du confort thermique, notamment en optimisant les systèmes de chauffage et de ventilation. Ils recherchent des solutions qui permettront également de réaliser des économies d'énergie, une priorité pour améliorer à la fois le bien-être quotidien et la performance énergétique de l'immeuble.
+
+Besoins du client
+Les besoins du client se concentrent sur plusieurs aspects spécifiques :
+• La réduction des consommations énergétiques
+• L'optimisation de l'isolation thermique
+• L'amélioration de la gestion énergétique
+• La conformité avec les réglementations énergétiques
+• La réduction de l'empreinte carbone
+• Le confort d'été et d'hiver
+En terme général, les besoins du client englobent la réduction des consommations énergétiques, l'amélioration du confort des utilisateurs, la conformité aux normes, et la réduction de l'empreinte carbone. En intégrant des solutions technologiques avancées et des équipements à haute efficacité, il est possible de réduire considérablement les coûts énergétiques tout en assurant des performances optimales sur le long terme.`;
 
 interface CoverForm {
   buildingName: string;
