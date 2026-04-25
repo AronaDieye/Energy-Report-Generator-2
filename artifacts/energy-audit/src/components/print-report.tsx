@@ -750,11 +750,11 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         <div style={{
           background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 55%, #1d4ed8 100%)",
           color: "#fff",
-          padding: "40px 56px 36px",
+          padding: "24px 56px 20px",
           flexShrink: 0,
         }}>
           {/* Logo / Entreprise */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
             <div>
               {meta?.bureauEtudes ? (
                 <>
@@ -798,7 +798,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         <div style={{ height: 5, background: "linear-gradient(90deg, #1d4ed8 0%, #0ea5e9 50%, #10b981 100%)" }} />
 
         {/* ── CORPS DE PAGE ── */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "28px 56px 0" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "14px 56px 0" }}>
 
           {/* Photo du bâtiment (si définie) */}
           {(() => {
@@ -806,7 +806,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
             const coverPhoto = coverPhotoId ? photos.find(p => p.id === coverPhotoId) : null;
             if (!coverPhoto) return null;
             return (
-              <div style={{ width: "100%", height: 310, marginBottom: 20, borderRadius: 8, overflow: "hidden", position: "relative", boxShadow: "0 2px 10px rgba(0,0,0,0.15)", flexShrink: 0 }}>
+              <div style={{ width: "100%", height: 190, marginBottom: 12, borderRadius: 8, overflow: "hidden", position: "relative", boxShadow: "0 2px 10px rgba(0,0,0,0.15)", flexShrink: 0 }}>
                 <img
                   src={`${apiBase}${coverPhoto.url}`}
                   alt={coverPhoto.caption || "Photo du bâtiment"}
@@ -828,7 +828,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           })()}
 
           {/* Ligne 1 : Bâtiment (gauche) + DPE (droite) */}
-          <div style={{ display: "flex", gap: 20, marginBottom: 22 }}>
+          <div style={{ display: "flex", gap: 20, marginBottom: 12 }}>
 
             {/* Infos bâtiment */}
             <div style={{ flex: 1 }}>
@@ -861,22 +861,22 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
               <div style={{
                 background: "#0f172a",
                 borderRadius: 10,
-                padding: "18px 20px",
+                padding: "12px 16px",
                 textAlign: "center",
                 color: "#fff",
                 flex: 1,
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
               }}>
-                <div style={{ fontSize: 8, opacity: 0.5, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 6 }}>Étiquette DPE actuelle</div>
-                <div style={{ fontSize: 8, opacity: 0.4, marginBottom: 10 }}>Méthode 3CL-2021</div>
+                <div style={{ fontSize: 8, opacity: 0.5, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4 }}>Étiquette DPE actuelle</div>
+                <div style={{ fontSize: 8, opacity: 0.4, marginBottom: 8 }}>Méthode 3CL-2021</div>
                 {/* DPE letter big */}
                 <div style={{
-                  width: 72, height: 72, borderRadius: "50%",
+                  width: 60, height: 60, borderRadius: "50%",
                   background: DPE_COLORS[report.energyLabel.currentLabel ?? "G"] ?? "#7f1d1d",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 36, fontWeight: 900, color: "#fff",
+                  fontSize: 28, fontWeight: 900, color: "#fff",
                   boxShadow: `0 0 0 4px ${(DPE_COLORS[report.energyLabel.currentLabel ?? "G"] ?? "#7f1d1d")}40`,
-                  marginBottom: 10,
+                  marginBottom: 8,
                 }}>
                   {report.energyLabel.currentLabel ?? "—"}
                 </div>
@@ -907,7 +907,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           </div>
 
           {/* Ligne 2 : Indicateurs clés */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 22 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
             {[
               {
                 label: "Dépense annuelle", value: initialCost ? `${fmtNum(initialCost)} €` : "—",
@@ -924,7 +924,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
             ].map(({ label, value, sub, icon, color, bg }) => (
               <div key={label} style={{
                 background: bg, border: `1.5px solid ${color}30`,
-                borderRadius: 8, padding: "12px 14px",
+                borderRadius: 8, padding: "8px 12px",
                 display: "flex", flexDirection: "column",
               }}>
                 <div style={{ fontSize: 18, marginBottom: 4 }}>{icon}</div>
@@ -936,7 +936,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           </div>
 
           {/* Ligne 3 : Mission + Bureau */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 0 }}>
 
             {/* Mission */}
             <div style={{ border: "1px solid #e2e8f0", borderRadius: 8, overflow: "hidden" }}>
