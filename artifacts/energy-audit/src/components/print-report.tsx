@@ -1695,7 +1695,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
         // Indicator cards
         const cards: { label: string; initial: string | null; after: string | null; unit?: string; highlight?: boolean }[] = [
-          { label: "CEP — 5 usages", initial: cefInitial != null ? `${fmtNum(cefInitial, 1)}` : null, after: sc.cef != null ? `${fmtNum(sc.cef, 1)}` : null, unit: "kWhEF/m².an", highlight: true },
+          { label: "CEF — 5 usages", initial: cefInitial != null ? `${fmtNum(cefInitial, 1)}` : null, after: sc.cef != null ? `${fmtNum(sc.cef, 1)}` : null, unit: "kWhEF/m².an", highlight: true },
           { label: "CEP — Th-C-E", initial: thceInitial != null ? `${fmtNum(thceInitial, 1)}` : null, after: sc.thce != null ? `${fmtNum(sc.thce, 1)}` : null, unit: "kWhEP/m².an" },
           { label: "GES", initial: gesInitial != null ? `${fmtNum(gesInitial, 1)}` : null, after: sc.ges != null ? `${fmtNum(sc.ges, 1)}` : null, unit: "kgCO₂/m².an" },
           { label: "Coût annuel", initial: initialCost != null ? `${fmtNum(initialCost)}` : null, after: sc.cost != null ? `${fmtNum(sc.cost)}` : null, unit: "€/an" },
