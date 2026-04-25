@@ -5,6 +5,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import { extractFromDocx, extractFromCsv } from "../lib/fileExtractor.js";
 import { extractFromVisitReportPdf } from "../lib/visitReportExtractor.js";
 import { logger } from "../lib/logger.js";
+import puppeteer from "puppeteer-core";
 
 const router: IRouter = Router();
 
@@ -190,6 +191,77 @@ router.get("/audit/reports/:id", async (req, res): Promise<void> => {
   }
 
   res.json(mapToApiReport(report));
+});
+
+// ── PDF generation endpoint ───────────────────────────────────────────────────
+const CHROMIUM_PATH =
+  process.env.REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE ??
+  "/home/runner/.cache/puppeteer/chrome/linux-147.0.7727.57/chrome-linux64/chrome";
+
+const FRONTEND_PORT = process.env.FRONTEND_PORT ?? "5173";
+
+router.get("/audit/reports/:id/pdf", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "ID invalide" }); return; }
+
+  const [report] = await db
+    .select({ id: auditReportsTable.id, buildingName: auditReportsTable.buildingName })
+    .from(auditReportsTable)
+    .where(eq(auditReportsTable.id, id));
+
+  if (!report) { res.status(404).json({ error: "Rapport non trouvé" }); return; }
+
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      executablePath: CHROMIUM_PATH,
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--font-render-hinting=none",
+      ],
+    });
+
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1200, height: 1754 });
+
+    // Switch to print media so .print-only elements are visible
+    await page.emulateMediaType("print");
+
+    const url = `http://localhost:${FRONTEND_PORT}/reports/${id}`;
+    await page.goto(url, { waitUntil: "networkidle0", timeout: 30000 });
+
+    // Wait for the print report root element (always in DOM once React renders)
+    await page.waitForSelector(".print-only", { timeout: 20000 });
+
+    // Wait for images and async content to settle
+    await new Promise(r => setTimeout(r, 2500));
+
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: { top: "15mm", right: "15mm", bottom: "18mm", left: "15mm" },
+    });
+
+    const safeName = (report.buildingName ?? "rapport")
+      .replace(/[^a-z0-9_\- ]/gi, "_")
+      .trim();
+    const filename = `audit-${safeName}.pdf`;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Length", pdfBuffer.length);
+    res.send(Buffer.from(pdfBuffer));
+  } catch (err) {
+    req.log.error({ err }, "PDF generation failed");
+    res.status(500).json({ error: "Erreur lors de la génération du PDF" });
+  } finally {
+    if (browser) await browser.close();
+  }
 });
 
 router.delete("/audit/reports/:id", async (req, res): Promise<void> => {

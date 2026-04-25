@@ -30,6 +30,7 @@ import {
   X,
   Download,
   Edit,
+  Loader2,
 } from "lucide-react";
 import { EnergyLabel } from "../components/energy-label";
 import { BatimentTab } from "../components/batiment-tab";
@@ -1197,15 +1198,37 @@ export function ReportDetail() {
   });
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [showCoverEditor, setShowCoverEditor] = useState(false);
+  const [isPdfGenerating, setIsPdfGenerating] = useState(false);
 
   const handleDownloadPdf = useCallback(() => {
     setShowPdfPreview(false);
     setTimeout(() => window.print(), 150);
   }, []);
 
-  const handleDirectDownload = useCallback(() => {
-    window.print();
-  }, []);
+  const handleDirectDownload = useCallback(async () => {
+    if (!id || isPdfGenerating) return;
+    setIsPdfGenerating(true);
+    try {
+      const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
+      const res = await fetch(`${apiBase}/api/audit/reports/${id}/pdf`);
+      if (!res.ok) throw new Error("PDF generation failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const disposition = res.headers.get("Content-Disposition") ?? "";
+      const match = disposition.match(/filename="([^"]+)"/);
+      a.href = url;
+      a.download = match ? match[1] : `audit-rapport-${id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF download error:", err);
+    } finally {
+      setIsPdfGenerating(false);
+    }
+  }, [id, isPdfGenerating]);
 
   if (isLoading) {
     return (
@@ -1263,9 +1286,11 @@ export function ReportDetail() {
             <FileText className="h-4 w-4 mr-2" />
             Aperçu PDF
           </Button>
-          <Button variant="outline" onClick={handleDirectDownload}>
-            <Download className="h-4 w-4 mr-2" />
-            Télécharger PDF
+          <Button variant="outline" onClick={handleDirectDownload} disabled={isPdfGenerating}>
+            {isPdfGenerating
+              ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              : <Download className="h-4 w-4 mr-2" />}
+            {isPdfGenerating ? "Génération en cours…" : "Télécharger PDF"}
           </Button>
           <Button onClick={() => window.print()}>
             <Printer className="h-4 w-4 mr-2" />
