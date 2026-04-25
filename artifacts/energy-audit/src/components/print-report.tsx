@@ -1636,7 +1636,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                     <div style={{ display: "flex", gap: 10, alignItems: "stretch" }}>
                       {/* Description cell */}
                       <div style={{
-                        flex: hasPhotos ? "0 0 38%" : "1",
+                        flex: hasPhotos ? "0 0 25%" : "1",
                         background: i % 2 === 0 ? "#f8fafc" : "#fff",
                         border: "1px solid #e2e8f0",
                         borderRadius: 5,
@@ -1655,7 +1655,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                           <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(catPhotos.length, 3)}, 1fr)`, gap: 7 }}>
                             {catPhotos.slice(0, 3).map((photo) => (
                               <div key={photo.id} style={{ breakInside: "avoid" }}>
-                                <div style={{ height: 130, borderRadius: 5, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f1f5f9" }}>
+                                <div style={{ height: 160, borderRadius: 5, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f1f5f9" }}>
                                   <img
                                     src={`${apiBase}${photo.url}`}
                                     alt={photo.caption || photo.fileName}
@@ -1786,7 +1786,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                     <div style={{ display: "flex", gap: 10, alignItems: "stretch" }}>
                       {/* Description card */}
                       <div style={{
-                        flex: hasPhotos ? "0 0 38%" : "1",
+                        flex: hasPhotos ? "0 0 25%" : "1",
                         border: `1px solid ${accent}30`,
                         borderLeft: `3px solid ${accent}`,
                         borderRadius: 5,
@@ -1814,7 +1814,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                           <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(catPhotos.length, 3)}, 1fr)`, gap: 7 }}>
                             {catPhotos.slice(0, 3).map((photo) => (
                               <div key={photo.id} style={{ breakInside: "avoid" }}>
-                                <div style={{ height: 130, borderRadius: 5, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f1f5f9" }}>
+                                <div style={{ height: 160, borderRadius: 5, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f1f5f9" }}>
                                   <img
                                     src={`${apiBase}${photo.url}`}
                                     alt={photo.caption || photo.fileName}
