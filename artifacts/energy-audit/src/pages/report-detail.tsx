@@ -1259,6 +1259,10 @@ export function ReportDetail() {
             <FileText className="h-4 w-4 mr-2" />
             Aperçu PDF
           </Button>
+          <Button variant="outline" onClick={handleDownloadPdf}>
+            <Download className="h-4 w-4 mr-2" />
+            Télécharger
+          </Button>
           <Button onClick={() => window.print()}>
             <Printer className="h-4 w-4 mr-2" />
             Imprimer
