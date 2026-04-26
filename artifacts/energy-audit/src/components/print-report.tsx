@@ -309,6 +309,27 @@ function getScVal(rawFields: RawField[], code: string, suffix: string): string |
   return rawFields.find((f) => f.key === `SCÉNARIO ${code} - ${suffix}`)?.value ?? null;
 }
 
+/** Returns true if the energy source name qualifies as ENR & R (renewable/recovered) */
+function isEnrSource(name: string | null): boolean {
+  if (!name) return false;
+  const n = name.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+  return (
+    n.includes("pac") ||
+    n.includes("pompe a chaleur") ||
+    n.includes("solaire") ||
+    n.includes("bois") ||
+    n.includes("biomasse") ||
+    n.includes("geothermie") ||
+    n.includes("biogaz") ||
+    n.includes("granule") ||
+    n.includes("pellet") ||
+    n.includes("buche") ||
+    n.includes("reseau de chaleur enr") ||
+    n.includes("aerothermie") ||
+    n.includes("hydrothermie")
+  );
+}
+
 const MONTHS_SHORT = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
 
 interface MonthlyWeather {
@@ -708,6 +729,29 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
     const allTravaux = metaTravaux.length > 0 ? metaTravaux : conseilsTravaux;
     const cep3Val = parseVal(getScVal(rawFields, code, "kWhEP/m².an après")) ?? metaSc?.cep3KwhEpM2 ?? null;
     const ges3clVal = parseVal(getScVal(rawFields, code, "kgCO2/m² après")) ?? null;
+
+    // Compute ENR & R rate from chauffage + ECS energy detail data
+    const computedEnrPct = (() => {
+      const getEntriesForPrefix = (prefix: string) => {
+        const srcRaw = getScVal(rawFields, code, `${prefix} - Source d'énergie`);
+        const totalVal = parseVal(getScVal(rawFields, code, `${prefix} - Énergie finale`));
+        if (!srcRaw && totalVal === null) return [];
+        const srcs = srcRaw ? srcRaw.split(", ").filter(Boolean) : [];
+        if (srcs.length > 0) {
+          const entries = srcs.map(s => ({
+            kwhAn: parseVal(getScVal(rawFields, code, `${prefix} - ${s} - Énergie finale`)) ?? (srcs.length === 1 ? totalVal : null),
+            enr: isEnrSource(s),
+          }));
+          if (entries.some(e => e.kwhAn !== null)) return entries;
+        }
+        return [{ kwhAn: totalVal, enr: isEnrSource(srcRaw) }];
+      };
+      const entries = [...getEntriesForPrefix("Chauffage"), ...getEntriesForPrefix("ECS")];
+      const total = entries.reduce((s, e) => s + (e.kwhAn ?? 0), 0);
+      if (total <= 0) return null;
+      const enrTotal = entries.filter(e => e.enr).reduce((s, e) => s + (e.kwhAn ?? 0), 0);
+      return (enrTotal / total) * 100;
+    })();
     const explicitDpeLabel = getScVal(rawFields, code, "Étiquette DPE après") ?? metaSc?.labelDpe ?? null;
     const computedDpeLabel = explicitDpeLabel ?? worstDpeClass(
       cep3Val != null ? get3CLEpClass(cep3Val) : null,
@@ -729,6 +773,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       gainPct: parseVal(getScVal(rawFields, code, "Gain sur CEP")) ?? metaSc?.gainEnergetiquePct ?? null,
       gainEconomiqueEur: metaSc?.gainEconomiqueEur ?? null,
       tauxEnrRPct: metaSc?.tauxEnrRPct ?? null,
+      computedEnrPct,
       primeBarTh145Euros: metaSc?.primeBarTh145Euros ?? null,
       travaux: allTravaux,
       isolationToitures: metaSc?.isolationToitures ?? null,
@@ -1184,26 +1229,30 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 })}
               </tr>
             )}
+            {/* Taux ENR&R — calculé sur chauffage+ECS si non renseigné manuellement */}
+            <tr style={rowEven}>
+              <td style={tdLeft}>
+                Taux ENR &amp; R (%)<br />
+                <span style={{ color: "#94a3b8", fontSize: 9 }}>Chauffage + ECS — énergies renouvelables</span>
+              </td>
+              <td style={td}>—</td>
+              {scData.map((sc) => {
+                const val = sc.tauxEnrRPct ?? sc.computedEnrPct;
+                return (
+                  <td key={sc.code} style={{ ...td, color: "#7c3aed", fontWeight: 700 }}>
+                    {val !== null ? `${fmtNum(val, 1)} %` : "—"}
+                  </td>
+                );
+              })}
+            </tr>
             {/* Gain économique */}
             {scData.some((sc) => sc.gainEconomiqueEur !== null) && (
-              <tr style={rowEven}>
+              <tr style={rowOdd}>
                 <td style={tdLeft}>Gain économique (€/an)</td>
                 <td style={td}>—</td>
                 {scData.map((sc) => (
                   <td key={sc.code} style={{ ...td, color: "#2563eb", fontWeight: 700 }}>
                     {sc.gainEconomiqueEur !== null ? `${fmtNum(sc.gainEconomiqueEur)} €` : "—"}
-                  </td>
-                ))}
-              </tr>
-            )}
-            {/* Taux ENR&R */}
-            {scData.some((sc) => sc.tauxEnrRPct !== null) && (
-              <tr style={rowOdd}>
-                <td style={tdLeft}>Taux ENR&R (%)</td>
-                <td style={td}>—</td>
-                {scData.map((sc) => (
-                  <td key={sc.code} style={{ ...td, color: "#7c3aed", fontWeight: 700 }}>
-                    {sc.tauxEnrRPct !== null ? `${fmtNum(sc.tauxEnrRPct, 2)} %` : "—"}
                   </td>
                 ))}
               </tr>
