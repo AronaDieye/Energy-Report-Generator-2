@@ -520,13 +520,14 @@ router.patch("/audit/reports/:id/cover", async (req, res): Promise<void> => {
     metaPatch.coverPhotoId = coverPhotoId === null ? null : Number(coverPhotoId);
   }
 
-  const mergedMeta = { ...(existing.metadata ?? {}), ...metaPatch };
-  const updateData: Record<string, unknown> = { metadata: mergedMeta };
-  if (buildingName !== undefined) updateData.buildingName = buildingName === "" ? null : buildingName;
-  if (buildingAddress !== undefined) updateData.buildingAddress = buildingAddress === "" ? null : buildingAddress;
+  const mergedMeta = { ...(existing.metadata ?? {}), ...metaPatch } as typeof auditReportsTable.$inferInsert["metadata"];
 
   const [updated] = await db.update(auditReportsTable)
-    .set(updateData)
+    .set({
+      metadata: mergedMeta,
+      ...(buildingName !== undefined ? { buildingName: buildingName === "" ? null : buildingName } : {}),
+      ...(buildingAddress !== undefined ? { buildingAddress: buildingAddress === "" ? null : buildingAddress } : {}),
+    })
     .where(eq(auditReportsTable.id, reportId))
     .returning({ id: auditReportsTable.id });
 

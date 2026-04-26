@@ -196,6 +196,8 @@ export const auditReportsTable = pgTable("audit_reports", {
     dateRealisation?: string | null;
     dateRestitution?: string | null;
     reference?: string | null;
+    logicielUtilise?: string | null;
+    methodeCalcul?: string | null;
     tExtBase?: string | null;
     rendementInitial?: string | null;
     cef3UsagesInitial?: number | null;
