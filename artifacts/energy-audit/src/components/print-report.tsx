@@ -730,27 +730,58 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
     const cep3Val = parseVal(getScVal(rawFields, code, "kWhEP/m².an après")) ?? metaSc?.cep3KwhEpM2 ?? null;
     const ges3clVal = parseVal(getScVal(rawFields, code, "kgCO2/m² après")) ?? null;
 
-    // Compute ENR & R rate from chauffage + ECS energy detail data
+    // Compute ENR & R rate using: [(COP_pac-2,3)×Cons_pac + (COP_ecs-2,3)×Cons_ecs + Cons_Bois]
+    //                              / [COP_pac×Cons_pac + COP_ecs×Cons_ecs + Cons_Bois + Cons_autres]
     const computedEnrPct = (() => {
-      const getEntriesForPrefix = (prefix: string) => {
+      const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+      const copNominal = parseVal(rawFields.find(f => f.key === "COP nominal")?.value ?? null);
+      const sysChauffage = norm(rawFields.find(f => f.key === "Système de chauffage")?.value ?? "");
+      const typeEcs = norm(rawFields.find(f => f.key === "Type d'ECS")?.value ?? "");
+      const conseils = norm(getScVal(rawFields, code, "Conseils") ?? "");
+
+      const isPacName = (n: string | null) => { if (!n) return false; const s = norm(n); return s.includes("pac") || s.includes("pompe a chaleur") || s.includes("thermodynamique") || s.includes("aerothermie") || s.includes("hydrothermie"); };
+      const isBoisName = (n: string | null) => { if (!n) return false; const s = norm(n); return s.includes("bois") || s.includes("granule") || s.includes("biomasse") || s.includes("buche") || s.includes("pellet"); };
+      const isElecName = (n: string | null) => { if (!n) return false; return norm(n).includes("electr"); };
+
+      let numerator = 0;
+      let denominator = 0;
+
+      for (const prefix of ["Chauffage", "ECS"] as const) {
         const srcRaw = getScVal(rawFields, code, `${prefix} - Source d'énergie`);
         const totalVal = parseVal(getScVal(rawFields, code, `${prefix} - Énergie finale`));
-        if (!srcRaw && totalVal === null) return [];
+        if (!srcRaw && totalVal === null) continue;
         const srcs = srcRaw ? srcRaw.split(", ").filter(Boolean) : [];
-        if (srcs.length > 0) {
-          const entries = srcs.map(s => ({
-            kwhAn: parseVal(getScVal(rawFields, code, `${prefix} - ${s} - Énergie finale`)) ?? (srcs.length === 1 ? totalVal : null),
-            enr: isEnrSource(s),
-          }));
-          if (entries.some(e => e.kwhAn !== null)) return entries;
+        if (srcs.length === 0 && totalVal !== null) { denominator += totalVal; continue; }
+
+        for (const s of srcs) {
+          const kwhAn = parseVal(getScVal(rawFields, code, `${prefix} - ${s} - Énergie finale`)) ??
+                        (srcs.length === 1 ? totalVal : null);
+          if (!kwhAn || kwhAn <= 0) continue;
+
+          if (isPacName(s)) {
+            const cop = copNominal ?? 3.5;
+            numerator += Math.max(0, cop - 2.3) * kwhAn;
+            denominator += cop * kwhAn;
+          } else if (isBoisName(s)) {
+            numerator += kwhAn;
+            denominator += kwhAn;
+          } else if (isElecName(s)) {
+            const chaufPac = prefix === "Chauffage" && (conseils.includes("pac") || sysChauffage.includes("pac") || sysChauffage.includes("pompe"));
+            const ecsPac = prefix === "ECS" && (typeEcs.includes("thermodynamique") || typeEcs.includes("pac") || conseils.includes("thermodynamique"));
+            if (chaufPac || ecsPac) {
+              const cop = copNominal ?? 3.5;
+              numerator += Math.max(0, cop - 2.3) * kwhAn;
+              denominator += cop * kwhAn;
+            } else {
+              denominator += kwhAn;
+            }
+          } else {
+            // Propane, gaz, fioul, etc. — 0 % ENR
+            denominator += kwhAn;
+          }
         }
-        return [{ kwhAn: totalVal, enr: isEnrSource(srcRaw) }];
-      };
-      const entries = [...getEntriesForPrefix("Chauffage"), ...getEntriesForPrefix("ECS")];
-      const total = entries.reduce((s, e) => s + (e.kwhAn ?? 0), 0);
-      if (total <= 0) return null;
-      const enrTotal = entries.filter(e => e.enr).reduce((s, e) => s + (e.kwhAn ?? 0), 0);
-      return (enrTotal / total) * 100;
+      }
+      return denominator <= 0 ? null : (numerator / denominator) * 100;
     })();
     const explicitDpeLabel = getScVal(rawFields, code, "Étiquette DPE après") ?? metaSc?.labelDpe ?? null;
     const computedDpeLabel = explicitDpeLabel ?? worstDpeClass(
