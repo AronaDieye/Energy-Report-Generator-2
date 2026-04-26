@@ -1433,6 +1433,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 { num: "1", title: "Synthèse audit énergétique globale", subtitle: "Comparaison des indicateurs entre l'état initial et les scénarios" },
                 { num: "2", title: "Détail des scénarios de travaux", subtitle: "Fiches synthétiques par scénario" },
                 { num: "3", title: "Données bâtiment", subtitle: "Caractéristiques générales, climatiques et de l'enveloppe" },
+                { num: "3a", title: "Enveloppe thermique", subtitle: "Composition et performance des parois opaques et vitrées", indent: true },
                 { num: "4", title: "Systèmes techniques", subtitle: "Chauffage, ECS, ventilation, climatisation — état initial" },
                 { num: "5", title: "Consommations énergétiques par usage", subtitle: "État initial — répartition par poste (méthode Th-C-E)" },
                 { num: "5b", title: "Bilan thermique — UBAT", subtitle: "Déperditions de l'enveloppe — état initial" },
@@ -1892,7 +1893,10 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         {envelopeRows.length > 0 && (
           <div style={{ marginBottom: 16 }}>
             <div style={{ borderBottom: "3px solid #1e3a5f", marginBottom: 14, paddingBottom: 6, breakAfter: "avoid" }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: "#1e3a5f" }}>Enveloppe thermique</h2>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                <span style={{ background: "#1e3a5f", color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>3a</span>
+                <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: "#1e3a5f" }}>Enveloppe thermique</h2>
+              </div>
               <p style={{ fontSize: 10, color: "#64748b", margin: "4px 0 0 0" }}>Composition et performance des parois opaques et vitrées</p>
             </div>
 
