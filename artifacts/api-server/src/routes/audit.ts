@@ -272,7 +272,7 @@ router.get("/audit/reports/:id/pdf", async (req, res): Promise<void> => {
           <span>${buildingName}</span>
           <span>Page <span class="pageNumber"></span></span>
         </div>`,
-      margin: { top: "2mm", right: "12mm", bottom: "12mm", left: "12mm" },
+      margin: { top: "5mm", right: "12mm", bottom: "12mm", left: "12mm" },
     });
 
     const safeName = (report.buildingName ?? "rapport")
