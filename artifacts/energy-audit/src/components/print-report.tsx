@@ -1891,7 +1891,10 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         {/* — Enveloppe thermique — */}
         {envelopeRows.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Enveloppe thermique</div>
+            <div style={{ borderBottom: "3px solid #1e3a5f", marginBottom: 14, paddingBottom: 6, breakAfter: "avoid" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: "#1e3a5f" }}>Enveloppe thermique</h2>
+              <p style={{ fontSize: 10, color: "#64748b", margin: "4px 0 0 0" }}>Composition et performance des parois opaques et vitrées</p>
+            </div>
 
             {/* Tableau + photos côte à côte par élément */}
             {(() => {
