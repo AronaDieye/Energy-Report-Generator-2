@@ -1556,9 +1556,6 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
               {scData.map((sc, i) => {
                 const palette = ["#16a34a", "#2563eb", "#7c3aed", "#dc2626", "#ea580c"][i] ?? "#374151";
                 const metrics = [
-                  { l: "Investissement TTC", v: sc.invest !== null ? `${fmtNum(sc.invest)} €` : null },
-                  { l: "Temps de retour simple", v: sc.payback !== null ? `${fmtNum(sc.payback, 1)} ans` : null },
-                  { l: "Dépense annuelle", v: sc.cost !== null ? `${fmtNum(sc.cost)} €/an` : null },
                   { l: "CEP 5 usages (kWhEP/m².an)", v: sc.thce !== null ? fmtNum(sc.thce, 1) : null },
                   { l: "CEP 3 usages (kWhEP/m².an)", v: sc.cep3 !== null ? fmtNum(sc.cep3, 1) : null },
                   { l: "GES (kgCO₂/m².an)", v: sc.ges !== null ? fmtNum(sc.ges, 1) : null },
