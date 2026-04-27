@@ -258,6 +258,28 @@ router.get("/audit/reports/:id/pdf", async (req, res): Promise<void> => {
       printDiv.style.width = "100%";
     });
 
+    // Compute TOC page numbers: each toc-anchor span is inside a .print-page div;
+    // the 1-based index of that div in the document = the PDF page number.
+    await page.evaluate(() => {
+      const allPages = Array.from(document.querySelectorAll(".print-page"));
+      document.querySelectorAll("[id^='toc-anchor-']").forEach((anchor) => {
+        const key = (anchor as HTMLElement).id.replace("toc-anchor-", "");
+        let el: Element | null = anchor;
+        let pageIndex = -1;
+        while (el) {
+          if (el.classList && el.classList.contains("print-page")) {
+            pageIndex = allPages.indexOf(el);
+            break;
+          }
+          el = el.parentElement;
+        }
+        if (pageIndex >= 0) {
+          const pageEl = document.getElementById(`toc-page-${key}`);
+          if (pageEl) pageEl.textContent = String(pageIndex + 1);
+        }
+      });
+    });
+
     const buildingName = (report.buildingName ?? "")
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 

@@ -1193,6 +1193,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       {/* ══ PAGE 2 — SYNTHÈSE GLOBALE ════════════════════════════════════════ */}
       {!isPreview && <div className="print-page-break" />}
       <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
+        {!isPreview && <span id="toc-anchor-section-1" />}
         <SectionTitle num="1" title="Synthèse audit énergétique globale" subtitle="Comparaison des indicateurs entre l'état initial et les scénarios de travaux" />
 
         {/* Comparison table */}
@@ -1499,6 +1500,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         {/* Scenario rows */}
         {scData.length > 0 && (
           <>
+            {!isPreview && <span id="toc-anchor-section-2" />}
             <SectionTitle num="2" title="Détail des scénarios de travaux" />
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {scData.map((sc, i) => {
@@ -1594,25 +1596,26 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
             {/* Liste des sections */}
             {(() => {
-              const tocEntries: { num: string; title: string; subtitle?: string; indent?: boolean }[] = [
-                { num: "—", title: "Préambule", subtitle: "Note introductive" },
-                { num: "1", title: "Synthèse audit énergétique globale", subtitle: "Comparaison des indicateurs entre l'état initial et les scénarios" },
-                { num: "2", title: "Détail des scénarios de travaux", subtitle: "Fiches synthétiques par scénario" },
-                { num: "3", title: "Données bâtiment", subtitle: "Caractéristiques générales, climatiques et de l'enveloppe" },
-                { num: "3a", title: "Enveloppe thermique", subtitle: "Composition et performance des parois opaques et vitrées", indent: true },
-                { num: "4", title: "Systèmes techniques", subtitle: "Chauffage, ECS, ventilation, climatisation — état initial" },
-                { num: "5", title: "Consommations énergétiques par usage", subtitle: "État initial — répartition par poste (méthode Th-C-E)" },
-                { num: "5b", title: "Bilan thermique — UBAT", subtitle: "Déperditions de l'enveloppe — état initial" },
+              const tocEntries: { num: string; title: string; subtitle?: string; indent?: boolean; sectionKey: string }[] = [
+                { num: "—", title: "Préambule", subtitle: "Note introductive", sectionKey: "preambule" },
+                { num: "1", title: "Synthèse audit énergétique globale", subtitle: "Comparaison des indicateurs entre l'état initial et les scénarios", sectionKey: "section-1" },
+                { num: "2", title: "Détail des scénarios de travaux", subtitle: "Fiches synthétiques par scénario", sectionKey: "section-2" },
+                { num: "3", title: "Données bâtiment", subtitle: "Caractéristiques générales, climatiques et de l'enveloppe", sectionKey: "section-3" },
+                { num: "3a", title: "Enveloppe thermique", subtitle: "Composition et performance des parois opaques et vitrées", indent: true, sectionKey: "section-3a" },
+                { num: "4", title: "Systèmes techniques", subtitle: "Chauffage, ECS, ventilation, climatisation — état initial", sectionKey: "section-4" },
+                { num: "5", title: "Consommations énergétiques par usage", subtitle: "État initial — répartition par poste (méthode Th-C-E)", sectionKey: "section-5" },
+                { num: "5b", title: "Bilan thermique — UBAT", subtitle: "Déperditions de l'enveloppe — état initial", sectionKey: "section-5b" },
                 ...scData.map((sc, i) => ({
                   num: `${6 + i}`,
                   title: `Scénario de travaux — ${sc.code}`,
                   subtitle: sc.label !== sc.code ? sc.label : undefined,
                   indent: true,
+                  sectionKey: `section-sc-${i}`,
                 })),
-                { num: `${6 + scData.length}`, title: "Conclusion générale", subtitle: "Synthèse des recommandations et perspectives de rénovation" },
-                { num: `${7 + scData.length}`, title: "Lexique et définitions", subtitle: "Glossaire des termes techniques utilisés dans ce rapport" },
-                { num: `${8 + scData.length}`, title: "Photos du bâtiment", subtitle: "Relevé photographique par catégorie" },
-                { num: "Annexe", title: "Documents de certification", subtitle: "Certifications et qualifications du bureau d'études" },
+                { num: `${6 + scData.length}`, title: "Conclusion générale", subtitle: "Synthèse des recommandations et perspectives de rénovation", sectionKey: "conclusion" },
+                { num: `${7 + scData.length}`, title: "Lexique et définitions", subtitle: "Glossaire des termes techniques utilisés dans ce rapport", sectionKey: "lexique" },
+                { num: `${8 + scData.length}`, title: "Photos du bâtiment", subtitle: "Relevé photographique par catégorie", sectionKey: "photos" },
+                { num: "Annexe", title: "Documents de certification", subtitle: "Certifications et qualifications du bureau d'études", sectionKey: "annexe" },
               ];
               return (
                 <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
@@ -1656,13 +1659,22 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                         </div>
                         {/* Ligne pointillée */}
                         <div style={{
-                          flex: 0,
+                          flex: 1,
                           height: 1,
-                          minWidth: 60,
+                          minWidth: 40,
                           borderBottom: "1px dotted #cbd5e1",
                           alignSelf: "center",
                           marginBottom: 4,
                         }} />
+                        {/* Numéro de page */}
+                        <div id={`toc-page-${entry.sectionKey}`} style={{
+                          minWidth: 28,
+                          textAlign: "right",
+                          fontSize: isScenario ? 9 : 11,
+                          fontWeight: 700,
+                          color: isGroup ? "#94a3b8" : "#1e3a5f",
+                          flexShrink: 0,
+                        }}>—</div>
                       </div>
                     );
                   })}
@@ -1682,6 +1694,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         <>
           <div className="print-page-break" />
           <div className="print-page" style={pageStyle}>
+          <span id="toc-anchor-preambule" />
             <div style={{ marginBottom: 24 }}>
               <div style={{ borderLeft: "4px solid #1d4ed8", paddingLeft: 14, marginBottom: 18 }}>
                 <div style={{ fontSize: 8, letterSpacing: 2, textTransform: "uppercase", color: "#1d4ed8", opacity: 0.7, marginBottom: 4 }}>
@@ -1787,6 +1800,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       {/* ══ PAGE 4 — BÂTIMENT & DONNÉES TECHNIQUES ═══════════════════════════ */}
       {!isPreview && <div className="print-page-break" />}
       <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
+        {!isPreview && <span id="toc-anchor-section-3" />}
         <SectionTitle num="3" title="Données bâtiment" subtitle="Caractéristiques générales, climatiques et de l'enveloppe" />
 
         {/* — Données générales bâtiment — */}
@@ -2060,6 +2074,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         {/* — Enveloppe thermique — */}
         {envelopeRows.length > 0 && (
           <div style={{ marginBottom: 16 }}>
+            {!isPreview && <span id="toc-anchor-section-3a" />}
             <div style={{ borderBottom: "3px solid #1e3a5f", marginBottom: 14, paddingBottom: 6, breakAfter: "avoid" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
                 <span style={{ background: "#1e3a5f", color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>3a</span>
@@ -2163,6 +2178,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       {/* ══ PAGE 5 — SYSTÈMES TECHNIQUES ════════════════════════════════════════ */}
       {!isPreview && <div className="print-page-break" />}
       <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
+        {!isPreview && <span id="toc-anchor-section-4" />}
         <SectionTitle num="4" title="Systèmes techniques" subtitle="Chauffage, ECS, ventilation, climatisation — état initial" />
 
         {/* Systèmes techniques — card+photo layout */}
@@ -2390,6 +2406,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       {/* ══ PAGE 3 — CONSOMMATIONS ═══════════════════════════════════════════ */}
       {!isPreview && <div className="print-page-break" />}
       <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
+        {!isPreview && <span id="toc-anchor-section-5" />}
         <SectionTitle num="5" title="Consommations énergétiques par usage" subtitle="État initial — répartition par poste (méthode Th-C-E)" />
 
         {consumPostes.length > 0 ? (
@@ -2449,6 +2466,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         {/* — Bilan thermique UBAT — tableau récapitulatif + tableau détaillé parois — */}
         {ubatRows.length > 0 && (
           <>
+            {!isPreview && <span id="toc-anchor-section-5b" />}
             <SectionTitle num="5b" title="Bilan thermique — UBAT" subtitle="Déperditions de l'enveloppe — état initial" />
             {/* Summary KPI row */}
             <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
@@ -2619,6 +2637,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           <React.Fragment key={sc.code}>
             {!isPreview && <div className="print-page-break" />}
             <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
+              {!isPreview && <span id={`toc-anchor-section-sc-${idx}`} />}
 
               {/* ── Header banner ── */}
               <div style={{ background: scColor, borderRadius: "6px 6px 0 0", padding: "14px 20px", marginBottom: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -3133,6 +3152,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       {/* ══ PAGE CONCLUSION ══════════════════════════════════════════════════════ */}
       {!isPreview && <div className="print-page-break" />}
       <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
+        {!isPreview && <span id="toc-anchor-conclusion" />}
         <SectionTitle num={`${6 + scData.length}`} title="Conclusion générale" subtitle="Synthèse des recommandations et perspectives de rénovation" />
         {(() => {
           const adresse = report.adresseClient;
@@ -3254,6 +3274,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       {/* ══ PAGE LEXIQUE ════════════════════════════════════════════════════════ */}
       {!isPreview && <div className="print-page-break" />}
       <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
+        {!isPreview && <span id="toc-anchor-lexique" />}
         <SectionTitle num={`${7 + scData.length}`} title="Lexique et définitions" subtitle="Glossaire des termes techniques utilisés dans ce rapport" />
         {(() => {
           const terms: { term: string; def: string }[] = [
@@ -3328,6 +3349,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         <>
           {!isPreview && <div className="print-page-break" />}
           <div className={isPreview ? undefined : "print-page"} style={pageStyle}>
+            {!isPreview && <span id="toc-anchor-photos" />}
             <SectionTitle num={`${8 + scData.length}`} title="Photos du bâtiment" subtitle="Relevé photographique par catégorie" />
             {SECTION_ORDER.map((cat) => {
               const catPhotos = photosByCategory[cat];
@@ -3368,7 +3390,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       {photos
         .filter(p => p.category === "certifications")
         .slice(0, 3)
-        .map((photo) => (
+        .map((photo, photoIdx) => (
           <React.Fragment key={photo.id}>
             {!isPreview && <div className="print-page-break" />}
             <div
@@ -3382,6 +3404,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 minHeight: isPreview ? 400 : undefined,
               }}
             >
+              {!isPreview && photoIdx === 0 && <span id="toc-anchor-annexe" />}
               <img
                 src={`${apiBase}${photo.url}`}
                 alt={photo.caption || "Certification"}
