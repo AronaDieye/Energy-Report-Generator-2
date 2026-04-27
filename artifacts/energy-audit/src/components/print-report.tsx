@@ -719,6 +719,9 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
     })),
   ];
 
+  // Surface habitable — used for Prime BAR-TH-145 calculation
+  const surfaceHabitable = parseVal(rawFields.find(f => f.key === "Surface habitable")?.value ?? null);
+
   // Detect initial heating system category for coefficient B
   const initSysCategory: "fioul-charbon" | "gaz-electrique" = (() => {
     const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
@@ -798,6 +801,19 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       cep3Val != null ? get3CLEpClass(cep3Val) : null,
       ges3clVal != null ? get3CLGesClass(ges3clVal) : null,
     );
+    // Coefficient B (depends on ENR rate + initial system type)
+    const coeffB = (() => {
+      const enrVal = metaSc?.tauxEnrRPct ?? computedEnrPct;
+      if (enrVal === null) return null;
+      return initSysCategory === "fioul-charbon"
+        ? (enrVal >= 50 ? 77 : 46)
+        : (enrVal >= 50 ? 61 : 38);
+    })();
+    // Prime BAR-TH-145 = (CEF_initial - CEF_scénario) × surface_habitable × B
+    const cefSc = parseVal(getScVal(rawFields, code, "CEF Th-C-E après")) ?? metaSc?.cef5KwhEfM2 ?? null;
+    const primeBarTh145Kwh = (cefInitial !== null && cefSc !== null && surfaceHabitable !== null && coeffB !== null)
+      ? (cefInitial - cefSc) * surfaceHabitable * coeffB
+      : null;
     return {
       code,
       label: getScVal(rawFields, code, "Libellé") || code,
@@ -815,13 +831,8 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       gainEconomiqueEur: metaSc?.gainEconomiqueEur ?? null,
       tauxEnrRPct: metaSc?.tauxEnrRPct ?? null,
       computedEnrPct,
-      coefficientB: (() => {
-        const enrVal = metaSc?.tauxEnrRPct ?? computedEnrPct;
-        if (enrVal === null) return null;
-        return initSysCategory === "fioul-charbon"
-          ? (enrVal >= 50 ? 77 : 46)
-          : (enrVal >= 50 ? 61 : 38);
-      })(),
+      coefficientB: coeffB,
+      primeBarTh145Kwh,
       primeBarTh145Euros: metaSc?.primeBarTh145Euros ?? null,
       travaux: allTravaux,
       isolationToitures: metaSc?.isolationToitures ?? null,
@@ -1312,9 +1323,28 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 ))}
               </tr>
             )}
+            {/* Prime BAR-TH-145 kWhcumac */}
+            {scData.some((sc) => sc.primeBarTh145Kwh !== null) && (
+              <tr style={rowEven}>
+                <td style={tdLeft}>
+                  Prime BAR-TH-145 [kWhcumac]<br />
+                  <span style={{ color: "#94a3b8", fontSize: 9 }}>
+                    (CEF initial − CEF scénario) × Surface × Coeff. B
+                  </span>
+                </td>
+                <td style={td}>—</td>
+                {scData.map((sc) => (
+                  <td key={sc.code} style={{ ...td, color: "#b45309", fontWeight: 700 }}>
+                    {sc.primeBarTh145Kwh !== null
+                      ? `${Math.round(sc.primeBarTh145Kwh).toLocaleString("fr-FR")} kWhcumac`
+                      : "—"}
+                  </td>
+                ))}
+              </tr>
+            )}
             {/* Gain économique */}
             {scData.some((sc) => sc.gainEconomiqueEur !== null) && (
-              <tr style={rowEven}>
+              <tr style={rowOdd}>
                 <td style={tdLeft}>Gain économique (€/an)</td>
                 <td style={td}>—</td>
                 {scData.map((sc) => (
