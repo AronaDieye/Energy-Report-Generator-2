@@ -446,13 +446,16 @@ const SECTION_LABELS: Record<string, string> = {
   toitures: "Toitures",
   menuiseries: "Menuiseries",
   chauffage_ecs: "Chauffage & ECS",
+  generateur_chauffage: "Générateur de chauffage",
+  emetteurs_chauffage: "Émetteurs de chauffage",
+  ecs: "ECS — Eau Chaude Sanitaire",
   ventilation: "Ventilation",
   climatisation: "Climatisation",
   compteurs: "Compteurs & abonnements",
   eclairage: "Éclairage",
 };
 
-const SECTION_ORDER = ["facades", "planchers", "toitures", "menuiseries", "chauffage_ecs", "ventilation", "climatisation", "compteurs", "eclairage"];
+const SECTION_ORDER = ["facades", "planchers", "toitures", "menuiseries", "chauffage_ecs", "generateur_chauffage", "emetteurs_chauffage", "ecs", "ventilation", "climatisation", "compteurs", "eclairage"];
 
 // ── Main PrintReport ──────────────────────────────────────────────────────────
 
@@ -2233,7 +2236,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           const techSections: { displayLabel: string; cat: string; accent: string; fields: { label: string; key: string }[] }[] = [
             {
               displayLabel: "Générateur de chauffage",
-              cat: "chauffage_ecs",
+              cat: "generateur_chauffage",
               accent: "#7c3aed",
               fields: [
                 { label: "Générateur",        key: "Système de chauffage" },
@@ -2243,7 +2246,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
             },
             {
               displayLabel: "Émetteurs de chauffage",
-              cat: "",
+              cat: "emetteurs_chauffage",
               accent: "#8b5cf6",
               fields: [
                 { label: "Émetteurs", key: "Émetteurs de chauffage" },
@@ -2251,7 +2254,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
             },
             {
               displayLabel: "ECS — Eau Chaude Sanitaire",
-              cat: "",
+              cat: "ecs",
               accent: "#a855f7",
               fields: [
                 { label: "Type ECS",                   key: "Type d'ECS" },

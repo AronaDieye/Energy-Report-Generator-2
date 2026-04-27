@@ -105,7 +105,7 @@ const MONTHS_SHORT = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", 
 
 // ── Section definitions ───────────────────────────────────────────────────────
 
-type CategoryKey = "facades" | "planchers" | "toitures" | "menuiseries" | "chauffage_ecs" | "ventilation" | "climatisation" | "compteurs" | "eclairage";
+type CategoryKey = "facades" | "planchers" | "toitures" | "menuiseries" | "chauffage_ecs" | "generateur_chauffage" | "emetteurs_chauffage" | "ecs" | "ventilation" | "climatisation" | "compteurs" | "eclairage";
 
 interface SectionDef {
   key: CategoryKey;
@@ -155,13 +155,31 @@ const SECTIONS: SectionDef[] = [
     charHints: ["Matériau : PVC, aluminium, bois, mixte...", "Vitrage : simple, double (4/16/4), triple — Ug (W/m².K)", "Coefficient Uw (W/m².K) — cadre + vitrage", "Présence de coffre de volet roulant, fermetures extérieures"],
   },
   {
-    key: "chauffage_ecs",
-    label: "Chauffage & ECS",
+    key: "generateur_chauffage",
+    label: "Générateur de chauffage",
     icon: FlameKindling,
     color: "text-red-600",
-    charLabel: "Caractéristiques des systèmes de chauffage et ECS",
-    charPlaceholder: "Décrivez les équipements de chauffage et eau chaude sanitaire...",
-    charHints: ["Chauffage : type (chaudière, PAC, convecteur...), énergie, puissance (kW), rendement/COP", "Régulation : thermostat d'ambiance, programmateur, vannes thermostatiques", "ECS : type (ballon électrique, chauffe-eau solaire...), volume (L), énergie", "Âge des équipements, état général, marque et modèle"],
+    charLabel: "Caractéristiques du générateur de chauffage",
+    charPlaceholder: "Décrivez la source de chaleur principale...",
+    charHints: ["Type : PAC air/air, PAC air/eau, chaudière gaz/fioul, poêle à bois, réseau de chaleur...", "Puissance nominale (kW), COP ou rendement (%)", "Marque, modèle, année de pose, état général", "Régulation : thermostat d'ambiance, programmateur, vannes thermostatiques"],
+  },
+  {
+    key: "emetteurs_chauffage",
+    label: "Émetteurs de chauffage",
+    icon: Thermometer,
+    color: "text-orange-500",
+    charLabel: "Caractéristiques des émetteurs de chauffage",
+    charPlaceholder: "Décrivez les systèmes de distribution de chaleur...",
+    charHints: ["Type : radiateurs fonte/acier/alu, plancher chauffant (eau ou électrique), convecteurs, ventilo-convecteurs...", "Température de départ réseau (°C) — haute, moyenne ou basse température", "État des organes de réglage : vannes thermostatiques, équilibrage hydraulique", "Présence de robinets thermostatiques, état des têtes thermostatiques"],
+  },
+  {
+    key: "ecs",
+    label: "ECS — Eau Chaude Sanitaire",
+    icon: Droplets,
+    color: "text-blue-500",
+    charLabel: "Caractéristiques du système ECS",
+    charPlaceholder: "Décrivez le système d'eau chaude sanitaire...",
+    charHints: ["Type : ballon électrique, ballon thermodynamique, chauffe-eau solaire (CESI), production sur chaudière...", "Volume du ballon (L), température de consigne (°C)", "Puissance ou COP du ballon thermodynamique", "Âge, état, présence de calorifuge sur les réseaux"],
   },
   {
     key: "ventilation",

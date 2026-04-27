@@ -197,6 +197,12 @@ export type AuditReportSectionCharacteristics = {
   /** @nullable */
   chauffage_ecs?: string | null;
   /** @nullable */
+  generateur_chauffage?: string | null;
+  /** @nullable */
+  emetteurs_chauffage?: string | null;
+  /** @nullable */
+  ecs?: string | null;
+  /** @nullable */
   ventilation?: string | null;
   /** @nullable */
   climatisation?: string | null;

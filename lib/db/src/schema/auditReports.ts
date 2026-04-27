@@ -93,6 +93,9 @@ export const auditReportsTable = pgTable("audit_reports", {
     toitures?: string;
     menuiseries?: string;
     chauffage_ecs?: string;
+    generateur_chauffage?: string;
+    emetteurs_chauffage?: string;
+    ecs?: string;
     ventilation?: string;
     climatisation?: string;
     compteurs?: string;

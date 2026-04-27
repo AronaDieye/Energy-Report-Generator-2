@@ -408,6 +408,8 @@ export async function extractFromVisitReportPdf(
   if (isoPlancherBas) sectionCharacteristics.planchers = isoPlancherBas;
   if (typeToiture) sectionCharacteristics.toitures = typeToiture;
   if (windowType) sectionCharacteristics.menuiseries = windowType;
+  if (heatingSystem) sectionCharacteristics.generateur_chauffage = heatingSystem;
+  if (typeEcs) sectionCharacteristics.ecs = typeEcs;
   if (heatingSystem || typeEcs) {
     sectionCharacteristics.chauffage_ecs = [
       heatingSystem,
