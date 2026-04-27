@@ -833,6 +833,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       computedEnrPct,
       coefficientB: coeffB,
       primeBarTh145Kwh,
+      primeBarTh145KwhEur: primeBarTh145Kwh !== null ? primeBarTh145Kwh * 0.0065 : null,
       primeBarTh145Euros: metaSc?.primeBarTh145Euros ?? null,
       travaux: allTravaux,
       isolationToitures: metaSc?.isolationToitures ?? null,
@@ -1337,6 +1338,25 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                   <td key={sc.code} style={{ ...td, color: "#b45309", fontWeight: 700 }}>
                     {sc.primeBarTh145Kwh !== null
                       ? `${Math.round(sc.primeBarTh145Kwh).toLocaleString("fr-FR")} kWhcumac`
+                      : "—"}
+                  </td>
+                ))}
+              </tr>
+            )}
+            {/* Prime BAR-TH-145 € */}
+            {scData.some((sc) => sc.primeBarTh145KwhEur !== null) && (
+              <tr style={rowOdd}>
+                <td style={tdLeft}>
+                  Prime BAR-TH-145 [€]<br />
+                  <span style={{ color: "#94a3b8", fontSize: 9 }}>
+                    Prime BAR-TH-145 [kWhcumac] × 0,0065 €/kWhcumac
+                  </span>
+                </td>
+                <td style={td}>—</td>
+                {scData.map((sc) => (
+                  <td key={sc.code} style={{ ...td, color: "#b45309", fontWeight: 700 }}>
+                    {sc.primeBarTh145KwhEur !== null
+                      ? `${Math.round(sc.primeBarTh145KwhEur).toLocaleString("fr-FR")} €`
                       : "—"}
                   </td>
                 ))}
