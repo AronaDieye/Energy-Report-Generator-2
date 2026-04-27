@@ -678,6 +678,73 @@ function parseEtatInitialSection(text: string): ConsumptionTable | null {
 
 // ─── BAO Evolution SED: Scenario parser ─────────────────────────────────────
 
+/**
+ * Search a text block for a COP/SCOP value near a specific usage section
+ * (CHAUFFAGE or ECS). Returns the first numeric value that follows a
+ * "COP" or "SCOP" keyword found within that section, or null if not found.
+ *
+ * Also handles patterns like:
+ *   - "COP : 3,8" / "SCOP : 4,2"
+ *   - "COP nominal : 3,8"
+ *   - PAC source lines followed immediately by a COP-range number (1.5 – 6.0)
+ */
+function extractCopFromBlock(block: string, postKey: "CHAUFFAGE" | "ECS"): number | null {
+  const upper = block.toUpperCase();
+
+  // Find the start of the post section (e.g. "\nCHAUFFAGE\n" or "\nECS\n")
+  const postStart = upper.indexOf("\n" + postKey + "\n");
+  if (postStart === -1) {
+    // Section not found in block — try a loose keyword search in the whole block
+    // (sometimes DESCRIPTIF blocks don't have the table headers)
+    return extractCopLoose(block, postKey);
+  }
+
+  // Find where the next section starts so we only search within this post
+  const nextSectionPattern = /\n(CHAUFFAGE|REFROIDISSEMENT|ECS|ECLAIRAGE|AUXILIAIRES|VENTILATEURS|AUTRES USAGES|TOTAL|ABONNEMENT|ENTRETIEN|BILAN)\n/g;
+  nextSectionPattern.lastIndex = postStart + 1;
+  const nextMatch = nextSectionPattern.exec(upper);
+  const postEnd = nextMatch ? nextMatch.index : postStart + 800;
+
+  const sectionText = block.substring(postStart, postEnd);
+  return extractCopLoose(sectionText, postKey);
+}
+
+/**
+ * Look for any COP/SCOP keyword + decimal number in a text fragment.
+ * Also catches a standalone number in [1.5, 6.0] right after a PAC/thermodynamique name
+ * (format used in some BAO documents where COP appears without label).
+ */
+function extractCopLoose(text: string, postKey: "CHAUFFAGE" | "ECS"): number | null {
+  // 1. Explicit "SCOP" or "COP" keyword followed by an optional colon and a decimal
+  const explicit = text.match(/(?:SCOP|COP)(?:\s+(?:nominal|PAC|ballon|ECS|chauffage|chauf|ecs|therm\w+))?\s*:?\s*([\d,]+)/i);
+  if (explicit) {
+    const v = parseNum(explicit[1]);
+    if (v !== null && v >= 1.0 && v <= 8.0) return v;
+  }
+
+  // 2. After a PAC / ballon thermodynamique source name, look for a number in COP range [1.5, 6.0]
+  //    on the very next non-empty line (some formats omit the "COP" label)
+  const isPacLine = postKey === "CHAUFFAGE"
+    ? /(?:PAC|pompe\s+.{0,20}chaleur|aerotherm|hydrotherm)/i
+    : /(?:PAC|ballon\s+thermo|thermodynamique|chauffe.eau)/i;
+
+  const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+  for (let i = 0; i < lines.length - 1; i++) {
+    if (isPacLine.test(lines[i])) {
+      // Check next few lines for a COP-range number
+      for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
+        const numLine = lines[j];
+        if (/^[\d,.\s]+$/.test(numLine)) {
+          const v = parseNum(numLine);
+          if (v !== null && v >= 1.5 && v <= 6.0) return v;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 interface ScenarioResult {
   code: string;
   conseils: string;
@@ -692,6 +759,10 @@ interface ScenarioResult {
   thceGesKgM2: number | null;
   cefKwhAn: number | null;
   usageConsumption: Record<string, ConsumptionPost>;
+  /** COP/SCOP for heating PAC extracted from this scenario's text block */
+  copPacChauffage: number | null;
+  /** COP for thermodynamic ECS (ballon) extracted from this scenario's text block */
+  copBallonEcs: number | null;
 }
 
 function parseScenarios(text: string): ScenarioResult[] {
@@ -760,6 +831,11 @@ function parseScenarios(text: string): ScenarioResult[] {
     const totalDepenseAnnuelle = totalDepenseStr ? parseNum(totalDepenseStr) : null;
 
     if (code && conseils) {
+      // Extract COP/SCOP from the DESCRIPTIF DE LA MODIFICATION text block
+      const modifBlock = match[0];
+      const copPacChauffage = extractCopFromBlock(modifBlock, "CHAUFFAGE");
+      const copBallonEcs    = extractCopFromBlock(modifBlock, "ECS");
+
       scenarios.push({
         code,
         conseils,
@@ -774,6 +850,8 @@ function parseScenarios(text: string): ScenarioResult[] {
         thceGesKgM2: null,
         cefKwhAn: null,
         usageConsumption: {},
+        copPacChauffage,
+        copBallonEcs,
       });
     }
   }
@@ -816,6 +894,13 @@ function parseScenarios(text: string): ScenarioResult[] {
       if (Object.keys(usageParsed).length > 0) {
         scenarios[i].usageConsumption = usageParsed;
       }
+
+      // Enrich COP/SCOP from the consumption table block (more reliable than DESCRIPTIF text)
+      // Only overwrite if the DESCRIPTIF search didn't already find a value
+      const copPacFromTable  = extractCopFromBlock(beforeBlock, "CHAUFFAGE");
+      const copEcsFromTable  = extractCopFromBlock(beforeBlock, "ECS");
+      if (copPacFromTable  !== null) scenarios[i].copPacChauffage = copPacFromTable;
+      if (copEcsFromTable  !== null) scenarios[i].copBallonEcs    = copEcsFromTable;
     }
   }
 
@@ -1371,6 +1456,8 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
   for (const sc of scenarios) {
     const scSection = `SCÉNARIO ${sc.code}`;
     addField(`${scSection} - Conseils`, sc.conseils, scSection);
+    if (sc.copPacChauffage !== null) addField(`${scSection} - COP PAC Chauffage`, sc.copPacChauffage.toLocaleString("fr-FR", { maximumFractionDigits: 2 }), scSection);
+    if (sc.copBallonEcs !== null) addField(`${scSection} - COP Ballon Thermodynamique`, sc.copBallonEcs.toLocaleString("fr-FR", { maximumFractionDigits: 2 }), scSection);
     if (sc.investissement !== null) addField(`${scSection} - Investissement`, sc.investissement.toLocaleString("fr-FR") + " €", scSection);
     if (sc.tempsRetour !== null) addField(`${scSection} - Temps de retour`, sc.tempsRetour + " an(s)", scSection);
     if (sc.totalKwhEpM2 !== null) addField(`${scSection} - kWhEP/m².an après`, sc.totalKwhEpM2 + " kWhEP/m².an", scSection);

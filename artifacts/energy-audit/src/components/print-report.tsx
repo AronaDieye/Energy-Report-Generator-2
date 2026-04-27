@@ -755,15 +755,26 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
     const computedEnrPct = (() => {
       const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
 
-      // Read COP fields — prefer dedicated per-usage fields, then global COP nominal
+      // Read COP fields — priority order (highest to lowest):
+      //   1. Per-scenario field (extracted from scenario text block / table)
+      //   2. Global dedicated field (manually entered or extracted globally)
+      //   3. "COP nominal" (global fallback from SYSTÈMES CVC section)
+      //   4. Sensible default
       const copNominal   = parseVal(rawFields.find(f => f.key === "COP nominal")?.value ?? null);
-      const copPacField  = parseVal(rawFields.find(f => f.key === "COP PAC Chauffage")?.value ?? null);
-      const copEcsField  = parseVal(rawFields.find(f => f.key === "COP Ballon Thermodynamique")?.value
-                                 ?? rawFields.find(f => f.key === "COP ECS")?.value ?? null);
-      // COP_pac : dedicated > global COP nominal > 3.5 (typical SCOP for air-to-water PAC)
-      const COP_pac = copPacField ?? copNominal ?? 3.5;
-      // COP_ecs : dedicated > global COP nominal > 2.5 (typical COP for thermodynamic water heater)
-      const COP_ecs = copEcsField ?? copNominal ?? 2.5;
+
+      // Per-scenario COP (keys: "SCÉNARIO A - COP PAC Chauffage", etc.)
+      const copPacScenario = parseVal(getScVal(rawFields, code, "COP PAC Chauffage"));
+      const copEcsScenario = parseVal(getScVal(rawFields, code, "COP Ballon Thermodynamique"));
+
+      // Global dedicated fields (set manually or extracted at building level)
+      const copPacGlobal  = parseVal(rawFields.find(f => f.key === "COP PAC Chauffage")?.value ?? null);
+      const copEcsGlobal  = parseVal(rawFields.find(f => f.key === "COP Ballon Thermodynamique")?.value
+                                  ?? rawFields.find(f => f.key === "COP ECS")?.value ?? null);
+
+      // COP_pac : per-scenario > global dedicated > COP nominal > 3.5
+      const COP_pac = copPacScenario ?? copPacGlobal ?? copNominal ?? 3.5;
+      // COP_ecs : per-scenario > global dedicated > COP nominal > 2.5
+      const COP_ecs = copEcsScenario ?? copEcsGlobal ?? copNominal ?? 2.5;
 
       const sysChauffage = norm(rawFields.find(f => f.key === "Système de chauffage")?.value ?? "");
       const typeEcs      = norm(rawFields.find(f => f.key === "Type d'ECS")?.value ?? "");
