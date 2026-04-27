@@ -5,7 +5,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import { extractFromDocx, extractFromCsv } from "../lib/fileExtractor.js";
 import { extractFromVisitReportPdf } from "../lib/visitReportExtractor.js";
 import { logger } from "../lib/logger.js";
-import puppeteer from "puppeteer-core";
+import puppeteer from "puppeteer";
 
 const router: IRouter = Router();
 
@@ -194,9 +194,7 @@ router.get("/audit/reports/:id", async (req, res): Promise<void> => {
 });
 
 // ── PDF generation endpoint ───────────────────────────────────────────────────
-const CHROMIUM_PATH =
-  process.env.REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE ??
-  "/home/runner/.cache/puppeteer/chrome/linux-147.0.7727.57/chrome-linux64/chrome";
+const CHROMIUM_PATH = process.env.REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE ?? null;
 
 const FRONTEND_PORT = process.env.FRONTEND_PORT ?? "5173";
 
@@ -215,7 +213,7 @@ router.get("/audit/reports/:id/pdf", async (req, res): Promise<void> => {
   let browser;
   try {
     browser = await puppeteer.launch({
-      executablePath: CHROMIUM_PATH,
+      ...(CHROMIUM_PATH ? { executablePath: CHROMIUM_PATH } : {}),
       headless: true,
       args: [
         "--no-sandbox",

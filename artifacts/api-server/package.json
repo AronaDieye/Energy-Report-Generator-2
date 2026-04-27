@@ -22,7 +22,7 @@
     "pdf-parse": "^1.1.1",
     "pino": "^9",
     "pino-http": "^10",
-    "puppeteer-core": "^24.42.0"
+    "puppeteer": "^24.42.0"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
