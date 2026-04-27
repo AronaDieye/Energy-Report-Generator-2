@@ -968,6 +968,41 @@ Les besoins du client se concentrent sur plusieurs aspects spécifiques :
 • Le confort d'été et d'hiver
 En terme général, les besoins du client englobent la réduction des consommations énergétiques, l'amélioration du confort des utilisateurs, la conformité aux normes, et la réduction de l'empreinte carbone. En intégrant des solutions technologiques avancées et des équipements à haute efficacité, il est possible de réduire considérablement les coûts énergétiques tout en assurant des performances optimales sur le long terme.`;
 
+const BUREAU_PROFILE_KEY = "audittech_bureau_profile";
+
+interface BureauProfile {
+  bureauEtudes: string;
+  bureauAdresse: string;
+  bureauEmail: string;
+  bureauTelephone: string;
+  siret: string;
+  qualification: string;
+}
+
+function saveBureauProfile(form: Pick<CoverForm, keyof BureauProfile>): void {
+  try {
+    const profile: BureauProfile = {
+      bureauEtudes: form.bureauEtudes,
+      bureauAdresse: form.bureauAdresse,
+      bureauEmail: form.bureauEmail,
+      bureauTelephone: form.bureauTelephone,
+      siret: form.siret,
+      qualification: form.qualification,
+    };
+    if (Object.values(profile).some(v => v.trim() !== "")) {
+      localStorage.setItem(BUREAU_PROFILE_KEY, JSON.stringify(profile));
+    }
+  } catch { /* ignore */ }
+}
+
+function loadBureauProfile(): BureauProfile | null {
+  try {
+    const raw = localStorage.getItem(BUREAU_PROFILE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as BureauProfile;
+  } catch { return null; }
+}
+
 interface CoverForm {
   buildingName: string;
   buildingAddress: string;
@@ -1066,6 +1101,28 @@ function CoverPageEditor({
 
   const certifPhotos = photos.filter(p => p.category === "certifications");
   const logoPhotos = photos.filter(p => p.category === "bureau_logo");
+
+  // Auto-fill bureau fields from saved profile if they are empty on open
+  React.useEffect(() => {
+    const saved = loadBureauProfile();
+    if (!saved) return;
+    setForm(f => {
+      const isEmpty = !f.bureauEtudes && !f.bureauAdresse && !f.bureauEmail && !f.bureauTelephone && !f.siret && !f.qualification;
+      if (!isEmpty) return f;
+      return {
+        ...f,
+        bureauEtudes: saved.bureauEtudes || f.bureauEtudes,
+        bureauAdresse: saved.bureauAdresse || f.bureauAdresse,
+        bureauEmail: saved.bureauEmail || f.bureauEmail,
+        bureauTelephone: saved.bureauTelephone || f.bureauTelephone,
+        siret: saved.siret || f.siret,
+        qualification: saved.qualification || f.qualification,
+      };
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const savedProfile = loadBureauProfile();
 
   // Fetch existing photos on open
   React.useEffect(() => {
@@ -1184,6 +1241,7 @@ function CoverPageEditor({
         body: JSON.stringify(form),
       });
       if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      saveBureauProfile(form);
       onSaved();
       onClose();
     } catch (e: unknown) {
@@ -1290,7 +1348,21 @@ function CoverPageEditor({
 
             {/* Bureau d'études */}
             <div>
-              <SectionDivider label="Bureau d'études" color="indigo" />
+              <div className="flex items-center justify-between mb-0">
+                <SectionDivider label="Bureau d'études" color="indigo" />
+              </div>
+              {savedProfile?.bureauEtudes && (form.bureauEtudes !== savedProfile.bureauEtudes || form.bureauAdresse !== savedProfile.bureauAdresse) && (
+                <div className="flex items-center gap-2 mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+                  <span className="flex-1">Profil mémorisé : <strong>{savedProfile.bureauEtudes}</strong></span>
+                  <button
+                    type="button"
+                    className="underline font-medium hover:text-blue-900 shrink-0"
+                    onClick={() => setForm(f => ({ ...f, ...savedProfile }))}
+                  >
+                    Charger
+                  </button>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <CoverField label="Nom du bureau d'études" value={form.bureauEtudes} onChange={handleChange("bureauEtudes")} />
                 <CoverField label="Adresse" value={form.bureauAdresse} onChange={handleChange("bureauAdresse")} />
