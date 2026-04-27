@@ -5,7 +5,8 @@ import { eq, desc, sql } from "drizzle-orm";
 import { extractFromDocx, extractFromCsv } from "../lib/fileExtractor.js";
 import { extractFromVisitReportPdf } from "../lib/visitReportExtractor.js";
 import { logger } from "../lib/logger.js";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
 
 const router: IRouter = Router();
 
@@ -194,7 +195,7 @@ router.get("/audit/reports/:id", async (req, res): Promise<void> => {
 });
 
 // ── PDF generation endpoint ───────────────────────────────────────────────────
-const CHROMIUM_PATH = process.env.REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE ?? null;
+const PLAYWRIGHT_CHROMIUM = process.env.REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE ?? null;
 
 const FRONTEND_PORT = process.env.FRONTEND_PORT ?? "5173";
 
@@ -212,16 +213,15 @@ router.get("/audit/reports/:id/pdf", async (req, res): Promise<void> => {
 
   let browser;
   try {
+    const usingPlaywright = !!PLAYWRIGHT_CHROMIUM;
+    const executablePath = PLAYWRIGHT_CHROMIUM ?? await chromium.executablePath();
+    const launchArgs = usingPlaywright
+      ? ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--font-render-hinting=none"]
+      : [...chromium.args, "--font-render-hinting=none"];
     browser = await puppeteer.launch({
-      ...(CHROMIUM_PATH ? { executablePath: CHROMIUM_PATH } : {}),
+      executablePath,
       headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--font-render-hinting=none",
-      ],
+      args: launchArgs,
     });
 
     const page = await browser.newPage();
