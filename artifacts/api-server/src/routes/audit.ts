@@ -258,27 +258,41 @@ router.get("/audit/reports/:id/pdf", async (req, res): Promise<void> => {
       printDiv.style.width = "100%";
     });
 
-    // Compute TOC page numbers: each toc-anchor span is inside a .print-page div;
-    // the 1-based index of that div in the document = the PDF page number.
-    await page.evaluate(() => {
+    // Compute TOC page numbers.
+    // Each .print-page div may overflow onto multiple physical PDF pages.
+    // We measure each div's scrollHeight and compare to the A4 content height
+    // in DOM pixels. Chrome print mode lays out at A4 CSS px (96 dpi, no scale):
+    //   A4 height = 297mm × 96/25.4 ≈ 1122.5 px
+    //   margins top=5mm, bottom=12mm → content = 280mm × 96/25.4 ≈ 1058 px
+    await page.evaluate((domPageH: number) => {
       const allPages = Array.from(document.querySelectorAll(".print-page"));
+
+      // Compute start physical page for each .print-page div (1-based)
+      let physPage = 1;
+      const startPage: number[] = allPages.map((pg) => {
+        const first = physPage;
+        const pagesUsed = Math.max(1, Math.ceil((pg as HTMLElement).scrollHeight / domPageH));
+        physPage += pagesUsed;
+        return first;
+      });
+
+      // Assign page numbers to TOC entries
       document.querySelectorAll("[id^='toc-anchor-']").forEach((anchor) => {
         const key = (anchor as HTMLElement).id.replace("toc-anchor-", "");
         let el: Element | null = anchor;
-        let pageIndex = -1;
         while (el) {
           if (el.classList && el.classList.contains("print-page")) {
-            pageIndex = allPages.indexOf(el);
+            const idx = allPages.indexOf(el);
+            if (idx >= 0) {
+              const pageEl = document.getElementById(`toc-page-${key}`);
+              if (pageEl) pageEl.textContent = String(startPage[idx]);
+            }
             break;
           }
           el = el.parentElement;
         }
-        if (pageIndex >= 0) {
-          const pageEl = document.getElementById(`toc-page-${key}`);
-          if (pageEl) pageEl.textContent = String(pageIndex + 1);
-        }
       });
-    });
+    }, 1058);
 
     const buildingName = (report.buildingName ?? "")
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
