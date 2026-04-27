@@ -1111,7 +1111,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
             {/* Mission */}
             <div style={{ border: "1px solid #e2e8f0", borderRadius: 8, overflow: "hidden" }}>
-              <div className="print-heading" style={{ background: "#1e3a5f", color: "#fff", padding: "6px 12px", fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>
+              <div style={{ background: "#1e3a5f", color: "#fff", padding: "6px 12px", fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>
                 Informations mission
               </div>
               <div style={{ padding: "10px 12px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px" }}>
@@ -1140,7 +1140,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
             {/* Bureau d'études */}
             <div style={{ border: "1px solid #e2e8f0", borderRadius: 8, overflow: "hidden" }}>
-              <div className="print-heading" style={{ background: "#1d4ed8", color: "#fff", padding: "6px 12px", fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>
+              <div style={{ background: "#1d4ed8", color: "#fff", padding: "6px 12px", fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>
                 Bureau d'études
               </div>
               <div style={{ padding: "10px 12px" }}>
@@ -1413,7 +1413,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
           return (
             <div style={{ marginTop: 16, border: "1px solid #e2e8f0", borderRadius: 4, overflow: "hidden" }}>
-              <div className="print-heading" style={{ background: "#1e3a5f", color: "#fff", padding: "6px 12px", fontSize: 10, fontWeight: 700 }}>
+              <div style={{ background: "#1e3a5f", color: "#fff", padding: "6px 12px", fontSize: 10, fontWeight: 700 }}>
                 ⚡ Détail des consommations par usage — Énergie finale (kWh/an)
               </div>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -1984,7 +1984,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         {monthlyWeather && (
           <div style={{ marginBottom: 18 }}>
             {/* Header */}
-            <div className="print-heading" style={{
+            <div style={{
               background: "#0369a1",
               color: "#fff",
               borderRadius: "6px 6px 0 0",
@@ -2485,7 +2485,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
               return (
                 <div style={{ marginBottom: 8 }}>
-                  <div className="print-heading" style={{ fontSize: 8, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+                  <div style={{ fontSize: 8, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
                     Détail des parois — Calcul UBAT
                   </div>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 8 }}>
@@ -2888,7 +2888,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
                 return (
                   <div style={{ marginTop: 14, border: `1.5px solid ${scColor}33`, borderRadius: 8, overflow: "hidden" }}>
-                    <div className="print-heading" style={{ background: scColor, padding: "6px 14px" }}>
+                    <div style={{ background: scColor, padding: "6px 14px" }}>
                       <span style={{ fontSize: 9, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 1 }}>
                         Consommations énergétiques après travaux
                       </span>
@@ -3026,7 +3026,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                         border: `1.5px solid ${scColor}33`, borderTop: "none",
                         borderRadius: "0 0 6px 6px", overflow: "hidden",
                       }}>
-                        <div className="print-heading" style={{
+                        <div style={{
                           background: "#f8fafc", borderBottom: `1px solid ${scColor}22`,
                           padding: "5px 14px",
                         }}>
