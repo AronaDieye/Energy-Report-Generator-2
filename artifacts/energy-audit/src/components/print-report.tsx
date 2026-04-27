@@ -2957,8 +2957,8 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
                 const kpiCards = [
                   { label: "Coefficient UBAT", value: scUbat.coefficient, unit: "W/m².°C", highlight: true },
-                  { label: "HT — Déperditions enveloppe", value: scUbat.ht, unit: "W/°C", highlight: false },
-                  { label: "GV — Total général", value: scUbat.gv, unit: "W/°C", highlight: false },
+                  { label: "HT — Déperditions enveloppe", value: scUbat.ht, unit: "W/°C" },
+                  { label: "GV — Total général", value: scUbat.gv, unit: "W/°C" },
                   { label: "Déperditions totales", value: scUbat.deperditionsTotalesKw, unit: "kW", highlight: true },
                 ].filter(c => c.value !== null);
 
@@ -2976,93 +2976,118 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 if (kpiCards.length === 0 && scParoisRows.length === 0) return null;
 
                 return (
-                  <div style={{ marginTop: 12, border: `1.5px solid ${scColor}33`, borderRadius: 8 }}>
-                    <div style={{ breakInside: "avoid" }}>
-                      <div style={{ background: scColor, padding: "6px 14px", borderRadius: "6px 6px 0 0" }}>
-                        <span style={{ fontSize: 9, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 1 }}>
-                          Bilan thermique UBAT — après travaux
-                        </span>
+                  <div style={{ marginTop: 16 }}>
+                    {/* ─ Bannière titre ─ */}
+                    <div style={{
+                      background: scColor, padding: "7px 14px", borderRadius: "6px 6px 0 0",
+                      display: "flex", alignItems: "center", gap: 8,
+                    }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", textTransform: "uppercase", letterSpacing: 1.2 }}>
+                        Bilan thermique UBAT — après travaux
+                      </span>
+                    </div>
+
+                    {/* ─ KPI cards ─ */}
+                    {kpiCards.length > 0 && (
+                      <div style={{
+                        display: "flex", gap: 8, padding: "10px 14px",
+                        background: scColorLight, border: `1.5px solid ${scColor}33`,
+                        borderTop: "none",
+                        borderBottom: scParoisRows.length > 0 ? `1px solid ${scColor}22` : undefined,
+                        borderRadius: scParoisRows.length === 0 ? "0 0 6px 6px" : undefined,
+                      }}>
+                        {kpiCards.map(c => (
+                          <div key={c.label} style={{
+                            flex: 1, background: "#fff", border: `1px solid ${scColor}44`,
+                            borderRadius: 6, padding: "7px 10px", textAlign: "center",
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                          }}>
+                            <div style={{ fontSize: 7.5, color: scColor, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>
+                              {c.label}
+                            </div>
+                            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 3 }}>
+                              <span style={{ fontSize: c.highlight ? 14 : 12, fontWeight: 800, color: "#0f172a" }}>
+                                {c.value!.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}
+                              </span>
+                              <span style={{ fontSize: 8, fontWeight: 500, color: "#64748b" }}>{c.unit}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      {kpiCards.length > 0 && (
-                        <div style={{ padding: "10px 14px 0 14px" }}>
-                          <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
-                            {kpiCards.map(c => (
-                              <div key={c.label} style={{
-                                flex: "1 1 120px", background: scColorLight, border: `1px solid ${scColor}44`,
-                                borderRadius: 6, padding: "5px 8px", textAlign: "center",
-                              }}>
-                                <div style={{ fontSize: 7.5, color: scColor, fontWeight: 600, marginBottom: 2 }}>{c.label}</div>
-                                <div style={{ fontSize: c.highlight ? 12 : 11, fontWeight: 800, color: "#1e293b" }}>
-                                  {c.value!.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}{" "}
-                                  <span style={{ fontSize: 8, fontWeight: 500, color: "#64748b" }}>{c.unit}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ padding: "0 14px 10px 14px" }}>
-                      {scParoisRows.length > 0 && (
-                        <div>
-                          <div style={{ fontSize: 8, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+                    )}
+
+                    {/* ─ Table détail parois ─ */}
+                    {scParoisRows.length > 0 && (
+                      <div style={{
+                        border: `1.5px solid ${scColor}33`, borderTop: "none",
+                        borderRadius: "0 0 6px 6px", overflow: "hidden",
+                      }}>
+                        <div style={{
+                          background: "#f8fafc", borderBottom: `1px solid ${scColor}22`,
+                          padding: "5px 14px",
+                        }}>
+                          <span style={{ fontSize: 8.5, fontWeight: 800, color: "#374151", textTransform: "uppercase", letterSpacing: 0.6 }}>
                             Détail des parois — Calcul UBAT après travaux
-                          </div>
-                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 8 }}>
-                            <thead>
-                              <tr style={{ background: scColor, color: "#fff" }}>
-                                <th style={{ padding: "3px 4px", textAlign: "left", fontWeight: 700 }}>Désignation</th>
-                                <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 44 }}>Code</th>
-                                <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 20 }}>Nb</th>
-                                <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 42 }}>U / ψ</th>
-                                <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 28 }}>b</th>
-                                <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 46 }}>Surf./Long.</th>
-                                <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 28 }}>Orie</th>
-                                <th style={{ padding: "3px 4px", textAlign: "right", fontWeight: 700, width: 54 }}>Déperd. W/°C</th>
-                                <th style={{ padding: "3px 4px", textAlign: "center", fontWeight: 700, width: 26 }}>Réf.</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {scParoisRows.map((r, idx) => {
-                                const sub = isSubItem(r);
-                                const color = kindColor[r.kind] ?? scColor;
-                                const bg = idx % 2 === 0 ? scColorLight : "#fff";
-                                return (
-                                  <tr key={idx} style={{ background: sub ? "#fafafa" : bg }}>
-                                    <td style={{
-                                      padding: "2px 4px", paddingLeft: sub ? 14 : 4,
-                                      fontWeight: sub ? 400 : 600,
-                                      color: sub ? "#64748b" : color,
-                                      borderLeft: sub ? `2px solid ${color}33` : `3px solid ${color}`,
-                                    }}>
-                                      {r.designation}
-                                    </td>
-                                    <td style={{ padding: "2px 4px", textAlign: "center", color: "#374151", fontFamily: "monospace" }}>{r.code ?? ""}</td>
-                                    <td style={{ padding: "2px 4px", textAlign: "center", color: "#64748b" }}>{r.nb ?? ""}</td>
-                                    <td style={{ padding: "2px 4px", textAlign: "right", color: "#374151" }}>
-                                      {r.kind === "pont_thermique" ? (r.psi ?? "") : (r.u ?? "")}
-                                    </td>
-                                    <td style={{ padding: "2px 4px", textAlign: "right", color: "#64748b" }}>{r.b ?? ""}</td>
-                                    <td style={{ padding: "2px 4px", textAlign: "right", color: "#374151" }}>
-                                      {r.kind === "pont_thermique" ? (r.longueur ?? "") : (r.surface ?? "")}
-                                    </td>
-                                    <td style={{ padding: "2px 4px", textAlign: "center", color: "#64748b", fontStyle: "italic" }}>{r.orie ?? ""}</td>
-                                    <td style={{ padding: "2px 4px", textAlign: "right", fontWeight: 700, color: "#1e293b" }}>{r.deperd ?? ""}</td>
-                                    <td style={{ padding: "2px 4px", textAlign: "center", color: "#94a3b8", fontSize: 7 }}>{r.ref ?? ""}</td>
-                                  </tr>
-                                );
-                              })}
-                              <tr style={{ background: scColor, color: "#fff" }}>
-                                <td colSpan={6} style={{ padding: "3px 4px", fontWeight: 700, textAlign: "right", fontSize: 9 }}>HT =</td>
-                                <td colSpan={3} style={{ padding: "3px 4px", fontWeight: 800, textAlign: "right", fontSize: 10 }}>
-                                  {htTotal.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} W/°C
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
+                          </span>
                         </div>
-                      )}
-                    </div>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 8 }}>
+                          <thead>
+                            <tr style={{ background: scColor, color: "#fff" }}>
+                              <th style={{ padding: "4px 5px", textAlign: "left", fontWeight: 700, fontSize: 8 }}>Désignation</th>
+                              <th style={{ padding: "4px 5px", textAlign: "center", fontWeight: 700, width: 48, fontSize: 8 }}>Code</th>
+                              <th style={{ padding: "4px 4px", textAlign: "center", fontWeight: 700, width: 22, fontSize: 8 }}>Nb</th>
+                              <th style={{ padding: "4px 5px", textAlign: "right", fontWeight: 700, width: 44, fontSize: 8 }}>U / ψ</th>
+                              <th style={{ padding: "4px 4px", textAlign: "right", fontWeight: 700, width: 28, fontSize: 8 }}>b</th>
+                              <th style={{ padding: "4px 5px", textAlign: "right", fontWeight: 700, width: 52, fontSize: 8 }}>Surf./Long.</th>
+                              <th style={{ padding: "4px 4px", textAlign: "center", fontWeight: 700, width: 30, fontSize: 8 }}>Orie</th>
+                              <th style={{ padding: "4px 5px", textAlign: "right", fontWeight: 700, width: 56, fontSize: 8, lineHeight: 1.2 }}>Déperd.{"\n"}W/°C</th>
+                              <th style={{ padding: "4px 4px", textAlign: "center", fontWeight: 700, width: 26, fontSize: 8 }}>Réf.</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {scParoisRows.map((r, idx) => {
+                              const sub = isSubItem(r);
+                              const color = kindColor[r.kind] ?? scColor;
+                              const bg = idx % 2 === 0 ? "#fafbfc" : "#fff";
+                              return (
+                                <tr key={idx} style={{ background: sub ? "#f8fafc" : bg, borderBottom: "1px solid #f1f5f9" }}>
+                                  <td style={{
+                                    padding: "3px 5px", paddingLeft: sub ? 16 : 5,
+                                    fontWeight: sub ? 400 : 700,
+                                    color: sub ? "#64748b" : color,
+                                    borderLeft: `3px solid ${sub ? color + "55" : color}`,
+                                    fontSize: sub ? 7.5 : 8,
+                                  }}>
+                                    {r.designation}
+                                  </td>
+                                  <td style={{ padding: "3px 5px", textAlign: "center", color: "#374151", fontFamily: "monospace", fontSize: 7.5 }}>{r.code ?? ""}</td>
+                                  <td style={{ padding: "3px 4px", textAlign: "center", color: "#64748b" }}>{r.nb ?? ""}</td>
+                                  <td style={{ padding: "3px 5px", textAlign: "right", color: "#374151" }}>
+                                    {r.kind === "pont_thermique" ? (r.psi ?? "") : (r.u ?? "")}
+                                  </td>
+                                  <td style={{ padding: "3px 4px", textAlign: "right", color: "#64748b" }}>{r.b ?? ""}</td>
+                                  <td style={{ padding: "3px 5px", textAlign: "right", color: "#374151" }}>
+                                    {r.kind === "pont_thermique" ? (r.longueur ?? "") : (r.surface ?? "")}
+                                  </td>
+                                  <td style={{ padding: "3px 4px", textAlign: "center", color: "#64748b", fontStyle: "italic" }}>{r.orie ?? ""}</td>
+                                  <td style={{ padding: "3px 5px", textAlign: "right", fontWeight: 700, color: "#0f172a" }}>{r.deperd ?? ""}</td>
+                                  <td style={{ padding: "3px 4px", textAlign: "center", color: "#94a3b8", fontSize: 7 }}>{r.ref ?? ""}</td>
+                                </tr>
+                              );
+                            })}
+                            {/* Total HT */}
+                            <tr style={{ background: scColor }}>
+                              <td colSpan={7} style={{ padding: "4px 5px", fontWeight: 700, textAlign: "right", fontSize: 9, color: "rgba(255,255,255,0.85)", letterSpacing: 0.3 }}>
+                                HT =
+                              </td>
+                              <td colSpan={2} style={{ padding: "4px 5px", fontWeight: 900, textAlign: "right", fontSize: 11, color: "#fff" }}>
+                                {htTotal.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} W/°C
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
