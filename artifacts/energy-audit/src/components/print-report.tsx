@@ -719,6 +719,16 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
     })),
   ];
 
+  // Detect initial heating system category for coefficient B
+  const initSysCategory: "fioul-charbon" | "gaz-electrique" = (() => {
+    const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
+    const sysRaw = norm(rawFields.find(f => f.key === "Système de chauffage")?.value ?? "");
+    const srcRaw = norm(rawFields.find(f => f.key === "Chauffage - Source d'énergie")?.value ?? "");
+    const combined = sysRaw + " " + srcRaw;
+    if (/fioul|fuel|mazout|gazole|charbon|houille|anthracite/.test(combined)) return "fioul-charbon";
+    return "gaz-electrique";
+  })();
+
   const scData = scenarioCodes.map((code, idx) => {
     const metaSc = meta?.scenarios?.[idx] ?? null;
     // "Conseils" raw field: "TRAVAIL A / TRAVAIL B / TRAVAIL C" — used as fallback for travaux
@@ -805,6 +815,13 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       gainEconomiqueEur: metaSc?.gainEconomiqueEur ?? null,
       tauxEnrRPct: metaSc?.tauxEnrRPct ?? null,
       computedEnrPct,
+      coefficientB: (() => {
+        const enrVal = metaSc?.tauxEnrRPct ?? computedEnrPct;
+        if (enrVal === null) return null;
+        return initSysCategory === "fioul-charbon"
+          ? (enrVal >= 50 ? 77 : 46)
+          : (enrVal >= 50 ? 61 : 38);
+      })(),
       primeBarTh145Euros: metaSc?.primeBarTh145Euros ?? null,
       travaux: allTravaux,
       isolationToitures: metaSc?.isolationToitures ?? null,
@@ -1276,9 +1293,28 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 );
               })}
             </tr>
+            {/* Coefficient B */}
+            {scData.some((sc) => sc.coefficientB !== null) && (
+              <tr style={rowOdd}>
+                <td style={tdLeft}>
+                  Valeur du Coefficient B<br />
+                  <span style={{ color: "#94a3b8", fontSize: 9 }}>
+                    {initSysCategory === "fioul-charbon"
+                      ? "Fioul / Charbon initial — ENR≥50%→77, <50%→46"
+                      : "Gaz / Électrique initial — ENR≥50%→61, <50%→38"}
+                  </span>
+                </td>
+                <td style={td}>—</td>
+                {scData.map((sc) => (
+                  <td key={sc.code} style={{ ...td, color: "#0f766e", fontWeight: 700 }}>
+                    {sc.coefficientB !== null ? sc.coefficientB : "—"}
+                  </td>
+                ))}
+              </tr>
+            )}
             {/* Gain économique */}
             {scData.some((sc) => sc.gainEconomiqueEur !== null) && (
-              <tr style={rowOdd}>
+              <tr style={rowEven}>
                 <td style={tdLeft}>Gain économique (€/an)</td>
                 <td style={td}>—</td>
                 {scData.map((sc) => (
