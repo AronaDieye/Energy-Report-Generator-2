@@ -185,6 +185,12 @@
     background: #fff;
   }
 
+  /* CRITICAL: overflow:hidden on parent containers blocks Chromium page-break rules.
+     Reset all overflow to visible so break-inside/break-after work on every element. */
+  * {
+    overflow: visible !important;
+  }
+
   /* Tables */
   table {
     page-break-inside: auto;
@@ -198,6 +204,13 @@
     display: table-header-group;
     break-inside: avoid;
     page-break-inside: avoid;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  /* Stick a heading/title div to its following content */
+  .print-heading {
+    break-after: avoid;
+    page-break-after: avoid;
   }
   /* Generic avoid-break helper */
   .print-avoid-break {
