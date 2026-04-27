@@ -1291,14 +1291,6 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 <td key={sc.code} style={{ ...td, color: "#16a34a", fontWeight: 700 }}>{fmtNum(sc.ges, 1)}</td>
               ))}
             </tr>
-            {/* Cost */}
-            <tr style={rowEven}>
-              <td style={tdLeft}>Coût annuel (€/an)</td>
-              <td style={td}>{fmtNum(initialCost)}</td>
-              {scData.map((sc) => (
-                <td key={sc.code} style={{ ...td, color: "#1d4ed8", fontWeight: 700 }}>{fmtNum(sc.cost)}</td>
-              ))}
-            </tr>
             {/* CEP 3 usages */}
             {(meta?.cep3UsagesInitial !== null && meta?.cep3UsagesInitial !== undefined) && (
               <tr style={rowEven}>
@@ -2670,7 +2662,6 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           { label: "CEF — 5 usages", initial: cefInitial != null ? `${fmtNum(cefInitial, 1)}` : null, after: sc.cef != null ? `${fmtNum(sc.cef, 1)}` : null, unit: "kWhEF/m².an", highlight: true },
           { label: "CEP — Th-C-E", initial: thceInitial != null ? `${fmtNum(thceInitial, 1)}` : null, after: sc.thce != null ? `${fmtNum(sc.thce, 1)}` : null, unit: "kWhEP/m².an" },
           { label: "GES", initial: gesInitial != null ? `${fmtNum(gesInitial, 1)}` : null, after: sc.ges != null ? `${fmtNum(sc.ges, 1)}` : null, unit: "kgCO₂/m².an" },
-          { label: "Coût annuel", initial: initialCost != null ? `${fmtNum(initialCost)}` : null, after: sc.cost != null ? `${fmtNum(sc.cost)}` : null, unit: "€/an" },
         ];
 
         // Works list — two types: structured (label + value) and flat (text only from Conseils)
@@ -2831,11 +2822,6 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                       label: "GES (kgCO₂éq/m².an)",
                       initial: gesInitial,
                       after: sc.ges,
-                    },
-                    {
-                      label: "Coût annuel (€/an)",
-                      initial: initialCost,
-                      after: sc.cost,
                     },
                   ].filter(r => r.initial != null || r.after != null).map((row, i) => {
                     const reduction = row.initial != null && row.after != null ? row.initial - row.after : null;
