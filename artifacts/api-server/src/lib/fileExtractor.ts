@@ -1224,6 +1224,13 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
   const ecsTypeMatch = text.match(/Type d'ECS\s*:\s*(.*?)(?:\n|\r)/);
   const eerMatch = text.match(/Eer nominal\s*:\s*([\d,]+)/);
   const copMatch = text.match(/Cop nominal\s*:\s*([\d,]+)/i);
+  // Try to extract separate COP for heating PAC and thermodynamic ECS
+  const copPacChauffageMatch = text.match(/COP\s+PAC\s+(?:chauffage|chauf)[^\d]*([\d,]+)/i)
+    || text.match(/Cop\s+(?:chauffage|chauf)\s*:\s*([\d,]+)/i)
+    || text.match(/PAC\s+(?:chauffage|chauf)[^\d]*COP[^\d]*([\d,]+)/i);
+  const copBallonMatch = text.match(/COP\s+(?:ballon|ECS|eau\s+chaude\s+sanitaire)[^\d]*([\d,]+)/i)
+    || text.match(/(?:ballon\s+thermodynamique|PAC\s+ECS)[^\d]*COP[^\d]*([\d,]+)/i)
+    || text.match(/COP\s+(?:ECS|eau\s+chaude)[^\d]*([\d,]+)/i);
 
   // ── 10. Building name - try to find the project title
   let buildingName: string | null = null;
@@ -1357,6 +1364,8 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
   addField("Type d'ECS", ecsTypeMatch ? ecsTypeMatch[1] : null, "SYSTÈMES CVC");
   if (eerMatch) addField("EER nominal (PAC)", eerMatch[1], "SYSTÈMES CVC");
   if (copMatch) addField("COP nominal", copMatch[1], "SYSTÈMES CVC");
+  if (copPacChauffageMatch) addField("COP PAC Chauffage", copPacChauffageMatch[1], "SYSTÈMES CVC");
+  if (copBallonMatch) addField("COP Ballon Thermodynamique", copBallonMatch[1], "SYSTÈMES CVC");
 
   // Scenario raw fields
   for (const sc of scenarios) {

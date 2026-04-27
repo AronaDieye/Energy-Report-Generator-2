@@ -743,16 +743,33 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
     const cep3Val = parseVal(getScVal(rawFields, code, "kWhEP/m².an après")) ?? metaSc?.cep3KwhEpM2 ?? null;
     const ges3clVal = parseVal(getScVal(rawFields, code, "kgCO2/m² après")) ?? null;
 
-    // Compute ENR & R rate using: [(COP_pac-2,3)×Cons_pac + (COP_ecs-2,3)×Cons_ecs + Cons_Bois]
-    //                              / [COP_pac×Cons_pac + COP_ecs×Cons_ecs + Cons_Bois + Cons_autres]
+    // Compute ENR & R rate using the formula:
+    //   Taux ENR&R = [(COP_pac-2.3)×Cons_pac + (COP_ecs-2.3)×Conso_ecs + Cons_Bois]
+    //             / [COP_pac×Cons_pac + COP_ecs×Conso_ecs + Cons_Bois + Cons_autres]
+    //
+    // COP_pac  : COP of the heating PAC  — field "COP PAC Chauffage" > "COP nominal" > 3.5
+    // COP_ecs  : COP of the thermodynamic water heater — field "COP Ballon Thermodynamique"
+    //            or "COP ECS" > "COP nominal" > 2.5
+    // Cons_Bois: final energy of wood/biomass sources (100 % ENR)
+    // Cons_autres: final energy of non-renewable sources (gas, propane, fuel, etc.)
     const computedEnrPct = (() => {
       const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
-      const copNominal = parseVal(rawFields.find(f => f.key === "COP nominal")?.value ?? null);
-      const sysChauffage = norm(rawFields.find(f => f.key === "Système de chauffage")?.value ?? "");
-      const typeEcs = norm(rawFields.find(f => f.key === "Type d'ECS")?.value ?? "");
-      const conseils = norm(getScVal(rawFields, code, "Conseils") ?? "");
 
-      const isPacName = (n: string | null) => { if (!n) return false; const s = norm(n); return s.includes("pac") || s.includes("pompe a chaleur") || s.includes("thermodynamique") || s.includes("aerothermie") || s.includes("hydrothermie"); };
+      // Read COP fields — prefer dedicated per-usage fields, then global COP nominal
+      const copNominal   = parseVal(rawFields.find(f => f.key === "COP nominal")?.value ?? null);
+      const copPacField  = parseVal(rawFields.find(f => f.key === "COP PAC Chauffage")?.value ?? null);
+      const copEcsField  = parseVal(rawFields.find(f => f.key === "COP Ballon Thermodynamique")?.value
+                                 ?? rawFields.find(f => f.key === "COP ECS")?.value ?? null);
+      // COP_pac : dedicated > global COP nominal > 3.5 (typical SCOP for air-to-water PAC)
+      const COP_pac = copPacField ?? copNominal ?? 3.5;
+      // COP_ecs : dedicated > global COP nominal > 2.5 (typical COP for thermodynamic water heater)
+      const COP_ecs = copEcsField ?? copNominal ?? 2.5;
+
+      const sysChauffage = norm(rawFields.find(f => f.key === "Système de chauffage")?.value ?? "");
+      const typeEcs      = norm(rawFields.find(f => f.key === "Type d'ECS")?.value ?? "");
+      const conseils     = norm(getScVal(rawFields, code, "Conseils") ?? "");
+
+      const isPacName  = (n: string | null) => { if (!n) return false; const s = norm(n); return s.includes("pac") || s.includes("pompe a chaleur") || s.includes("thermodynamique") || s.includes("aerothermie") || s.includes("hydrothermie"); };
       const isBoisName = (n: string | null) => { if (!n) return false; const s = norm(n); return s.includes("bois") || s.includes("granule") || s.includes("biomasse") || s.includes("buche") || s.includes("pellet"); };
       const isElecName = (n: string | null) => { if (!n) return false; return norm(n).includes("electr"); };
 
@@ -760,7 +777,12 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       let denominator = 0;
 
       for (const prefix of ["Chauffage", "ECS"] as const) {
-        const srcRaw = getScVal(rawFields, code, `${prefix} - Source d'énergie`);
+        // Select the correct COP based on the usage:
+        //   Chauffage → COP_pac (heating heat pump)
+        //   ECS       → COP_ecs (thermodynamic water heater)
+        const copForPrefix = prefix === "Chauffage" ? COP_pac : COP_ecs;
+
+        const srcRaw  = getScVal(rawFields, code, `${prefix} - Source d'énergie`);
         const totalVal = parseVal(getScVal(rawFields, code, `${prefix} - Énergie finale`));
         if (!srcRaw && totalVal === null) continue;
         const srcs = srcRaw ? srcRaw.split(", ").filter(Boolean) : [];
@@ -772,20 +794,30 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           if (!kwhAn || kwhAn <= 0) continue;
 
           if (isPacName(s)) {
-            const cop = copNominal ?? 3.5;
-            numerator += Math.max(0, cop - 2.3) * kwhAn;
+            // PAC or thermodynamique — use the COP specific to this usage
+            const cop = copForPrefix;
+            numerator   += Math.max(0, cop - 2.3) * kwhAn;
             denominator += cop * kwhAn;
           } else if (isBoisName(s)) {
-            numerator += kwhAn;
+            // Wood / biomass — 100 % ENR
+            numerator   += kwhAn;
             denominator += kwhAn;
           } else if (isElecName(s)) {
-            const chaufPac = prefix === "Chauffage" && (conseils.includes("pac") || sysChauffage.includes("pac") || sysChauffage.includes("pompe"));
-            const ecsPac = prefix === "ECS" && (typeEcs.includes("thermodynamique") || typeEcs.includes("pac") || conseils.includes("thermodynamique"));
+            // "Electricité" source — determine whether it drives a PAC/thermodynamique
+            const chaufPac = prefix === "Chauffage" && (
+              conseils.includes("pac") || conseils.includes("pompe a chaleur") ||
+              sysChauffage.includes("pac") || sysChauffage.includes("pompe")
+            );
+            const ecsPac = prefix === "ECS" && (
+              typeEcs.includes("thermodynamique") || typeEcs.includes("pac") ||
+              conseils.includes("thermodynamique") || conseils.includes("pac ecs")
+            );
             if (chaufPac || ecsPac) {
-              const cop = copNominal ?? 3.5;
-              numerator += Math.max(0, cop - 2.3) * kwhAn;
+              const cop = copForPrefix;
+              numerator   += Math.max(0, cop - 2.3) * kwhAn;
               denominator += cop * kwhAn;
             } else {
+              // Standard electric resistance — 0 % ENR
               denominator += kwhAn;
             }
           } else {
@@ -859,6 +891,9 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
     { label: "Type ECS", key: "Type d'ECS" },
     { label: "Ventilation", key: "Type de ventilation" },
     { label: "COP nominal", key: "COP nominal" },
+    { label: "COP PAC Chauffage", key: "COP PAC Chauffage" },
+    { label: "COP Ballon Thermodynamique", key: "COP Ballon Thermodynamique" },
+    { label: "COP ECS", key: "COP ECS" },
     { label: "EER nominal", key: "EER nominal (PAC)" },
   ].filter((r) => getRaw(rawFields, r.key));
 
@@ -2189,8 +2224,9 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
               cat: "chauffage_ecs",
               accent: "#7c3aed",
               fields: [
-                { label: "Système de chauffage", key: "Système de chauffage" },
-                { label: "COP nominal",          key: "COP nominal" },
+                { label: "Système de chauffage",     key: "Système de chauffage" },
+                { label: "COP nominal",              key: "COP nominal" },
+                { label: "COP PAC Chauffage",        key: "COP PAC Chauffage" },
               ],
             },
             {
@@ -2198,7 +2234,9 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
               cat: "",
               accent: "#a855f7",
               fields: [
-                { label: "Type ECS", key: "Type d'ECS" },
+                { label: "Type ECS",                        key: "Type d'ECS" },
+                { label: "COP Ballon Thermodynamique",      key: "COP Ballon Thermodynamique" },
+                { label: "COP ECS",                        key: "COP ECS" },
               ],
             },
             {
