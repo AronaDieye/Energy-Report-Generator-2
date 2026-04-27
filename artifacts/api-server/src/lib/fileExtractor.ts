@@ -710,32 +710,52 @@ function extractCopFromBlock(block: string, postKey: "CHAUFFAGE" | "ECS"): numbe
 }
 
 /**
- * Look for any COP/SCOP keyword + decimal number in a text fragment.
- * Also catches a standalone number in [1.5, 6.0] right after a PAC/thermodynamique name
- * (format used in some BAO documents where COP appears without label).
+ * Look for a COP/SCOP value in a text fragment, for a given usage (CHAUFFAGE or ECS).
+ *
+ * Handles all common formats found in BAO "Conseils" descriptions and consumption tables:
+ *   - "COP à 7/55 >= 3,14"          (PAC air/eau spec)
+ *   - "COP (20°C/55°C) >= 4,2"      (ballon thermodynamique spec)
+ *   - "COP nominal : 3,8"           (global nominal)
+ *   - "COP : 3,5" / "SCOP : 4,0"
+ *   - standalone COP-range number on the line after a PAC/ballon name
+ *
+ * For CHAUFFAGE, matches lines containing PAC / pompe à chaleur keywords.
+ * For ECS, matches lines containing ballon thermodynamique / thermodynamique keywords.
  */
 function extractCopLoose(text: string, postKey: "CHAUFFAGE" | "ECS"): number | null {
-  // 1. Explicit "SCOP" or "COP" keyword followed by an optional colon and a decimal
-  const explicit = text.match(/(?:SCOP|COP)(?:\s+(?:nominal|PAC|ballon|ECS|chauffage|chauf|ecs|therm\w+))?\s*:?\s*([\d,]+)/i);
-  if (explicit) {
-    const v = parseNum(explicit[1]);
-    if (v !== null && v >= 1.0 && v <= 8.0) return v;
-  }
+  // Keyword patterns that signal the line is about the right equipment type
+  const isPacContext = postKey === "CHAUFFAGE"
+    ? /(?:PAC|pompe\s*.{0,15}chaleur|aerotherm|hydrotherm)/i
+    : /(?:ballon\s*thermo|thermodynamique|chauffe.eau\s*thermo)/i;
 
-  // 2. After a PAC / ballon thermodynamique source name, look for a number in COP range [1.5, 6.0]
-  //    on the very next non-empty line (some formats omit the "COP" label)
-  const isPacLine = postKey === "CHAUFFAGE"
-    ? /(?:PAC|pompe\s+.{0,20}chaleur|aerotherm|hydrotherm)/i
-    : /(?:PAC|ballon\s+thermo|thermodynamique|chauffe.eau)/i;
+  // COP value pattern — covers:
+  //   COP[optional stuff: " à 7/55", " (20°C/55°C)", " nominal", etc.]
+  //   then one of: >= > = :
+  //   then optional whitespace
+  //   then the decimal number (French comma or dot)
+  const COP_VALUE_RE = /(?:SCOP|COP)[^<>=:\n]{0,50}?(?:>=|>|=|:)\s*([\d][0-9,\.]*)/gi;
 
   const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+
+  // ── Pass 1: line-by-line — prefer values on context-matching lines ──────────
+  for (const line of lines) {
+    if (!isPacContext.test(line)) continue;
+
+    COP_VALUE_RE.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = COP_VALUE_RE.exec(line)) !== null) {
+      const v = parseNum(m[1]);
+      if (v !== null && v >= 1.0 && v <= 8.0) return v;
+    }
+  }
+
+  // ── Pass 2: standalone COP-range number on the line following a PAC/ballon name ─
+  // (some consumption table formats have only a bare number after the source name)
   for (let i = 0; i < lines.length - 1; i++) {
-    if (isPacLine.test(lines[i])) {
-      // Check next few lines for a COP-range number
+    if (isPacContext.test(lines[i])) {
       for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
-        const numLine = lines[j];
-        if (/^[\d,.\s]+$/.test(numLine)) {
-          const v = parseNum(numLine);
+        if (/^[\d,.\s]+$/.test(lines[j])) {
+          const v = parseNum(lines[j]);
           if (v !== null && v >= 1.5 && v <= 6.0) return v;
         }
       }
