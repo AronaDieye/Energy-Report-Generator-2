@@ -424,7 +424,7 @@ function staticMapUrl(lat: number, lon: number, zoom = 11): string {
 
 function SectionTitle({ num, title, subtitle }: { num: string; title: string; subtitle?: string }) {
   return (
-    <div style={{ borderBottom: "3px solid #1e3a5f", marginBottom: 16, paddingBottom: 6 }}>
+    <div style={{ borderBottom: "3px solid #1e3a5f", marginBottom: 16, paddingBottom: 6, breakAfter: "avoid", pageBreakAfter: "avoid" }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
         <span style={{ background: "#1e3a5f", color: "#fff", borderRadius: 4, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
           {num}
@@ -1804,6 +1804,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           ].filter(r => getRaw(rawFields, r.key));
           if (batRows.length === 0) return null;
           return (
+            <div style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16, fontSize: 10 }}>
               <thead>
                 <tr style={{ background: "#0f766e", color: "#fff" }}>
@@ -1820,6 +1821,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 ))}
               </tbody>
             </table>
+            </div>
           );
         })()}
 
@@ -2977,7 +2979,8 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
 
                 return (
                   <div style={{ marginTop: 16 }}>
-                    {/* ─ Bannière titre ─ */}
+                    {/* ─ Bannière titre + KPI cards : ne pas couper ─ */}
+                    <div style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                     <div style={{
                       background: scColor, padding: "7px 14px", borderRadius: "6px 6px 0 0",
                       display: "flex", alignItems: "center", gap: 8,
@@ -3015,6 +3018,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                         ))}
                       </div>
                     )}
+                    </div>{/* end breakInside wrapper */}
 
                     {/* ─ Table détail parois ─ */}
                     {scParoisRows.length > 0 && (
