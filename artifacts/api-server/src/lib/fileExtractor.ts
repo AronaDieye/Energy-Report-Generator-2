@@ -1319,14 +1319,23 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
   const vitrageMatch = text.match(/(Fenêtre PVC|Fenêtre Bois|Fenêtre Alu|Porte fenêtre PVC|Porte fenêtre Bois)/);
 
   // ── 9. HVAC systems
+  // Generator (heat source): BAO section code 6-0x-01 or "Type de générateur"
   const heatingSystemMatch = text.match(
     /6-0[1-9]-0[1-9]\] Générateur\s*:\s*(.*?)(?:\n|\r)/
   );
   const generateurTypeMatch = text.match(
     /Type de générateur\s*:\s*(CHAUDIÈRE?[^\n]+|POMPE[^\n]+|CHAUDIERE[^\n]+|POILE[^\n]+)/i
   );
+  // Emitters (heating distribution): BAO section code 6-0x-0x Emetteur(s)
+  // or common field names "Type d'émetteur", "Emetteurs de chauffage"
+  const emetteurMatch =
+    text.match(/6-0[1-9]-0[2-9]\]\s*Emetteur[^\n]*:\s*([^\n\r]+)/i) ||
+    text.match(/\[?6-0[1-9]-[0-9]{2}\]?\s*Emetteur[^\n]*:\s*([^\n\r]+)/i) ||
+    text.match(/Type\s+d['']émetteur[^\n]*:\s*([^\n\r]+)/i) ||
+    text.match(/Emetteurs?\s+de\s+chauffage\s*:\s*([^\n\r]+)/i) ||
+    text.match(/Emetteurs?\s*:\s*(radiateur[^\n\r]+|plancher[^\n\r]+|convecteur[^\n\r]+|ventilo[^\n\r]+|fan[- ]coil[^\n\r]*)/i);
   const ventilationTypeMatch = text.match(/Type de ventilation\s*:\s*(.*?)(?:\n|\r)/);
-  const ecsTypeMatch = text.match(/Type d'ECS\s*:\s*(.*?)(?:\n|\r)/);
+  const ecsTypeMatch = text.match(/Type d['']ECS\s*:\s*(.*?)(?:\n|\r)/);
   const eerMatch = text.match(/Eer nominal\s*:\s*([\d,]+)/);
   const copMatch = text.match(/Cop nominal\s*:\s*([\d,]+)/i);
   // Try to extract separate COP for heating PAC and thermodynamic ECS
@@ -1464,7 +1473,9 @@ function parseBaoEvolutionSed(text: string): ExtractedAuditData {
   if (ubat.portes !== null) addField("Ubat - Portes (total)", ubat.portes.toLocaleString("fr-FR") + " W/°C", "RÉPARTITION DÉPERDITIONS");
   if (ubat.autresParois !== null) addField("Ubat - Autres parois (total)", ubat.autresParois.toLocaleString("fr-FR") + " W/°C", "RÉPARTITION DÉPERDITIONS");
 
-  addField("Système de chauffage", heatingSystemMatch ? heatingSystemMatch[1] : generateurTypeMatch ? generateurTypeMatch[1] : null, "SYSTÈMES CVC");
+  const generatorValue = heatingSystemMatch ? heatingSystemMatch[1].trim() : generateurTypeMatch ? generateurTypeMatch[1].trim() : null;
+  addField("Système de chauffage", generatorValue, "SYSTÈMES CVC");
+  if (emetteurMatch) addField("Émetteurs de chauffage", emetteurMatch[1].trim(), "SYSTÈMES CVC");
   addField("Type de ventilation", ventilationTypeMatch ? ventilationTypeMatch[1] : null, "SYSTÈMES CVC");
   addField("Type d'ECS", ecsTypeMatch ? ecsTypeMatch[1] : null, "SYSTÈMES CVC");
   if (eerMatch) addField("EER nominal (PAC)", eerMatch[1], "SYSTÈMES CVC");

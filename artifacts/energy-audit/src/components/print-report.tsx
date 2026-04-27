@@ -898,7 +898,8 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
   ].filter((r) => getRaw(rawFields, r.key));
 
   const systemRows = [
-    { label: "Chauffage", key: "Système de chauffage" },
+    { label: "Générateur de chauffage", key: "Système de chauffage" },
+    { label: "Émetteurs de chauffage", key: "Émetteurs de chauffage" },
     { label: "Type ECS", key: "Type d'ECS" },
     { label: "Ventilation", key: "Type de ventilation" },
     { label: "COP nominal", key: "COP nominal" },
@@ -2231,13 +2232,21 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         {(() => {
           const techSections: { displayLabel: string; cat: string; accent: string; fields: { label: string; key: string }[] }[] = [
             {
-              displayLabel: "Chauffage",
+              displayLabel: "Générateur de chauffage",
               cat: "chauffage_ecs",
               accent: "#7c3aed",
               fields: [
-                { label: "Système de chauffage",     key: "Système de chauffage" },
-                { label: "COP nominal",              key: "COP nominal" },
-                { label: "COP PAC Chauffage",        key: "COP PAC Chauffage" },
+                { label: "Générateur",        key: "Système de chauffage" },
+                { label: "COP nominal",       key: "COP nominal" },
+                { label: "COP PAC Chauffage", key: "COP PAC Chauffage" },
+              ],
+            },
+            {
+              displayLabel: "Émetteurs de chauffage",
+              cat: "",
+              accent: "#8b5cf6",
+              fields: [
+                { label: "Émetteurs", key: "Émetteurs de chauffage" },
               ],
             },
             {
@@ -2245,9 +2254,9 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
               cat: "",
               accent: "#a855f7",
               fields: [
-                { label: "Type ECS",                        key: "Type d'ECS" },
-                { label: "COP Ballon Thermodynamique",      key: "COP Ballon Thermodynamique" },
-                { label: "COP ECS",                        key: "COP ECS" },
+                { label: "Type ECS",                   key: "Type d'ECS" },
+                { label: "COP Ballon Thermodynamique", key: "COP Ballon Thermodynamique" },
+                { label: "COP ECS",                   key: "COP ECS" },
               ],
             },
             {
@@ -2293,11 +2302,11 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           return (
             <div style={{ marginBottom: 20 }}>
               {visibleSections.map(({ displayLabel, cat, accent, fields }) => {
-                const catPhotos = photosByCategory[cat] ?? [];
+                const catPhotos = cat ? photosByCategory[cat] ?? [] : [];
                 const hasPhotos = catPhotos.length > 0;
                 const fieldData = fields.filter(f => getRaw(rawFields, f.key));
                 return (
-                  <div key={cat} style={{ marginBottom: 10, breakInside: "avoid" }}>
+                  <div key={displayLabel} style={{ marginBottom: 10, breakInside: "avoid" }}>
                     <div style={{ display: "flex", gap: 10, alignItems: "stretch" }}>
                       {/* Description card */}
                       <div style={{
