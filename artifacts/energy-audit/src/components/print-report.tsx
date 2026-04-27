@@ -1006,10 +1006,11 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                       />
                     </div>
                   )}
-                  <div style={{ textAlign: "right", fontSize: 8, opacity: 0.6 }}>
-                    <div>Édité le {printDate}</div>
-                    {meta?.reference && <div style={{ marginTop: 2 }}>Réf. {meta.reference}</div>}
-                  </div>
+                  {meta?.reference && (
+                    <div style={{ textAlign: "right", fontSize: 8, opacity: 0.6 }}>
+                      <div>Réf. {meta.reference}</div>
+                    </div>
+                  )}
                 </div>
               </div>
             );
