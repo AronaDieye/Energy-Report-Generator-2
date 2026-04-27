@@ -2978,7 +2978,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 if (kpiCards.length === 0 && scParoisRows.length === 0) return null;
 
                 return (
-                  <div style={{ marginTop: 16 }}>
+                  <div style={{ marginTop: 0, breakBefore: "page", pageBreakBefore: "always" }}>
                     {/* ─ Bannière titre + KPI cards : ne pas couper ─ */}
                     <div style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                     <div style={{
