@@ -229,6 +229,11 @@ export const auditReportsTable = pgTable("audit_reports", {
       totalDepenseAnnuelle?: number | null;
       totalKwhEfAn?: number | null;
     }>;
+    coverPhotoId?: number | null;
+    bureauLogoId?: number | null;
+    introText?: string | null;
+    logicielUtilise?: string | null;
+    methodeCalcul?: string | null;
   }>(),
 });
 

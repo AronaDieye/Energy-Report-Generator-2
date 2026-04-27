@@ -984,6 +984,7 @@ interface CoverForm {
   dateRestitution: string;
   reference: string;
   coverPhotoId: number | null;
+  bureauLogoId: number | null;
   introText: string;
   logicielUtilise: string;
   methodeCalcul: string;
@@ -1060,8 +1061,11 @@ function CoverPageEditor({
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [uploadingCertif, setUploadingCertif] = useState(false);
   const certifInputRef = React.useRef<HTMLInputElement>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = React.useRef<HTMLInputElement>(null);
 
   const certifPhotos = photos.filter(p => p.category === "certifications");
+  const logoPhotos = photos.filter(p => p.category === "bureau_logo");
 
   // Fetch existing photos on open
   React.useEffect(() => {
@@ -1133,6 +1137,40 @@ function CoverPageEditor({
       setPhotos(prev => prev.filter(p => p.id !== photoId));
     } catch {
       setError("Erreur lors de la suppression");
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const fd = new FormData();
+      fd.append("photo", file);
+      fd.append("category", "bureau_logo");
+      fd.append("caption", "Logo bureau d'études");
+      const res = await fetch(`${apiBase}/api/audit/reports/${reportId}/photos`, { method: "POST", body: fd });
+      if (!res.ok) throw new Error("Upload échoué");
+      const newPhoto = await res.json();
+      const listRes = await fetch(`${apiBase}/api/audit/reports/${reportId}/photos`);
+      const ps: EditorPhoto[] = listRes.ok ? await listRes.json() : photos;
+      setPhotos(ps);
+      setForm(f => ({ ...f, bureauLogoId: newPhoto.id }));
+    } catch {
+      setError("Erreur lors de l'envoi du logo");
+    } finally {
+      setUploadingLogo(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
+
+  const handleLogoDelete = async (photoId: number) => {
+    try {
+      await fetch(`${apiBase}/api/audit/reports/${reportId}/photos/${photoId}`, { method: "DELETE" });
+      setPhotos(prev => prev.filter(p => p.id !== photoId));
+      setForm(f => ({ ...f, bureauLogoId: null }));
+    } catch {
+      setError("Erreur lors de la suppression du logo");
     }
   };
 
@@ -1261,6 +1299,67 @@ function CoverPageEditor({
                 <CoverField label="N° SIRET" value={form.siret} onChange={handleChange("siret")} placeholder="123 456 789 00012" />
                 <CoverField label="Qualification générale" value={form.qualification} onChange={handleChange("qualification")} placeholder="RGE, OPQIBI..." />
               </div>
+            </div>
+
+            {/* Logo du bureau d'études */}
+            <div>
+              <SectionDivider label="Logo du bureau d'études" color="indigo" />
+              <p className="text-xs text-muted-foreground mb-3">
+                Le logo apparaîtra en haut à droite de la page de garde du rapport PDF.
+                Formats acceptés : PNG, JPG, SVG. Fond transparent recommandé.
+              </p>
+              {logoPhotos.length > 0 ? (
+                <div className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg border">
+                  <div className="bg-white border rounded p-2 flex items-center justify-center" style={{ minWidth: 100, minHeight: 56 }}>
+                    <img
+                      src={`${apiBase}${logoPhotos[0].url}`}
+                      alt="Logo bureau"
+                      className="max-h-12 max-w-[120px] object-contain"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">Logo importé</div>
+                    <div className="text-xs text-muted-foreground">{logoPhotos[0].fileName}</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={uploadingLogo}
+                      onClick={() => logoInputRef.current?.click()}
+                    >
+                      Remplacer
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => handleLogoDelete(logoPhotos[0].id)}
+                    >
+                      Supprimer
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={uploadingLogo}
+                  onClick={() => logoInputRef.current?.click()}
+                >
+                  {uploadingLogo ? "Envoi en cours…" : "Importer le logo"}
+                </Button>
+              )}
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleLogoUpload}
+              />
             </div>
 
             {/* Photos de certification */}
@@ -1496,6 +1595,7 @@ export function ReportDetail() {
             dateRestitution: report.metadata?.dateRestitution ?? "",
             reference: report.metadata?.reference ?? "",
             coverPhotoId: (report.metadata as Record<string, unknown>)?.coverPhotoId as number | null ?? null,
+            bureauLogoId: (report.metadata as Record<string, unknown>)?.bureauLogoId as number | null ?? null,
             introText: (report.metadata as Record<string, unknown>)?.introText as string ?? DEFAULT_INTRO_TEXT,
             logicielUtilise: (report.metadata as Record<string, unknown>)?.logicielUtilise as string ?? "",
             methodeCalcul: (report.metadata as Record<string, unknown>)?.methodeCalcul as string ?? "",

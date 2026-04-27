@@ -541,7 +541,7 @@ router.patch("/audit/reports/:id/cover", async (req, res): Promise<void> => {
     bureauEtudes, bureauAdresse, bureauEmail, bureauTelephone, siret, qualification,
     maitreDoeuvre, beneficiaire, adresseClient, dateVisite, dateRealisation, dateRestitution, reference,
     logicielUtilise, methodeCalcul,
-    coverPhotoId,
+    coverPhotoId, bureauLogoId,
   } = req.body;
 
   const metaPatch: Record<string, unknown> = {};
@@ -554,6 +554,9 @@ router.patch("/audit/reports/:id/cover", async (req, res): Promise<void> => {
   }
   if (coverPhotoId !== undefined) {
     metaPatch.coverPhotoId = coverPhotoId === null ? null : Number(coverPhotoId);
+  }
+  if (bureauLogoId !== undefined) {
+    metaPatch.bureauLogoId = bureauLogoId === null ? null : Number(bureauLogoId);
   }
 
   const mergedMeta = { ...(existing.metadata ?? {}), ...metaPatch } as typeof auditReportsTable.$inferInsert["metadata"];

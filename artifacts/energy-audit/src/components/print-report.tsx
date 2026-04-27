@@ -503,6 +503,7 @@ interface BaoMetadata {
   cep5UsagesInitial?: number | null;
   gesInitialKgCo2M2?: number | null;
   coverPhotoId?: number | null;
+  bureauLogoId?: number | null;
   introText?: string | null;
   logicielUtilise?: string | null;
   methodeCalcul?: string | null;
@@ -975,27 +976,44 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           flexShrink: 0,
         }}>
           {/* Logo / Entreprise */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
-            <div>
-              {meta?.bureauEtudes ? (
-                <>
-                  <div style={{ fontSize: 9, letterSpacing: 2, textTransform: "uppercase", opacity: 0.65, marginBottom: 3 }}>Bureau d'études</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: 0.5 }}>{meta.bureauEtudes}</div>
-                  {meta.bureauAdresse && <div style={{ fontSize: 9, opacity: 0.6, marginTop: 2 }}>{meta.bureauAdresse}</div>}
-                  {meta.siret && <div style={{ fontSize: 8, opacity: 0.5, marginTop: 1 }}>SIRET {meta.siret}</div>}
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize: 9, letterSpacing: 2, textTransform: "uppercase", opacity: 0.65, marginBottom: 3 }}>Plateforme</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: 0.5 }}>AuditTech Pro</div>
-                </>
-              )}
-            </div>
-            <div style={{ textAlign: "right", fontSize: 8, opacity: 0.6 }}>
-              <div>Édité le {printDate}</div>
-              {meta?.reference && <div style={{ marginTop: 2 }}>Réf. {meta.reference}</div>}
-            </div>
-          </div>
+          {(() => {
+            const bureauLogoId = meta?.bureauLogoId;
+            const bureauLogo = bureauLogoId ? photos.find(p => p.id === bureauLogoId) : null;
+            return (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
+                <div>
+                  {meta?.bureauEtudes ? (
+                    <>
+                      <div style={{ fontSize: 9, letterSpacing: 2, textTransform: "uppercase", opacity: 0.65, marginBottom: 3 }}>Bureau d'études</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: 0.5 }}>{meta.bureauEtudes}</div>
+                      {meta.bureauAdresse && <div style={{ fontSize: 9, opacity: 0.6, marginTop: 2 }}>{meta.bureauAdresse}</div>}
+                      {meta.siret && <div style={{ fontSize: 8, opacity: 0.5, marginTop: 1 }}>SIRET {meta.siret}</div>}
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 9, letterSpacing: 2, textTransform: "uppercase", opacity: 0.65, marginBottom: 3 }}>Plateforme</div>
+                      <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: 0.5 }}>AuditTech Pro</div>
+                    </>
+                  )}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                  {bureauLogo && (
+                    <div style={{ background: "#fff", borderRadius: 6, padding: "4px 8px", boxShadow: "0 1px 4px rgba(0,0,0,0.18)" }}>
+                      <img
+                        src={`${apiBase}${bureauLogo.url}`}
+                        alt="Logo bureau d'études"
+                        style={{ height: 44, maxWidth: 130, objectFit: "contain", display: "block" }}
+                      />
+                    </div>
+                  )}
+                  <div style={{ textAlign: "right", fontSize: 8, opacity: 0.6 }}>
+                    <div>Édité le {printDate}</div>
+                    {meta?.reference && <div style={{ marginTop: 2 }}>Réf. {meta.reference}</div>}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Titre principal */}
           <div style={{ borderLeft: "4px solid #60a5fa", paddingLeft: 18, marginBottom: 4 }}>

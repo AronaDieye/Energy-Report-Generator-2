@@ -14,6 +14,8 @@ export const PHOTO_CATEGORIES = [
   "climatisation",
   "compteurs",
   "eclairage",
+  "bureau_logo",
+  "certifications",
   "general",
 ] as const;
 
