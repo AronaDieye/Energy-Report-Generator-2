@@ -1567,12 +1567,8 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 const palette = ["#16a34a", "#2563eb", "#7c3aed", "#dc2626", "#ea580c"][i] ?? "#374151";
                 const metrics = [
                   { l: "CEP 5 usages (kWhEP/m².an)", v: sc.thce !== null ? fmtNum(sc.thce, 1) : null },
-                  { l: "CEP 3 usages (kWhEP/m².an)", v: sc.cep3 !== null ? fmtNum(sc.cep3, 1) : null },
+                  { l: "CEF 5 usages (kWhEF/m².an)", v: sc.cef !== null ? fmtNum(sc.cef, 1) : null },
                   { l: "GES (kgCO₂/m².an)", v: sc.ges !== null ? fmtNum(sc.ges, 1) : null },
-                  { l: "Gain énergétique", v: sc.gainPct !== null ? `${fmtNum(sc.gainPct, 1)} %` : null },
-                  { l: "Gain économique", v: sc.gainEconomiqueEur !== null ? `${fmtNum(sc.gainEconomiqueEur)} €/an` : null },
-                  { l: "Taux ENR&R", v: sc.tauxEnrRPct !== null ? `${fmtNum(sc.tauxEnrRPct, 2)} %` : null },
-                  { l: "Prime BAR-TH-145", v: sc.primeBarTh145Euros !== null ? `${fmtNum(sc.primeBarTh145Euros)} €` : null },
                 ].filter((r) => r.v !== null);
                 return (
                   <div key={sc.code} style={{ display: "flex", flexDirection: "column", border: `1.5px solid ${palette}`, borderRadius: 6, overflow: "hidden", pageBreakInside: "avoid" }}>
