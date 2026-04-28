@@ -3383,11 +3383,6 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                             Économies : {Number(sc.gainEconomiqueEur).toLocaleString("fr-FR")} €/an
                           </div>
                         )}
-                        {sc.invest != null && (
-                          <div style={{ fontSize: 9, color: "#374151" }}>
-                            Coût estimé : {Number(sc.invest).toLocaleString("fr-FR")} €
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
