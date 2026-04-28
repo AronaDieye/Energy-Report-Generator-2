@@ -908,7 +908,6 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
     { label: "Émetteurs de chauffage", key: "Émetteurs de chauffage" },
     { label: "Type ECS", key: "Type d'ECS" },
     { label: "Ventilation", key: "Type de ventilation" },
-    { label: "COP nominal", key: "COP nominal" },
     { label: "COP PAC Chauffage", key: "COP PAC Chauffage" },
     { label: "COP Ballon Thermodynamique", key: "COP Ballon Thermodynamique" },
     { label: "COP ECS", key: "COP ECS" },
@@ -2340,7 +2339,6 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
               accent: "#7c3aed",
               fields: [
                 { label: "Générateur",        key: "Système de chauffage" },
-                { label: "COP nominal",       key: "COP nominal" },
                 { label: "COP PAC Chauffage", key: "COP PAC Chauffage" },
               ],
             },
