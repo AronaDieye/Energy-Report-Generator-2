@@ -1081,7 +1081,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {[
                   { l: "Type de bâtiment", v: b.buildingType || getRaw(rawFields, "Type de bâtiment") },
-                  { l: "Année de construction", v: b.constructionYear || getRaw(rawFields, "Année de construction") },
+                  { l: "Année de construction", v: getRaw(rawFields, "Année de construction") || b.constructionYear },
                   { l: "Surface habitable", v: b.heatedSurface ? `${fmtNum(b.heatedSurface)} m²` : getRaw(rawFields, "Surface habitable") },
                   { l: "Surface SHON", v: b.totalSurface ? `${fmtNum(b.totalSurface)} m²` : getRaw(rawFields, "Surface SHON") },
                   { l: "Niveaux", v: b.numberOfFloors || getRaw(rawFields, "Nombre de niveaux") },
@@ -3311,7 +3311,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
         <SectionTitle num={`${6 + scData.length}`} title="Conclusion générale" subtitle="Synthèse des recommandations et perspectives de rénovation" />
         {(() => {
           const adresse = report.adresseClient;
-          const annee = b.constructionYear || getRaw(rawFields, "Année de construction");
+          const annee = getRaw(rawFields, "Année de construction") || b.constructionYear;
           const surface = b.heatedSurface || getRaw(rawFields, "Surface habitable");
           const sc1 = scData[0];
           const sc2 = scData[1];
