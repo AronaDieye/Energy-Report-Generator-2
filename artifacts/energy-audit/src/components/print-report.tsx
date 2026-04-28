@@ -756,28 +756,16 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
     //            or "COP ECS" > "COP nominal" > 2.5
     // Cons_Bois: final energy of wood/biomass sources (100 % ENR)
     // Cons_autres: final energy of non-renewable sources (gas, propane, fuel, etc.)
-    const computedEnrPct = (() => {
+    const computedEnrBreakdown = (() => {
       const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
 
-      // Read COP fields — priority order (highest to lowest):
-      //   1. Per-scenario field (extracted from scenario text block / table)
-      //   2. Global dedicated field (manually entered or extracted globally)
-      //   3. "COP nominal" (global fallback from SYSTÈMES CVC section)
-      //   4. Sensible default
-      const copNominal   = parseVal(rawFields.find(f => f.key === "COP nominal")?.value ?? null);
-
-      // Per-scenario COP (keys: "SCÉNARIO A - COP PAC Chauffage", etc.)
+      const copNominal     = parseVal(rawFields.find(f => f.key === "COP nominal")?.value ?? null);
       const copPacScenario = parseVal(getScVal(rawFields, code, "COP PAC Chauffage"));
       const copEcsScenario = parseVal(getScVal(rawFields, code, "COP Ballon Thermodynamique"));
-
-      // Global dedicated fields (set manually or extracted at building level)
-      const copPacGlobal  = parseVal(rawFields.find(f => f.key === "COP PAC Chauffage")?.value ?? null);
-      const copEcsGlobal  = parseVal(rawFields.find(f => f.key === "COP Ballon Thermodynamique")?.value
-                                  ?? rawFields.find(f => f.key === "COP ECS")?.value ?? null);
-
-      // COP_pac : per-scenario > global dedicated > COP nominal > 3.5
+      const copPacGlobal   = parseVal(rawFields.find(f => f.key === "COP PAC Chauffage")?.value ?? null);
+      const copEcsGlobal   = parseVal(rawFields.find(f => f.key === "COP Ballon Thermodynamique")?.value
+                                   ?? rawFields.find(f => f.key === "COP ECS")?.value ?? null);
       const COP_pac = copPacScenario ?? copPacGlobal ?? copNominal ?? 3.5;
-      // COP_ecs : per-scenario > global dedicated > COP nominal > 2.5
       const COP_ecs = copEcsScenario ?? copEcsGlobal ?? copNominal ?? 2.5;
 
       const sysChauffage = norm(rawFields.find(f => f.key === "Système de chauffage")?.value ?? "");
@@ -788,20 +776,25 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       const isBoisName = (n: string | null) => { if (!n) return false; const s = norm(n); return s.includes("bois") || s.includes("granule") || s.includes("biomasse") || s.includes("buche") || s.includes("pellet"); };
       const isElecName = (n: string | null) => { if (!n) return false; return norm(n).includes("electr"); };
 
-      let numerator = 0;
-      let denominator = 0;
+      // Intermediate breakdown — tracked separately per group
+      let enrPac = 0;    // (COP_pac − 2.3) × cons_pac  (heating PAC contribution)
+      let enrEcs = 0;    // (COP_ecs − 2.3) × cons_ecs  (thermodynamic ECS contribution)
+      let enrBois = 0;   // cons_bois (all biomass, 100 % ENR)
+      let denomChauffage = 0; // useful heat from all Chauffage sources
+      let denomEcs = 0;       // useful heat from all ECS sources
+      let denomBois = 0;      // cons_bois repeated in denominator
 
       for (const prefix of ["Chauffage", "ECS"] as const) {
-        // Select the correct COP based on the usage:
-        //   Chauffage → COP_pac (heating heat pump)
-        //   ECS       → COP_ecs (thermodynamic water heater)
         const copForPrefix = prefix === "Chauffage" ? COP_pac : COP_ecs;
-
-        const srcRaw  = getScVal(rawFields, code, `${prefix} - Source d'énergie`);
+        const srcRaw   = getScVal(rawFields, code, `${prefix} - Source d'énergie`);
         const totalVal = parseVal(getScVal(rawFields, code, `${prefix} - Énergie finale`));
         if (!srcRaw && totalVal === null) continue;
         const srcs = srcRaw ? srcRaw.split(", ").filter(Boolean) : [];
-        if (srcs.length === 0 && totalVal !== null) { denominator += totalVal; continue; }
+        if (srcs.length === 0 && totalVal !== null) {
+          if (prefix === "Chauffage") denomChauffage += totalVal;
+          else denomEcs += totalVal;
+          continue;
+        }
 
         for (const s of srcs) {
           const kwhAn = parseVal(getScVal(rawFields, code, `${prefix} - ${s} - Énergie finale`)) ??
@@ -809,16 +802,16 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
           if (!kwhAn || kwhAn <= 0) continue;
 
           if (isPacName(s)) {
-            // PAC or thermodynamique — use the COP specific to this usage
             const cop = copForPrefix;
-            numerator   += Math.max(0, cop - 2.3) * kwhAn;
-            denominator += cop * kwhAn;
+            const enrContrib = Math.max(0, cop - 2.3) * kwhAn;
+            const denomContrib = cop * kwhAn;
+            if (prefix === "Chauffage") { enrPac += enrContrib; denomChauffage += denomContrib; }
+            else                        { enrEcs += enrContrib; denomEcs += denomContrib; }
           } else if (isBoisName(s)) {
-            // Wood / biomass — 100 % ENR
-            numerator   += kwhAn;
-            denominator += kwhAn;
+            enrBois  += kwhAn;
+            denomBois += kwhAn;
+            // Also keep in the prefix denominator (already counted via denomBois for display)
           } else if (isElecName(s)) {
-            // "Electricité" source — determine whether it drives a PAC/thermodynamique
             const chaufPac = prefix === "Chauffage" && (
               conseils.includes("pac") || conseils.includes("pompe a chaleur") ||
               sysChauffage.includes("pac") || sysChauffage.includes("pompe")
@@ -829,20 +822,27 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
             );
             if (chaufPac || ecsPac) {
               const cop = copForPrefix;
-              numerator   += Math.max(0, cop - 2.3) * kwhAn;
-              denominator += cop * kwhAn;
+              const enrContrib = Math.max(0, cop - 2.3) * kwhAn;
+              const denomContrib = cop * kwhAn;
+              if (prefix === "Chauffage") { enrPac += enrContrib; denomChauffage += denomContrib; }
+              else                        { enrEcs += enrContrib; denomEcs += denomContrib; }
             } else {
-              // Standard electric resistance — 0 % ENR
-              denominator += kwhAn;
+              if (prefix === "Chauffage") denomChauffage += kwhAn;
+              else denomEcs += kwhAn;
             }
           } else {
-            // Propane, gaz, fioul, etc. — 0 % ENR
-            denominator += kwhAn;
+            if (prefix === "Chauffage") denomChauffage += kwhAn;
+            else denomEcs += kwhAn;
           }
         }
       }
-      return denominator <= 0 ? null : (numerator / denominator) * 100;
+
+      const numerator   = enrPac + enrEcs + enrBois;
+      const denominator = denomChauffage + denomEcs + denomBois;
+      if (denominator <= 0) return null;
+      return { copPac: COP_pac, copEcs: COP_ecs, enrPac, enrEcs, enrBois, denomChauffage, denomEcs, denomBois, numerator, denominator, pct: (numerator / denominator) * 100 };
     })();
+    const computedEnrPct = computedEnrBreakdown?.pct ?? null;
     const explicitDpeLabel = getScVal(rawFields, code, "Étiquette DPE après") ?? metaSc?.labelDpe ?? null;
     const computedDpeLabel = explicitDpeLabel ?? worstDpeClass(
       cep3Val != null ? get3CLEpClass(cep3Val) : null,
@@ -878,6 +878,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       gainEconomiqueEur: metaSc?.gainEconomiqueEur ?? null,
       tauxEnrRPct: metaSc?.tauxEnrRPct ?? null,
       computedEnrPct,
+      computedEnrBreakdown,
       coefficientB: coeffB,
       primeBarTh145Kwh,
       primeBarTh145KwhEur: primeBarTh145Kwh !== null ? primeBarTh145Kwh * 0.0065 : null,
@@ -1630,49 +1631,93 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
             {/* ── Taux ENR & R par scénario ── */}
             {scData.some((sc) => (sc.tauxEnrRPct ?? sc.computedEnrPct) !== null) && (
               <div style={{ marginTop: 18, pageBreakInside: "avoid" }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: 0.8, borderBottom: "2px solid #1e3a5f", paddingBottom: 4, marginBottom: 8 }}>
-                  Taux ENR &amp; R — Énergies renouvelables et de récupération
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: 0.8, borderBottom: "2px solid #1e3a5f", paddingBottom: 4, marginBottom: 10 }}>
+                  Taux ENR &amp; R — Calcul numérique par scénario
                 </div>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 8.5 }}>
-                  <thead>
-                    <tr style={{ background: "#f1f5f9" }}>
-                      <th style={{ padding: "5px 10px", textAlign: "left", fontWeight: 700, color: "#475569", borderBottom: "1px solid #e2e8f0", width: 70 }}>Scénario</th>
-                      <th style={{ padding: "5px 10px", textAlign: "center", fontWeight: 700, color: "#475569", borderBottom: "1px solid #e2e8f0" }}>Taux ENR &amp; R</th>
-                      <th style={{ padding: "5px 10px", textAlign: "left", fontWeight: 700, color: "#475569", borderBottom: "1px solid #e2e8f0" }}>Part d'énergie renouvelable (Chauffage + ECS)</th>
-                      <th style={{ padding: "5px 10px", textAlign: "center", fontWeight: 700, color: "#475569", borderBottom: "1px solid #e2e8f0", width: 70 }}>Source</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {scData.map((sc, i) => {
-                      const palette = ["#16a34a", "#2563eb", "#7c3aed", "#dc2626", "#ea580c"][i] ?? "#374151";
-                      const enrVal = sc.tauxEnrRPct ?? sc.computedEnrPct;
-                      if (enrVal === null) return null;
-                      const isManual = sc.tauxEnrRPct !== null;
-                      const barWidth = Math.min(100, Math.max(0, enrVal));
-                      return (
-                        <tr key={sc.code} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                          <td style={{ padding: "6px 10px" }}>
-                            <span style={{ background: palette, color: "#fff", fontWeight: 800, fontSize: 8, padding: "2px 7px", borderRadius: 3, letterSpacing: 0.5 }}>{sc.code}</span>
-                          </td>
-                          <td style={{ padding: "6px 10px", textAlign: "center" }}>
-                            <span style={{ fontWeight: 800, fontSize: 11, color: palette }}>{fmtNum(enrVal, 1)} %</span>
-                          </td>
-                          <td style={{ padding: "6px 10px" }}>
-                            <div style={{ background: "#f1f5f9", borderRadius: 4, overflow: "hidden", height: 10 }}>
-                              <div style={{ width: `${barWidth}%`, background: palette, height: "100%", borderRadius: 4 }} />
+                {/* Formule générale */}
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 5, padding: "7px 12px", marginBottom: 10, fontSize: 8 }}>
+                  <div style={{ fontWeight: 700, color: "#475569", marginBottom: 3 }}>Formule :</div>
+                  <div style={{ color: "#1e293b", fontStyle: "italic", lineHeight: 1.6 }}>
+                    Taux ENR&amp;R (%) = <span style={{ borderBottom: "1px solid #475569", padding: "0 4px" }}>ENR<sub>PAC</sub> + ENR<sub>ECS</sub> + ENR<sub>BOIS</sub></span>
+                    &nbsp;/&nbsp;
+                    <span style={{ borderBottom: "1px solid #475569", padding: "0 4px" }}>Conso Chauffage + Conso ECS + Conso Bois</span>
+                    &nbsp;× 100
+                  </div>
+                  <div style={{ color: "#64748b", fontSize: 7.5, marginTop: 3 }}>
+                    Avec : ENR<sub>PAC</sub> = conso × (COP − 2,3) &nbsp;|&nbsp; ENR<sub>ECS</sub> = conso ECS × (COP − 2,3) &nbsp;|&nbsp; ENR<sub>BOIS</sub> = conso bois
+                  </div>
+                </div>
+
+                {/* Calculs par scénario */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {scData.map((sc, i) => {
+                    const palette = ["#16a34a", "#2563eb", "#7c3aed", "#dc2626", "#ea580c"][i] ?? "#374151";
+                    const enrVal = sc.tauxEnrRPct ?? sc.computedEnrPct;
+                    if (enrVal === null) return null;
+                    const bd = sc.computedEnrBreakdown;
+                    const isManual = sc.tauxEnrRPct !== null && !bd;
+                    const fmt2 = (v: number) => v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                    return (
+                      <div key={sc.code} style={{ border: `1.5px solid ${palette}33`, borderLeft: `4px solid ${palette}`, borderRadius: 5, padding: "8px 12px", background: "#fff" }}>
+                        {/* En-tête scénario */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                          <span style={{ background: palette, color: "#fff", fontWeight: 800, fontSize: 8.5, padding: "2px 8px", borderRadius: 3 }}>{sc.code}</span>
+                          <span style={{ fontWeight: 800, fontSize: 11, color: palette }}>{fmtNum(enrVal, 2)} %</span>
+                          {isManual && <span style={{ fontSize: 7, color: "#94a3b8", fontStyle: "italic" }}>Taux saisi manuellement</span>}
+                        </div>
+
+                        {bd && (
+                          <div style={{ fontSize: 8, color: "#374151", lineHeight: 2 }}>
+                            {/* Ligne numérateur */}
+                            <div style={{ display: "flex", alignItems: "baseline", gap: 4, flexWrap: "wrap" }}>
+                              <span style={{ color: "#64748b", minWidth: 120 }}>Numérateur :</span>
+                              <span>ENR<sub>PAC</sub> + ENR<sub>ECS</sub> + ENR<sub>BOIS</sub></span>
+                              <span style={{ color: "#94a3b8" }}>=</span>
+                              <span style={{ fontWeight: 600 }}>{fmt2(bd.enrPac)}</span>
+                              <span style={{ color: "#94a3b8" }}>+</span>
+                              <span style={{ fontWeight: 600 }}>{fmt2(bd.enrEcs)}</span>
+                              <span style={{ color: "#94a3b8" }}>+</span>
+                              <span style={{ fontWeight: 600 }}>{fmt2(bd.enrBois)}</span>
+                              <span style={{ color: "#94a3b8" }}>=</span>
+                              <span style={{ fontWeight: 700, color: palette }}>{fmt2(bd.numerator)}</span>
                             </div>
-                          </td>
-                          <td style={{ padding: "6px 10px", textAlign: "center", fontSize: 7.5, color: "#94a3b8" }}>
-                            {isManual ? "Saisie manuelle" : "Calcul auto"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                <div style={{ fontSize: 7, color: "#94a3b8", marginTop: 5, fontStyle: "italic" }}>
-                  * Taux ENR &amp; R : proportion d'énergie renouvelable et de récupération dans la consommation de chauffage et ECS du scénario.
-                  Pour les pompes à chaleur : (COP − 2,3) × Conso ; pour la biomasse/bois : 100 % renouvelable.
+                            {/* Ligne dénominateur */}
+                            <div style={{ display: "flex", alignItems: "baseline", gap: 4, flexWrap: "wrap" }}>
+                              <span style={{ color: "#64748b", minWidth: 120 }}>Dénominateur :</span>
+                              <span>Conso Ch. + Conso ECS + Conso Bois</span>
+                              <span style={{ color: "#94a3b8" }}>=</span>
+                              <span style={{ fontWeight: 600 }}>{fmt2(bd.denomChauffage)}</span>
+                              <span style={{ color: "#94a3b8" }}>+</span>
+                              <span style={{ fontWeight: 600 }}>{fmt2(bd.denomEcs)}</span>
+                              <span style={{ color: "#94a3b8" }}>+</span>
+                              <span style={{ fontWeight: 600 }}>{fmt2(bd.denomBois)}</span>
+                              <span style={{ color: "#94a3b8" }}>=</span>
+                              <span style={{ fontWeight: 700, color: palette }}>{fmt2(bd.denominator)}</span>
+                            </div>
+                            {/* Résultat */}
+                            <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 2, paddingTop: 3, borderTop: `1px solid ${palette}22` }}>
+                              <span style={{ color: "#64748b", minWidth: 120 }}>Résultat :</span>
+                              <span style={{ fontWeight: 600 }}>{fmt2(bd.numerator)}</span>
+                              <span style={{ color: "#94a3b8" }}>/</span>
+                              <span style={{ fontWeight: 600 }}>{fmt2(bd.denominator)}</span>
+                              <span style={{ color: "#94a3b8" }}>× 100 =</span>
+                              <span style={{ fontWeight: 800, fontSize: 10, color: palette }}>{fmtNum(enrVal, 2)} %</span>
+                            </div>
+                            {/* COP utilisés */}
+                            <div style={{ fontSize: 7, color: "#94a3b8", marginTop: 3 }}>
+                              COP PAC chauffage = {fmtNum(bd.copPac, 1)} &nbsp;|&nbsp; COP ECS = {fmtNum(bd.copEcs, 1)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div style={{ fontSize: 7, color: "#94a3b8", marginTop: 6, fontStyle: "italic" }}>
+                  * ENR<sub>PAC</sub> = conso_pac × (COP − 2,3) ; ENR<sub>ECS</sub> = conso_ecs × (COP − 2,3) ; ENR<sub>BOIS</sub> = consommation bois/biomasse (100 % renouvelable).
+                  Conso Chauffage &amp; ECS = chaleur utile (COP × élec pour PAC, consommation directe sinon).
                 </div>
               </div>
             )}
