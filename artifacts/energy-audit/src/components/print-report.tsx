@@ -1626,6 +1626,56 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 );
               })}
             </div>
+
+            {/* ── Taux ENR & R par scénario ── */}
+            {scData.some((sc) => (sc.tauxEnrRPct ?? sc.computedEnrPct) !== null) && (
+              <div style={{ marginTop: 18, pageBreakInside: "avoid" }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: 0.8, borderBottom: "2px solid #1e3a5f", paddingBottom: 4, marginBottom: 8 }}>
+                  Taux ENR &amp; R — Énergies renouvelables et de récupération
+                </div>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 8.5 }}>
+                  <thead>
+                    <tr style={{ background: "#f1f5f9" }}>
+                      <th style={{ padding: "5px 10px", textAlign: "left", fontWeight: 700, color: "#475569", borderBottom: "1px solid #e2e8f0", width: 70 }}>Scénario</th>
+                      <th style={{ padding: "5px 10px", textAlign: "center", fontWeight: 700, color: "#475569", borderBottom: "1px solid #e2e8f0" }}>Taux ENR &amp; R</th>
+                      <th style={{ padding: "5px 10px", textAlign: "left", fontWeight: 700, color: "#475569", borderBottom: "1px solid #e2e8f0" }}>Part d'énergie renouvelable (Chauffage + ECS)</th>
+                      <th style={{ padding: "5px 10px", textAlign: "center", fontWeight: 700, color: "#475569", borderBottom: "1px solid #e2e8f0", width: 70 }}>Source</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {scData.map((sc, i) => {
+                      const palette = ["#16a34a", "#2563eb", "#7c3aed", "#dc2626", "#ea580c"][i] ?? "#374151";
+                      const enrVal = sc.tauxEnrRPct ?? sc.computedEnrPct;
+                      if (enrVal === null) return null;
+                      const isManual = sc.tauxEnrRPct !== null;
+                      const barWidth = Math.min(100, Math.max(0, enrVal));
+                      return (
+                        <tr key={sc.code} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "6px 10px" }}>
+                            <span style={{ background: palette, color: "#fff", fontWeight: 800, fontSize: 8, padding: "2px 7px", borderRadius: 3, letterSpacing: 0.5 }}>{sc.code}</span>
+                          </td>
+                          <td style={{ padding: "6px 10px", textAlign: "center" }}>
+                            <span style={{ fontWeight: 800, fontSize: 11, color: palette }}>{fmtNum(enrVal, 1)} %</span>
+                          </td>
+                          <td style={{ padding: "6px 10px" }}>
+                            <div style={{ background: "#f1f5f9", borderRadius: 4, overflow: "hidden", height: 10 }}>
+                              <div style={{ width: `${barWidth}%`, background: palette, height: "100%", borderRadius: 4 }} />
+                            </div>
+                          </td>
+                          <td style={{ padding: "6px 10px", textAlign: "center", fontSize: 7.5, color: "#94a3b8" }}>
+                            {isManual ? "Saisie manuelle" : "Calcul auto"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <div style={{ fontSize: 7, color: "#94a3b8", marginTop: 5, fontStyle: "italic" }}>
+                  * Taux ENR &amp; R : proportion d'énergie renouvelable et de récupération dans la consommation de chauffage et ECS du scénario.
+                  Pour les pompes à chaleur : (COP − 2,3) × Conso ; pour la biomasse/bois : 100 % renouvelable.
+                </div>
+              </div>
+            )}
           </>
         )}
 
