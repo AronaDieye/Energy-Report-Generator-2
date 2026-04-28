@@ -2878,11 +2878,9 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
               </div>
 
               {/* ── Indicateurs financiers ── */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 18 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 18 }}>
                 {[
                   { label: "Gain économique", value: sc.gainEconomiqueEur != null ? `${fmtNum(sc.gainEconomiqueEur)} €/an` : null },
-                  { label: "Investissement HT", value: sc.invest != null ? `${fmtNum(sc.invest)} €` : null },
-                  { label: "Temps de retour", value: sc.payback != null ? `${fmtNum(sc.payback, 1)} ans` : null },
                   { label: "Taux ENR-R", value: sc.tauxEnrRPct != null ? `${fmtNum(sc.tauxEnrRPct, 1)} %` : null },
                   { label: "Prime CEE (BAR-TH-145)", value: sc.primeBarTh145Euros != null ? `${fmtNum(sc.primeBarTh145Euros)} €` : null },
                 ].filter(c => c.value).map((card) => (
