@@ -571,6 +571,38 @@ router.patch("/audit/reports/:id/cover", async (req, res): Promise<void> => {
   res.json({ ok: true, id: updated.id });
 });
 
+router.patch("/audit/reports/:id/scenario-meta", async (req, res): Promise<void> => {
+  const reportId = parseInt(req.params.id, 10);
+  if (isNaN(reportId)) { res.status(400).json({ error: "ID invalide" }); return; }
+
+  const [existing] = await db.select().from(auditReportsTable).where(eq(auditReportsTable.id, reportId));
+  if (!existing) { res.status(404).json({ error: "Rapport introuvable" }); return; }
+
+  const { scenarios } = req.body as { scenarios?: Array<{ investissementHt?: number | null }> };
+  if (!Array.isArray(scenarios)) { res.status(400).json({ error: "scenarios doit être un tableau" }); return; }
+
+  const existingMeta = (existing.metadata ?? {}) as Record<string, unknown>;
+  const existingScenarios = (existingMeta.scenarios ?? []) as Array<Record<string, unknown>>;
+
+  const mergedScenarios = scenarios.map((patch, i) => {
+    const base = existingScenarios[i] ?? {};
+    const merged: Record<string, unknown> = { ...base };
+    if ("investissementHt" in patch) {
+      merged.investissementHt = patch.investissementHt === null ? null : Number(patch.investissementHt);
+    }
+    return merged;
+  });
+
+  const mergedMeta = { ...existingMeta, scenarios: mergedScenarios } as typeof auditReportsTable.$inferInsert["metadata"];
+
+  const [updated] = await db.update(auditReportsTable)
+    .set({ metadata: mergedMeta })
+    .where(eq(auditReportsTable.id, reportId))
+    .returning({ id: auditReportsTable.id });
+
+  res.json({ ok: true, id: updated.id });
+});
+
 router.patch("/audit/reports/:id/characteristics", async (req, res): Promise<void> => {
   const reportId = parseInt(req.params.id, 10);
   if (isNaN(reportId)) { res.status(400).json({ error: "ID invalide" }); return; }

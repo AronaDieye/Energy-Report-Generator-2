@@ -648,6 +648,102 @@ function ScenarioCards({
   );
 }
 
+function ScenarioInvestEditor({
+  rawFields,
+  reportId,
+  initialMeta,
+  onSaved,
+}: {
+  rawFields: RawField[];
+  reportId: number;
+  initialMeta: Array<{ investissementHt?: number | null }>;
+  onSaved: () => void;
+}) {
+  const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
+  const scenarioCodes = useScenarioCodes(rawFields);
+  const [values, setValues] = useState<string[]>(() =>
+    scenarioCodes.map((_, i) => {
+      const v = initialMeta[i]?.investissementHt;
+      return v !== null && v !== undefined ? String(v) : "";
+    })
+  );
+  const [saving, setSaving] = useState(false);
+
+  if (scenarioCodes.length === 0) return null;
+
+  const scBorderColors = ["border-green-400", "border-blue-400", "border-purple-400"];
+
+  const rawInvest = (code: string): number | null => {
+    const val = getScVal(rawFields, code, "Investissement");
+    if (!val) return null;
+    const n = parseFloat(val.replace(/\s/g, "").replace(",", "."));
+    return isNaN(n) ? null : n;
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const scenarios = scenarioCodes.map((_, i) => {
+        const raw = values[i]?.trim();
+        return { investissementHt: raw === "" ? null : Number(raw.replace(/\s/g, "").replace(",", ".")) };
+      });
+      const res = await fetch(`${apiBase}/api/audit/reports/${reportId}/scenario-meta`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scenarios }),
+      });
+      if (!res.ok) throw new Error(`Erreur ${res.status}`);
+      toast({ title: "Investissements sauvegardés", description: "Les montants ont été mis à jour dans le rapport." });
+      onSaved();
+    } catch {
+      toast({ title: "Erreur de sauvegarde", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-primary" />
+          Investissement par scénario — correction manuelle
+        </CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          Si le fichier BAO exporte le même montant pour tous les scénarios, saisissez ici les montants corrects (HT).
+          Ces valeurs remplacent celles du BAO dans le rapport imprimé.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {scenarioCodes.map((code, i) => {
+          const baoVal = rawInvest(code);
+          return (
+            <div key={code} className={`flex items-center gap-4 p-3 rounded-lg border-l-4 bg-muted/10 ${scBorderColors[i] || "border-slate-400"}`}>
+              <span className="font-bold text-sm w-12 shrink-0">{code}</span>
+              <div className="flex-1 space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  Valeur BAO : {baoVal !== null ? baoVal.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €" : "—"}
+                </Label>
+                <Input
+                  type="number"
+                  placeholder="Montant HT en €"
+                  value={values[i] ?? ""}
+                  onChange={(e) => setValues((prev) => prev.map((v, j) => j === i ? e.target.value : v))}
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
+          );
+        })}
+        <Button onClick={handleSave} disabled={saving} size="sm" className="mt-2">
+          {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+          Enregistrer les montants
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 function dpeFromEP(ep: number): string {
   if (ep <= 70) return "A";
   if (ep <= 110) return "B";
@@ -1806,6 +1902,12 @@ export function ReportDetail() {
         <TabsContent value="synthese" className="space-y-6 mt-0">
           <SyntheseGlobale rawFields={rawFields} initialCost={initialCost ?? null} scenarios={(report as unknown as { metadata?: { scenarios?: Array<{ tauxEnrRPct?: number | null }> } }).metadata?.scenarios} />
           <ScenarioCards rawFields={rawFields} initialCost={initialCost ?? null} />
+          <ScenarioInvestEditor
+            rawFields={rawFields}
+            reportId={Number(id)}
+            initialMeta={((report as unknown as { metadata?: { scenarios?: Array<{ investissementHt?: number | null }> } }).metadata?.scenarios) ?? []}
+            onSaved={() => refetch()}
+          />
         </TabsContent>
 
         {/* ── Onglet Consommations ─────────────────────────────────────── */}

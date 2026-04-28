@@ -479,6 +479,7 @@ interface BaoScenarioMeta {
   labelDpe?: string | null;
   totalDepenseAnnuelle?: number | null;
   totalKwhEfAn?: number | null;
+  investissementHt?: number | null;
 }
 
 interface BaoMetadata {
@@ -872,7 +873,7 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
       ges: parseVal(getScVal(rawFields, code, "GES Th-C-E après")) ?? metaSc?.gesCo2KgM2 ?? null,
       cost: parseVal(getScVal(rawFields, code, "Dépense annuelle après")) ?? metaSc?.totalDepenseAnnuelle ?? null,
       dpeLabel: computedDpeLabel,
-      invest: parseVal(getScVal(rawFields, code, "Investissement")) ?? null,
+      invest: parseVal(getScVal(rawFields, code, "Investissement")) ?? metaSc?.investissementHt ?? null,
       payback: parseVal(getScVal(rawFields, code, "Temps de retour")) ?? null,
       gainPct: parseVal(getScVal(rawFields, code, "Gain sur CEP")) ?? metaSc?.gainEnergetiquePct ?? null,
       gainEconomiqueEur: metaSc?.gainEconomiqueEur ?? null,
