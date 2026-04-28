@@ -32,6 +32,7 @@ import {
   Download,
   Edit,
   Loader2,
+  Upload,
 } from "lucide-react";
 import { EnergyLabel } from "../components/energy-label";
 import { BatimentTab } from "../components/batiment-tab";
@@ -1633,6 +1634,8 @@ export function ReportDetail() {
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [showCoverEditor, setShowCoverEditor] = useState(false);
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
+  const [isReimporting, setIsReimporting] = useState(false);
+  const reimportInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleDownloadPdf = useCallback(() => {
     setShowPdfPreview(false);
@@ -1672,6 +1675,30 @@ export function ReportDetail() {
       setIsPdfGenerating(false);
     }
   }, [id, isPdfGenerating]);
+
+  const handleReimportFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+    setIsReimporting(true);
+    try {
+      const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`${apiBase}/api/audit/reports/${id}/reimport`, { method: "POST", body: fd });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        toast({ title: "Erreur lors du remplacement", description: text || `Erreur serveur (${res.status})`, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Fichier mis à jour", description: "Les données du rapport ont été rechargées depuis le nouveau fichier. Vos modifications de mise en page sont conservées." });
+      refetch();
+    } catch {
+      toast({ title: "Erreur réseau", description: "Impossible de contacter le serveur.", variant: "destructive" });
+    } finally {
+      setIsReimporting(false);
+      if (reimportInputRef.current) reimportInputRef.current.value = "";
+    }
+  }, [id, refetch]);
 
   if (isLoading) {
     return (
@@ -1721,7 +1748,18 @@ export function ReportDetail() {
           <h1 className="text-3xl font-bold tracking-tight">Rapport d'audit énergétique</h1>
           <p className="text-muted-foreground">{report.fileName}</p>
         </div>
-        <div className="flex gap-2 print:hidden">
+        <div className="flex gap-2 print:hidden flex-wrap">
+          <input
+            ref={reimportInputRef}
+            type="file"
+            accept=".docx,.doc,.csv,.pdf"
+            className="hidden"
+            onChange={handleReimportFile}
+          />
+          <Button variant="outline" onClick={() => reimportInputRef.current?.click()} disabled={isReimporting}>
+            {isReimporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+            {isReimporting ? "Mise à jour…" : "Remplacer le fichier"}
+          </Button>
           <Button variant="outline" onClick={() => setShowCoverEditor(true)}>
             <Edit className="h-4 w-4 mr-2" />
             Éditer la page de garde

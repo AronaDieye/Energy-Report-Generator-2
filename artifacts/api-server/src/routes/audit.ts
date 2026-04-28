@@ -571,6 +571,124 @@ router.patch("/audit/reports/:id/cover", async (req, res): Promise<void> => {
   res.json({ ok: true, id: updated.id });
 });
 
+router.post(
+  "/audit/reports/:id/reimport",
+  upload.single("file"),
+  async (req, res): Promise<void> => {
+    const reportId = parseInt(req.params.id, 10);
+    if (isNaN(reportId)) { res.status(400).json({ error: "ID invalide" }); return; }
+
+    if (!req.file) { res.status(400).json({ error: "Aucun fichier fourni" }); return; }
+
+    const [existing] = await db.select().from(auditReportsTable).where(eq(auditReportsTable.id, reportId));
+    if (!existing) { res.status(404).json({ error: "Rapport introuvable" }); return; }
+
+    const file = req.file;
+    const isDocx =
+      file.mimetype.includes("word") ||
+      file.originalname.toLowerCase().endsWith(".docx") ||
+      file.originalname.toLowerCase().endsWith(".doc");
+    const isCsv =
+      file.mimetype.includes("csv") ||
+      file.mimetype.includes("text") ||
+      file.originalname.toLowerCase().endsWith(".csv");
+    const isPdf =
+      file.mimetype === "application/pdf" ||
+      file.originalname.toLowerCase().endsWith(".pdf");
+
+    if (!isDocx && !isCsv && !isPdf) {
+      res.status(400).json({ error: "Format non supporté. Utilisez DOCX, CSV ou PDF." });
+      return;
+    }
+
+    try {
+      let extracted: Awaited<ReturnType<typeof extractFromVisitReportPdf>> | Awaited<ReturnType<typeof extractFromDocx>>;
+      let fileType: string;
+
+      if (isPdf) {
+        extracted = await extractFromVisitReportPdf(file.buffer);
+        fileType = "pdf";
+      } else if (isDocx) {
+        extracted = await extractFromDocx(file.buffer);
+        fileType = "docx";
+      } else {
+        extracted = await extractFromCsv(file.buffer);
+        fileType = "csv";
+      }
+
+      const visitReportData = (extracted as { visitReportData?: unknown }).visitReportData ?? null;
+      const sectionCharacteristics = (extracted as { sectionCharacteristics?: unknown }).sectionCharacteristics ?? null;
+      const ubatParoisData = (extracted as { ubatParoisData?: unknown }).ubatParoisData ?? null;
+      const scenarioUbatData = extracted.scenarioUbatData ?? null;
+
+      const [updated] = await db
+        .update(auditReportsTable)
+        .set({
+          fileName: file.originalname,
+          fileType,
+          buildingName: extracted.buildingName,
+          buildingAddress: extracted.buildingAddress,
+          buildingType: extracted.buildingType,
+          constructionYear: extracted.constructionYear,
+          totalSurface: extracted.totalSurface,
+          heatedSurface: extracted.heatedSurface,
+          numberOfFloors: extracted.numberOfFloors,
+          numberOfOccupants: extracted.numberOfOccupants,
+          climateZone: extracted.climateZone,
+          totalConsumption: extracted.totalConsumption,
+          electricityConsumption: extracted.electricityConsumption,
+          gasConsumption: extracted.gasConsumption,
+          heatingConsumption: extracted.heatingConsumption,
+          coolingConsumption: extracted.coolingConsumption,
+          hotWaterConsumption: extracted.hotWaterConsumption,
+          consumptionUnit: extracted.consumptionUnit,
+          consumptionReferenceYear: extracted.consumptionReferenceYear,
+          totalCost: extracted.totalCost,
+          electricityCost: extracted.electricityCost,
+          gasCost: extracted.gasCost,
+          currency: extracted.currency,
+          costReferenceYear: extracted.costReferenceYear,
+          totalCo2Emissions: extracted.totalCo2Emissions,
+          electricityCo2Emissions: extracted.electricityCo2Emissions,
+          gasCo2Emissions: extracted.gasCo2Emissions,
+          co2Unit: extracted.co2Unit,
+          wallInsulation: extracted.wallInsulation,
+          roofInsulation: extracted.roofInsulation,
+          floorInsulation: extracted.floorInsulation,
+          windowType: extracted.windowType,
+          windowSurface: extracted.windowSurface,
+          airTightness: extracted.airTightness,
+          thermalBridges: extracted.thermalBridges,
+          heatingSystem: extracted.heatingSystem,
+          heatingEfficiency: extracted.heatingEfficiency,
+          coolingSystem: extracted.coolingSystem,
+          coolingEfficiency: extracted.coolingEfficiency,
+          ventilationType: extracted.ventilationType,
+          hotWaterSystem: extracted.hotWaterSystem,
+          currentLabel: extracted.currentLabel,
+          primaryEnergyConsumption: extracted.primaryEnergyConsumption,
+          referenceConsumption: extracted.referenceConsumption,
+          energyIndex: extracted.energyIndex,
+          recommendations: extracted.recommendations,
+          rawFields: extracted.rawFields,
+          sectionCharacteristics: sectionCharacteristics as typeof auditReportsTable.$inferInsert["sectionCharacteristics"],
+          visitReportData: visitReportData as typeof auditReportsTable.$inferInsert["visitReportData"],
+          ubatParoisData: ubatParoisData as typeof auditReportsTable.$inferInsert["ubatParoisData"],
+          scenarioUbatData: scenarioUbatData as typeof auditReportsTable.$inferInsert["scenarioUbatData"],
+          // metadata is intentionally NOT updated — manual edits (cover page, scenario overrides) are preserved
+        })
+        .where(eq(auditReportsTable.id, reportId))
+        .returning();
+
+      const report = mapToApiReport(updated);
+      res.status(200).json(report);
+    } catch (err) {
+      req.log.error({ err }, "Error reimporting audit file");
+      res.status(500).json({ error: "Erreur lors du traitement du fichier" });
+    }
+  }
+);
+
 router.patch("/audit/reports/:id/scenario-meta", async (req, res): Promise<void> => {
   const reportId = parseInt(req.params.id, 10);
   if (isNaN(reportId)) { res.status(400).json({ error: "ID invalide" }); return; }
