@@ -1081,8 +1081,8 @@ export function PrintReport({ report, mode = "print" }: { report: ReportData; mo
                 {[
                   { l: "Type de bâtiment", v: b.buildingType || getRaw(rawFields, "Type de bâtiment") },
                   { l: "Année de construction", v: getRaw(rawFields, "Année de construction") || b.constructionYear },
-                  { l: "Surface habitable", v: b.heatedSurface ? `${fmtNum(b.heatedSurface)} m²` : getRaw(rawFields, "Surface habitable") },
-                  { l: "Surface SHON", v: b.totalSurface ? `${fmtNum(b.totalSurface)} m²` : getRaw(rawFields, "Surface SHON") },
+                  { l: "Surface habitable", v: b.heatedSurface ? `${fmtNum(b.heatedSurface, 2)} m²` : getRaw(rawFields, "Surface habitable") },
+                  { l: "Surface SHON", v: b.totalSurface ? `${fmtNum(b.totalSurface, 2)} m²` : getRaw(rawFields, "Surface SHON") },
                   { l: "Niveaux", v: b.numberOfFloors || getRaw(rawFields, "Nombre de niveaux") },
                   { l: "Zone climatique", v: b.climateZone || zoneClim },
                   { l: "Station météo", v: stationRaw },
