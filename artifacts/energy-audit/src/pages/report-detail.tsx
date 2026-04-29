@@ -140,10 +140,12 @@ function SyntheseGlobale({
   rawFields,
   initialCost,
   scenarios,
+  initialDpeLabel,
 }: {
   rawFields: RawField[];
   initialCost: number | null;
   scenarios?: Array<{ tauxEnrRPct?: number | null }>;
+  initialDpeLabel?: string | null;
 }) {
   const scenarioCodes = useScenarioCodes(rawFields);
   if (scenarioCodes.length === 0) return null;
@@ -203,7 +205,9 @@ function SyntheseGlobale({
             <tr className="border-b">
               <td className="py-3 px-4 text-muted-foreground font-medium">Étiquette DPE</td>
               <td className="py-3 px-4 text-center bg-slate-50">
-                {thceInitial !== null ? (
+                {initialDpeLabel ? (
+                  <EnergyLabel label={initialDpeLabel} className="h-9 w-9 text-base mx-auto" />
+                ) : thceInitial !== null ? (
                   <EnergyLabel label={dpeFromEP(thceInitial)} className="h-9 w-9 text-base mx-auto" />
                 ) : "—"}
               </td>
@@ -508,9 +512,11 @@ function SyntheseGlobale({
 function ScenarioCards({
   rawFields,
   initialCost,
+  initialDpeLabel,
 }: {
   rawFields: RawField[];
   initialCost: number | null;
+  initialDpeLabel?: string | null;
 }) {
   const scenarioCodes = useScenarioCodes(rawFields);
   if (scenarioCodes.length === 0) return null;
@@ -564,7 +570,9 @@ function ScenarioCards({
               <div className="grid grid-cols-3 gap-4 p-4 bg-muted/20 rounded-lg">
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground mb-2 font-medium">ÉTAT INITIAL</p>
-                  {thceInitial !== null ? (
+                  {initialDpeLabel ? (
+                    <EnergyLabel label={initialDpeLabel} className="h-12 w-12 text-xl mx-auto mb-1" />
+                  ) : thceInitial !== null ? (
                     <EnergyLabel label={dpeFromEP(thceInitial)} className="h-12 w-12 text-xl mx-auto mb-1" />
                   ) : <div className="h-12 w-12 mx-auto" />}
                   <p className="text-xs font-mono font-semibold">
@@ -1938,8 +1946,8 @@ export function ReportDetail() {
 
         {/* ── Onglet Synthèse ───────────────────────────────────────────── */}
         <TabsContent value="synthese" className="space-y-6 mt-0">
-          <SyntheseGlobale rawFields={rawFields} initialCost={initialCost ?? null} scenarios={(report as unknown as { metadata?: { scenarios?: Array<{ tauxEnrRPct?: number | null }> } }).metadata?.scenarios} />
-          <ScenarioCards rawFields={rawFields} initialCost={initialCost ?? null} />
+          <SyntheseGlobale rawFields={rawFields} initialCost={initialCost ?? null} scenarios={(report as unknown as { metadata?: { scenarios?: Array<{ tauxEnrRPct?: number | null }> } }).metadata?.scenarios} initialDpeLabel={report.energyLabel.currentLabel} />
+          <ScenarioCards rawFields={rawFields} initialCost={initialCost ?? null} initialDpeLabel={report.energyLabel.currentLabel} />
           <ScenarioInvestEditor
             rawFields={rawFields}
             reportId={Number(id)}
