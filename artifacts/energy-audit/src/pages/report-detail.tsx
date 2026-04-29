@@ -1826,11 +1826,11 @@ export function ReportDetail() {
                 <div className="grid grid-cols-2 gap-x-8 gap-y-3">
                   <div>
                     <p className="text-xs text-slate-400 dark:text-muted-foreground">Surface habitable</p>
-                    <p className="text-xl font-bold">{fmt(report.buildingInfo.heatedSurface, "m²")}</p>
+                    <p className="text-xl font-bold">{fmt(report.buildingInfo.heatedSurface, "m²", 2)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-400 dark:text-muted-foreground">Surface SHON</p>
-                    <p className="text-xl font-bold">{fmt(report.buildingInfo.totalSurface, "m²")}</p>
+                    <p className="text-xl font-bold">{fmt(report.buildingInfo.totalSurface, "m²", 2)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-400 dark:text-muted-foreground">Type de bâtiment</p>
