@@ -787,7 +787,7 @@ interface ScenarioResult {
 
 function parseScenarios(text: string): ScenarioResult[] {
   const scenarios: ScenarioResult[] = [];
-  const modifRegex = /DESCRIPTIF DE LA MODIFICATION n° (\d+)\s[\s\S]*?Modification\s*:\s*(\w+)[\s\S]*?Conseils\s+([\s\S]*?)(?:Avertissement|DESCRIPTIF DE LA MODIFICATION)/gi;
+  const modifRegex = /DESCRIPTIF DE LA MODIFICATION n° (\d+)\s[\s\S]*?Modification\s*:\s*(\w+)[\s\S]*?Conseils\s+([\s\S]*?)(?:Avertissement|DESCRIPTIF DE LA MODIFICATION|Variante\s+\d+\s*:)/gi;
 
   let match;
   while ((match = modifRegex.exec(text)) !== null) {
